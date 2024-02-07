@@ -1,0 +1,29 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Backend de las dos aplicaciones. La tecnología empleada es Express, un framework de Node.js",
+  "main": "index.js",
+  "scripts": {
+    "lint": "standard",
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UNIZAR-30226-2024-07/backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/UNIZAR-30226-2024-07/backend/issues"
+  },
+  "homepage": "https://github.com/UNIZAR-30226-2024-07/backend#readme",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3",
+    "standard": "^17.1.0"
+  }
+}
