@@ -8,6 +8,6 @@ const connection = require('./database/connection')
 connection.connection()
 
 // Puerto de escucha
-app.listen(puerto, () => {
-    console.log("Servidor de node corriendo en el puerto: ", puerto)
+app.listen(port, () => {
+    console.log("Servidor de node corriendo en el puerto: ", port)
 })
