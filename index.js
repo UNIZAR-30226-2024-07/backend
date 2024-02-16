@@ -1,13 +1,16 @@
+require('dotenv').config()
 // Configuracion previa
 const express = require('express')
+const connectDB = require('./database/connection')
+const { appConfig, db } = require('./config')
 const app = express()
-const port = 8080
 
 // Conexion con BD (MongoDB)
 const connection = require('./database/connection')
 connection.connection()
 
 // Puerto de escucha
-app.listen(port, () => {
-    console.log("Servidor de node corriendo en el puerto: ", port)
+connectDB(db)
+app.listen(appConfig.port, () => {
+    console.log("Servidor de node corriendo en el puerto: ", appConfig.port)
 })
