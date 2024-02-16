@@ -32,17 +32,12 @@ const userSchema = Schema({
         type: Number, 
         required: true
     },
-    // Fecha de creación de la cuenta
-    created_at: {
-        type: Date,
-        default: Date.now
-    },
     // Rol: "user" OR "admin"
     rol: {
         type: String, 
         default: "user"
     },
 
-})
+}, {timestamps: true})
 
 module.exports = model("User", userSchema)

@@ -1,7 +1,7 @@
-/* Estadistica */
+/* Tapete */
 const{Schema, model} = require('mongoose')
 
-const statSchema = Schema({
+const rugSchema = Schema({
     // Nombre de la estadistica
     name: {
         type: String,
