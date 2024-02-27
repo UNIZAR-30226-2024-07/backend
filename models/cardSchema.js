@@ -1,21 +1,21 @@
 /*******************************************************************************
- * Tabla: Rug
+ * Tabla: Card
  * Descripcion: contiene el nombre de una imagen junto con su precio de los
- * diseños de tapetes que pueden poseer los usuarios en el juego
+ * diseños de cartas que pueden poseer los usuarios en el juego
  ******************************************************************************/
 const{Schema, model} = require('mongoose')
 
-const rugSchema = Schema({
-    // Nombre de la imagen del tapete
+const cardSchema = Schema({
+    // Nombre de la imagen de las cartas
     image: {
         type: String,
         required: true
     },
-    // Precio del tapete
+    // Precio de la carta
     price: {
         type: Number,
         required: true
     },
 })
 
-module.exports = model("Rug", rugSchema)
+module.exports = model("Card", cardSchema)

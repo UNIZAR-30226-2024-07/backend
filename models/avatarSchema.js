@@ -1,14 +1,18 @@
-
+/*******************************************************************************
+ * Tabla: Avatar
+ * Descripcion: contiene el nombre de una imagen junto con su precio de los
+ * avatares (fotos de perfil) de los usuarios en el juego
+ ******************************************************************************/
 const{Schema, model} = require('mongoose')
 
 const avatarSchema = Schema({
-    // Nombre de la recompensa
-    name: {
+    // Nombre de la imagen del avatar
+    image: {
         type: String,
         required: true
     },
-    // Valor asociado a la estadistica
-    value: {
+    // Precio del avatar
+    price: {
         type: Number,
         required: true
     },

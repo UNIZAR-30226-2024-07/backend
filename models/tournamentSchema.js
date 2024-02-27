@@ -7,6 +7,12 @@ const tournamentSchema = Schema({
         type: String,
         required: true
     },
+    // Recompensa del torneo
+    user: {
+        type: Schema.ObjectId,
+        ref: "Reward"
+    }
+    //
 })
 
-module.exports = model("Reward", rewardSchema)
+module.exports = model("Tournament", rewardSchema)

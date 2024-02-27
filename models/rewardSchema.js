@@ -7,7 +7,7 @@ const rewardSchema = Schema({
         type: String,
         required: true
     },
-    // Valor asociado a la estadistica
+    // Valor asociado a la recompensa
     value: {
         type: Number,
         required: true
