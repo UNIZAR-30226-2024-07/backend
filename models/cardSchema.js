@@ -9,7 +9,8 @@ const cardSchema = Schema({
     // Nombre de la imagen de las cartas
     image: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     // Precio de la carta
     price: {

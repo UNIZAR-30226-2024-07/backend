@@ -9,7 +9,8 @@ const avatarSchema = Schema({
     // Nombre de la imagen del avatar
     image: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     // Precio del avatar
     price: {

@@ -25,12 +25,6 @@ const boardSchema = Schema({
         type: Number,
         required: true
     },
-    // Banca (bot) de la partida
-    bank: {
-        type: Schema.ObjectId,
-        ref: "Bank",
-        required: true
-    },
     // Tipo de mesa: 'public', 'private', 'tournament' y 'single'
     boardType: {
         type: String,
@@ -58,6 +52,7 @@ const boardSchema = Schema({
     // Nombre de la mesa privada
     name: {
         type: String,
+        unique: true
     },
     // Contraseña de la mesa privada
     password: {

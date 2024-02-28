@@ -5,7 +5,8 @@ const rewardSchema = Schema({
     // Nombre de la recompensa
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     // Valor asociado a la recompensa
     value: {

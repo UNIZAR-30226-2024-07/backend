@@ -9,7 +9,7 @@ const bankSchema = Schema({
     // Nivel de la banca: 'beginner', 'medium', 'expert'
     level: {
         type: String,
-        required: true
+        required: true,
     },
     // Partida a la que pertenece la banca
     board: {

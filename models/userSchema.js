@@ -6,7 +6,8 @@ const userSchema = Schema({
     // Nickname de usuario
     nick: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     // Nombre real del usuario
     name: {
