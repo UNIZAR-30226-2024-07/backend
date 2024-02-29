@@ -6,7 +6,7 @@ const add = async (req, res) => {
     try {
         const { image, price } = req.body;
         const newAvatar = await Avatar.create({ image, price });
-        res.status(201).json(newAvatar);
+        res.status(200).json(newAvatar);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

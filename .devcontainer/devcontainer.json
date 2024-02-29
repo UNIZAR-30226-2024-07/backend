@@ -20,11 +20,7 @@
 		}
 	},
 	"features": {
-		"ghcr.io/devcontainers/features/node:1": {
-			"nodeGypDependencies": true,
-			"version": "lts",
-			"nvmVersion": "latest"
-		}
+		"ghcr.io/devcontainers/features/node:1": {}
 	}
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
