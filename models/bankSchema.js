@@ -16,6 +16,6 @@ const bankSchema = Schema({
         type: Schema.ObjectId,
         required: true
     }
-})
+}, {timestamps: true})
 
 module.exports = model("Bank", bankSchema)

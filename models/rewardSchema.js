@@ -13,6 +13,6 @@ const rewardSchema = Schema({
         type: Number,
         required: true
     },
-})
+}, {timestamps: true})
 
 module.exports = model("Reward", rewardSchema)

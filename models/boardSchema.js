@@ -58,6 +58,6 @@ const boardSchema = Schema({
     password: {
         type: String
     }
-})
+}, {timestamps: true})
 
 module.exports = model("Board", boardSchema)
