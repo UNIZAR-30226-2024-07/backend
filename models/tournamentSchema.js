@@ -5,12 +5,23 @@ const tournamentSchema = Schema({
     // Nombre del torneo
     name: {
         type: String,
+        required: true,
+        unique: true
+    },
+    // Precio de entrada del torneo
+    price: {
+        type: Number,
+        required: true,
+    },
+    // Recompensa del campeón del torneo
+    coins_winner: {
+        type: Number,
         required: true
     },
-    // Recompensa del torneo
-    reward: {
-        type: Schema.ObjectId,
-        ref: "Reward"
+    // Recompensa del subcampeón del torneo
+    coins_subwinner: {
+        type: Number,
+        required: true
     }
 })
 

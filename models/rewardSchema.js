@@ -3,7 +3,7 @@ const{Schema, model} = require('mongoose')
 
 const rewardSchema = Schema({
     // Nombre de la recompensa
-    name: {
+    day: {
         type: String,
         required: true,
         unique: true

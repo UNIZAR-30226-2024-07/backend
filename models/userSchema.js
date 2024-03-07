@@ -41,32 +41,39 @@ const userSchema = Schema({
         required: true
     },
     // Lista de avatares que posee el jugador
-    avatars: [{
-        avatar: {
-            type: Schema.ObjectId,
-            ref: "Avatar"
-        },
-        // Solo habra un avatar con current = True, que será la foto usada
-        current: Boolean
-    }],
-    rugs: [{
-        rug: {
-            type: Schema.ObjectId,
-            ref: "Rug"
-        },
-        // Solo habra un tapete con current = True, que será el tapete usado
-        current: Boolean
-    }],
-    cards: [{
-        card: {
-            type: Schema.ObjectId,
-            ref: "Card"
-        },
-        // Solo habra un card con current = True, que será el diseño de cartas usado
-        current: Boolean
-    }],
-
-
+    avatars: {
+        type: [{
+            avatar: {
+                type: Schema.ObjectId,
+                ref: "Avatar"
+            },
+            // Solo habra un avatar con current = True, que será la foto usada
+            current: Boolean    
+        }],
+        default: []
+    },
+    rugs: {
+        type: [{
+            rug: {
+                type: Schema.ObjectId,
+                ref: "Rug"
+            },
+            // Solo habra un tapete con current = True, que será el tapete usado
+            current: Boolean
+        }],
+        default: []
+    },
+    cards: {
+        type: [{
+            card: {
+                type: Schema.ObjectId,
+                ref: "Card"
+            },
+            // Solo habra un card con current = True, que será el diseño de cartas usado
+            current: Boolean    
+        }],
+        default: []
+    }
 }, {timestamps: true})
 
 module.exports = model("User", userSchema)
