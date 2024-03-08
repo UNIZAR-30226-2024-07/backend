@@ -17,6 +17,6 @@ const cardSchema = Schema({
         type: Number,
         required: true
     },
-})
+}, {timestamps: true})
 
 module.exports = model("Card", cardSchema)

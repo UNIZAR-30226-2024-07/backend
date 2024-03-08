@@ -22,6 +22,6 @@ const friendSchema = Schema({
         type: Boolean,
         default: false
     }
-})
+}, {timestamps: true})
 
 module.exports = model("Friend", friendSchema)

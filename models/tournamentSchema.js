@@ -23,6 +23,6 @@ const tournamentSchema = Schema({
         type: Number,
         required: true
     }
-})
+}, {timestamps: true})
 
 module.exports = model("Tournament", tournamentSchema)

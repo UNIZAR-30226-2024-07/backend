@@ -17,6 +17,6 @@ const avatarSchema = Schema({
         type: Number,
         required: true
     },
-})
+}, {timestamps: true})
 
 module.exports = model("Avatar", avatarSchema)
