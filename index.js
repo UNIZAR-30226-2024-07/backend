@@ -3,6 +3,7 @@ require('dotenv').config()
 // Configuracion previa
 const express = require('express')
 const cors = require('cors')
+const cookieParser = require('cookie-parser')
 const connection = require('./database/connection')
 const { appConfig, db } = require('./config')
 const app = express()
@@ -13,6 +14,7 @@ connection(db)
 // middlewares
 app.use(cors())
 app.use(express.json())
+app.use(cookieParser())
 
 // routes
 app.use('/api/avatar', require('./routes/avatarRoute'))

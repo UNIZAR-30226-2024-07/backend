@@ -206,7 +206,6 @@ const tournamentByName = async (req, res) => {
     }
 }
 
-
 // Funciones que se exportan
 module.exports = {
     add,
