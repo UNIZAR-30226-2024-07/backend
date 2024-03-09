@@ -6,7 +6,6 @@
 const {Schema, model} = require('mongoose')
 
 const boardSchema = Schema({
-    
     // -------------- Atributos para todo tipo de mesas --------------
     // Usuarios jugando en la mesa
     players: [{
@@ -15,24 +14,10 @@ const boardSchema = Schema({
             ref: "User"
         }
     }],
-    // Numero maximo de jugadores en la partida
-    maxPlayers: {
-        type: Number,
-        required: true
-    },
-    // Numero minimo de jugadores para empezar la partida
-    minPlayers: {
-        type: Number,
-        required: true
-    },
-    // Tipo de mesa: 'public', 'private', 'tournament' y 'single'
+    // Tipo de mesa
     boardType: {
-        type: String,
-        required: true
-    },
-    // Apuesta fija en cada jugada (0 para tournament y single)
-    bet: {
-        type: Number,
+        type: Schema.ObjectId,
+        ref: "TypeBoard",
         required: true
     },
     // Chat de la partida
@@ -47,7 +32,11 @@ const boardSchema = Schema({
             required: true
         }
     }],
-
+    // Estado: 'waiting', 'playing'
+    status: {
+        type: String,
+        default: 'waiting'
+    },
     // ----------------- Atributos para mesas privadas ----------------
     // Nombre de la mesa privada
     name: {

@@ -1,6 +1,8 @@
 // Imports de esquemas necesarios
 const Tournament = require("../models/tournamentSchema")
 
+// ------------------------ Funciones del administrador ------------------------
+
 // Añade un nuevo torneo al sistema si su nombre aún no existe
 const add = async (req, res) => {
     const t = req.body
@@ -119,6 +121,7 @@ const update = async (req, res) => {
 
 // Elimina un torneo ya existente del sistema
 const eliminate = async (req, res) => {
+
     const tId = req.params.id
 
     const deletedTournament = await Tournament.findOneAndRemove({ _id: tId })

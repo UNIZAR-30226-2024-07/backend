@@ -7,6 +7,28 @@ const Reward = require('../models/rewardSchema')
 const bcrypt = require('bcrypt')
 const { createAccessToken } = require('../jwt/jwt')
 
+// Devuelve error si el usuario no es administrador
+// Parámetros: req.userId
+const isAdmin = async (req, res, next) => {
+    const userId = req.userId
+
+    const user = await User.findById(userId)
+    if (!user) {
+        return res.status(400).json({
+            status: "error",
+            message: "Usuario sin permisos"
+        })
+    }
+
+    if (user.rol !== 'admin') {
+        return res.status(400).json({
+            status: "error",
+            message: "Usuario sin permisos"
+        })
+    }
+    next()
+}
+
 // Añade un nuevo usuario al sistema si su email y nick aún no existían
 const add = async (req, res) => {
     let u = req.body
@@ -103,25 +125,6 @@ const update = async (req, res) => {
             message: "Error interno del servidor al intentar actualizar el usuario"
         })
     }
-}
-
-// Elimina un usuario ya existente del sistema
-const eliminate = async (req, res) => {
-    const userId = req.user.id
-
-    const deletedUser = await User.findOneAndRemove({ _id: userId })
-
-    if (!deletedUser) {
-        return res.status(404).json({
-            status: "error",
-            message: "Usuario no encontrado"
-        })
-    }
-
-    return res.status(200).json({
-        status: "success",
-        message: "Usuario eliminado correctamente"
-    })
 }
 
 // Devuelve un usuario dado un id
@@ -634,6 +637,25 @@ const getReward = async (req, res) => {
 
 // ------------------------ Funciones del administrador ------------------------
 
+// Elimina un usuario ya existente del sistema
+const eliminate = async (req, res) => {
+    const userId = req.params.id
+
+    const deletedUser = await User.findOneAndRemove({ _id: userId })
+
+    if (!deletedUser) {
+        return res.status(404).json({
+            status: "error",
+            message: "Usuario no encontrado"
+        })
+    }
+
+    return res.status(200).json({
+        status: "success",
+        message: "Usuario eliminado correctamente"
+    })
+}
+
 // Dado un id de usuario y una cantidad de monedas, quita esa cantidad (si puede) al usuario.
 const extractCoins = async (req, res) => {
     const userId = req.params.id
@@ -731,9 +753,9 @@ const insertCoins = async (req, res) => {
     }
 }
 
-
 // Funciones que se exportan
 module.exports = {
+    isAdmin,
     add,
     update,
     eliminate,

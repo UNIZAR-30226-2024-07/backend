@@ -5,7 +5,6 @@ const { authRequired } = require('../jwt/jwt')
 
 router.post('/add', UserController.add)
 router.put('/update', authRequired, UserController.update)
-router.delete('/eliminate', authRequired, UserController.eliminate)
 router.get('/userById/:id', authRequired, UserController.userById)
 router.post('/login', UserController.login)
 router.post('/logout', authRequired, UserController.logout)
@@ -18,7 +17,8 @@ router.put('/changeRug', authRequired, UserController.changeRug)
 router.put('/getReward', authRequired, UserController.getReward)
 
 // Funciones exclusivas del administrador
-router.put('/extractCoins/:id', authRequired, UserController.extractCoins)
-router.put('/insertCoins/:id', authRequired, UserController.insertCoins)
+router.put('/extractCoins/:id', authRequired, UserController.isAdmin, UserController.extractCoins)
+router.put('/insertCoins/:id', authRequired, UserController.isAdmin, UserController.insertCoins)
+router.delete('/eliminate/:id', authRequired, UserController.isAdmin, UserController.eliminate)
 
 module.exports = router

@@ -1,6 +1,8 @@
 // Imports de esquemas necesarios
 const Reward = require("../models/rewardSchema")
 
+// Añade una nueva recompensa al sistema si ‘day’ es un día de la semana escrito en español,
+// con la primera en mayúscula y con tildes, y ‘value’ es un número entero mayor de 0
 const add = async (req, res) => {
     const r = req.body
 
@@ -50,6 +52,8 @@ const add = async (req, res) => {
     }
 }
 
+// Modifica una recompensa ya existente si el ‘day’ es un día de la semana con la primera
+// letra en mayúscula, escrito en español y con tildes, y ‘value’ es un número entero mayor de 0
 const update = async (req, res) => {
     try {
         const r = req.body;
@@ -103,6 +107,8 @@ const update = async (req, res) => {
     }
 }
 
+// Elimina una recompensa ya existente del sistema dado el día de la semana ‘day’. ‘day’ 
+// es un día de la semana con la primera letra en mayúscula, escrito en español y con tildes
 const eliminate = async (req, res) => {
     const r = req.body
     try {
@@ -136,7 +142,6 @@ const eliminate = async (req, res) => {
         })
     }
 }
-
 
 // Funciones que se exportan
 module.exports = {

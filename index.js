@@ -26,6 +26,7 @@ app.use('/api/reward', require('./routes/rewardRoute'))
 app.use('/api/rug', require('./routes/rugRoute'))
 app.use('/api/stat', require('./routes/statRoute'))
 app.use('/api/tournament', require('./routes/tournamentRoute'))
+app.use('/api/typeBoard', require('./routes/typeBoardRoute'))
 app.use('/api/user', require('./routes/userRoute'))
 
 app.listen(appConfig.port, () => {

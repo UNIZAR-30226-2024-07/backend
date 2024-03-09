@@ -29,11 +29,27 @@ const userSchema = Schema({
         type: String, 
         required: true
     },
-    // ------------------------ Tokens del jugador ------------------------
+    // ------------------------ Atributos del jugador ------------------------
     // Rol: "user" OR "admin"
     rol: {
         type: String, 
         default: "user"
+    },
+    // Torneos en los que está jugando un jugador
+    tournaments: {
+        type: [{
+            tournament: {
+                type: Schema.ObjectId,
+                ref: "Tournament",
+                required: true
+            },
+            // Position = 8 (octavos) | 4 (cuartos) | 2 (semifinal) | 1 (final)
+            position: {
+                type: String,
+                default: '8'
+            }
+        }],
+        default: []
     },
     // Monedas del usuario
     coins: {
@@ -45,10 +61,11 @@ const userSchema = Schema({
         type: [{
             avatar: {
                 type: Schema.ObjectId,
-                ref: "Avatar"
+                ref: "Avatar",
+                required: true
             },
             // Solo habra un avatar con current = True, que será la foto usada
-            current: Boolean    
+            current: Boolean   
         }],
         default: []
     },
