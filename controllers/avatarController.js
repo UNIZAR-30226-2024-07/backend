@@ -1,50 +1,15 @@
 // Imports de esquemas necesarios
 const Avatar = require("../models/avatarSchema")
 
-// Función para agregar un nuevo avatar
-const add = async (req, res) => {
-    try {
-        const a = req.body
-        // Verificar si image y price están presentes y no son vacíos, error
-        if (!a.image || !a.price || a.image.trim() === "" || a.price.trim() === "") {
-            return res.status(404).json({
-                status: "error",
-                message: "Parámetros enviados incorrectamente. Se deben incluir los campos: image, price"
-            })
-        }
-
-        // Si existe avatar con misma image, error
-        const oldAvatar = await Avatar.findOne({ image: a.image })
-        if (oldAvatar) {
-            return res.status(404).json({
-                status: "error",
-                message: "Ya existe un avatar con esa image"
-            })
-        }
-
-        // Crear avatar, exito
-        const newAvatar = await Avatar.create({ image: a.image, price: a.price });
-        res.status(200).json({
-            status: "success",
-            message: "Avatar creado correctamente",
-            avatar: newAvatar
-        });
-    } catch (error) {
-        return res.status(404).json({
-            status: "error",
-            message: error.message
-        })
-    }
-}
 
 // Función para eliminar un avatar por su ID
 const eliminate = async (req, res) => {
     try {
         const id = req.params.id
-
+        
         // Encontrar y eliminar avatar por id
         const avatar = await Avatar.findByIdAndDelete(id)
-
+        
         // Avatar no encontrado, error
         if (!avatar) {
             return res.status(404).json({
@@ -69,7 +34,7 @@ const eliminate = async (req, res) => {
 // Función para actualizar un avatar por su ID
 const update = async (req, res) => {
     try {
-
+        
         const id = req.params.id
         const a = req.body
 
@@ -137,6 +102,46 @@ const avatarById = async (req, res) => {
                 avatar: avatar
             })
         }
+    } catch (error) {
+        return res.status(404).json({
+            status: "error",
+            message: error.message
+        })
+    }
+}
+
+// Funciones exclusivas del administrador
+
+// Función para agregar un nuevo avatar
+const add = async (req, res) => {
+    try {
+        const a = req.body
+        const adminId = req.user.id
+
+        // Verificar si image y price están presentes y no son vacíos, error
+        if (!a.image || !a.price || a.image.trim() === "" || a.price.trim() === "") {
+            return res.status(404).json({
+                status: "error",
+                message: "Parámetros enviados incorrectamente. Se deben incluir los campos: image, price"
+            })
+        }
+
+        // Si existe avatar con misma image, error
+        const oldAvatar = await Avatar.findOne({ image: a.image })
+        if (oldAvatar) {
+            return res.status(404).json({
+                status: "error",
+                message: "Ya existe un avatar con esa image"
+            })
+        }
+
+        // Crear avatar, exito
+        const newAvatar = await Avatar.create({ image: a.image, price: a.price });
+        res.status(200).json({
+            status: "success",
+            message: "Avatar creado correctamente",
+            avatar: newAvatar
+        });
     } catch (error) {
         return res.status(404).json({
             status: "error",
