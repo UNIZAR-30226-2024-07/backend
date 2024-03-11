@@ -591,6 +591,9 @@ const changeRug = async (req, res) => {
     }
 }
 
+// Dado un id de Usuario y un día de la semana ‘day’, suma al usuario con dicho id el 
+// número de monedas correspondiente a la recompensa del día de la semana ‘day’.
+// ‘day’ es un día de la semana en español, con la primera letra en mayúscula y con tildes
 const getReward = async (req, res) => {
     const userId = req.user.id
     const rewardDay = req.body.rewardDay
@@ -634,6 +637,8 @@ const getReward = async (req, res) => {
         })
     }
 }
+
+
 
 // ------------------------ Funciones del administrador ------------------------
 

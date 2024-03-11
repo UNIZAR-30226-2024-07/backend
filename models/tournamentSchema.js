@@ -22,7 +22,23 @@ const tournamentSchema = Schema({
     coins_subwinner: {
         type: Number,
         required: true
-    }
+    },
+    // Jugadores buscando partida
+    waiting_players: {
+        type: [{
+            user: {
+                type: Schema.ObjectId,
+                ref: "User",
+                required: true
+            },
+            // 
+            round: {
+                type: Number,
+                required: true
+            }
+        }],
+        default: []
+    },
 }, {timestamps: true})
 
 module.exports = model("Tournament", tournamentSchema)

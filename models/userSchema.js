@@ -45,8 +45,8 @@ const userSchema = Schema({
             },
             // Position = 8 (octavos) | 4 (cuartos) | 2 (semifinal) | 1 (final)
             position: {
-                type: String,
-                default: '8'
+                type: Number,
+                default: 8
             }
         }],
         default: []
