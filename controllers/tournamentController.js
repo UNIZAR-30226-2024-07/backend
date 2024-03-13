@@ -124,30 +124,6 @@ const enterTournament = async (req, res) => {
     }
 }
 
-const play = async (req, res) => {
-    const tId = req.params.id
-
-    try {
-        // Se busca que el torneo exista
-        const tournament = await Tournament.findById(tId)
-        if (!tournament) {
-            return res.status(400).json({
-                status: "error",
-                message: "Torneo no encontrado"
-            })    
-        }
-
-        // Se busca
-        
-        
-    } catch (e) {
-        return res.status(400).json({
-            status: "error",
-            message: "Error interno al buscar partida"
-        })
-    }
-}
-
 // ------------------------ Funciones del administrador ------------------------
 
 // Añade un nuevo torneo al sistema si su nombre aún no existe

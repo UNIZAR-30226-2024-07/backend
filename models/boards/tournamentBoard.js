@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Tabla: Board
- * Descripcion: representa los tipos de mesas que existen en el juego. Hay de
- * 4 grandes tipos: 'public', 'private', 'tournament' y 'single'
+ * Tabla: TournamentBoard
+ * Descripcion: representa la clase de las mesas de torneo del juego
  ******************************************************************************/
+
 const {Schema, model} = require('mongoose')
 
-const boardSchema = Schema({
-    // -------------- Atributos para todo tipo de mesas --------------
+const tournamentBoardSchema = Schema({
     // Usuarios jugando en la mesa
     players: [{
         player: {
@@ -14,11 +13,15 @@ const boardSchema = Schema({
             ref: "User"
         }
     }],
-    // Tipo de mesa
-    boardType: {
+    tournament: {
         type: Schema.ObjectId,
-        ref: "TypeBoard",
+        ref: "Tournament",
         required: true
+    },
+    // Banca asociada
+    bank: {
+        type: Schema.ObjectId,
+        ref: "Bank"
     },
     // Chat de la partida
     chat: [{
@@ -37,16 +40,6 @@ const boardSchema = Schema({
         type: String,
         default: 'waiting'
     },
-    // ----------------- Atributos para mesas privadas ----------------
-    // Nombre de la mesa privada
-    name: {
-        type: String,
-        unique: true
-    },
-    // Contraseña de la mesa privada
-    password: {
-        type: String
-    }
 }, {timestamps: true})
 
-module.exports = model("Board", boardSchema)
+module.exports = model("PublicBoard", tournamentBoardSchema)

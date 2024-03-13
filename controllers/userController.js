@@ -638,8 +638,6 @@ const getReward = async (req, res) => {
     }
 }
 
-
-
 // ------------------------ Funciones del administrador ------------------------
 
 // Elimina un usuario ya existente del sistema

@@ -7,12 +7,6 @@
 const {Schema, model} = require('mongoose')
 
 const typeBoardSchema = Schema({
-    // Nombre de la mesa
-    name: {
-        type: String,
-        required: true,
-        unique: true
-    },
     // Numero maximo de jugadores en la partida
     maxPlayers: {
         type: Number,
@@ -24,7 +18,7 @@ const typeBoardSchema = Schema({
         required: true
     },
     // Tipo de mesa: 'public', 'private', 'tournament' y 'single'
-    boardType: {
+    boardTypeName: {
         type: String,
         default: 'public'
     },
@@ -33,10 +27,28 @@ const typeBoardSchema = Schema({
         type: String,
         required: true
     },
+    // ---------------- Atributos para 'public' y 'private' ----------------
+    // Partidas buscando juagdores
+    waiting_boards: {
+        type: [{
+            board: {
+                type: Schema.ObjectId,
+                ref: "Board",
+                required: true
+            },
+        }],
+        default: []
+    },
     // Apuesta fija en cada jugada (0 para tournament y single)
     bet: {
         type: Number,
         required: true
+    },
+    // -------------------- Atributos para 'public' --------------------
+    // Nombre del tipo de la mesa
+    name: {
+        type: String,
+        unique: true
     },
 }, {timestamps: true})
 

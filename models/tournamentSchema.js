@@ -8,6 +8,11 @@ const tournamentSchema = Schema({
         required: true,
         unique: true
     },
+    // Nombre de la banca a usar en el torneo
+    bankLevel: {
+        type: Schema.ObjectId,
+        ref: "Bank"
+    },
     // Precio de entrada del torneo
     price: {
         type: Number,
@@ -22,22 +27,6 @@ const tournamentSchema = Schema({
     coins_subwinner: {
         type: Number,
         required: true
-    },
-    // Jugadores buscando partida
-    waiting_players: {
-        type: [{
-            user: {
-                type: Schema.ObjectId,
-                ref: "User",
-                required: true
-            },
-            // 
-            round: {
-                type: Number,
-                required: true
-            }
-        }],
-        default: []
     },
 }, {timestamps: true})
 
