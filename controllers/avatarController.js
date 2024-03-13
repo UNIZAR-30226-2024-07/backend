@@ -1,36 +1,6 @@
 // Imports de esquemas necesarios
 const Avatar = require("../models/avatarSchema")
 
-
-// Función para eliminar un avatar por su ID
-const eliminate = async (req, res) => {
-    try {
-        const id = req.params.id
-        
-        // Encontrar y eliminar avatar por id
-        const avatar = await Avatar.findByIdAndDelete(id)
-        
-        // Avatar no encontrado, error
-        if (!avatar) {
-            return res.status(404).json({
-                status: "error",
-                message: "Avatar no encontrado"
-            })
-        } else {  // Avatar encontrado, exito
-            return res.status(200).json({
-                status: "success",
-                message: "Avatar eliminado correctamente"
-            })
-        }
-
-    } catch (error) {
-        return res.status(404).json({
-            status: "error",
-            message: error.message
-        })
-    }
-}
-
 // Función para actualizar un avatar por su ID
 const update = async (req, res) => {
     try {
@@ -110,6 +80,33 @@ const avatarById = async (req, res) => {
     }
 }
 
+// Función para obtener todos los avatares
+const  getAllAvatars = async (req, res) => {
+    try {
+        // Consulta todos los avatares en la base de datos
+        const avatares = await Avatar.find()
+        // Avatares no esncontrados, error
+        if (!avatares) {
+            return res.status(404).json({
+                status: "error",
+                message: "Avatares no encontrados"
+            })
+        } else {   // Avatares encontrados, exito
+            res.status(200).json({
+                status: "success",
+                message: "Avatar obtenido correctamente",
+                avatar: avatares
+            })
+        }
+    } catch (error) {
+        return res.status(404).json({
+            status: "error",
+            message: error.message
+        })
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Funciones exclusivas del administrador
 
 // Función para agregar un nuevo avatar
@@ -150,10 +147,40 @@ const add = async (req, res) => {
     }
 }
 
+// Función para eliminar un avatar por su ID
+const eliminate = async (req, res) => {
+    try {
+        const id = req.params.id
+        
+        // Encontrar y eliminar avatar por id
+        const avatar = await Avatar.findByIdAndDelete(id)
+        
+        // Avatar no encontrado, error
+        if (!avatar) {
+            return res.status(404).json({
+                status: "error",
+                message: "Avatar no encontrado"
+            })
+        } else {  // Avatar encontrado, exito
+            return res.status(200).json({
+                status: "success",
+                message: "Avatar eliminado correctamente"
+            })
+        }
+
+    } catch (error) {
+        return res.status(404).json({
+            status: "error",
+            message: error.message
+        })
+    }
+}
+
 // Funciones que se exportan
 module.exports = {
     add,
     eliminate,
     update,
-    avatarById
+    avatarById,
+    getAllAvatars
 }
