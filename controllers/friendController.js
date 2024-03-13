@@ -69,22 +69,22 @@ const getAllFriends = async (req, res) => {
 
         // Obtener todos sus amigos
         // Obtener amigos donde el usuario es el propietario
-        const userAsOwner = await Friend.find({
-            user: idUser,
-            confirmed: true
-        }).populate('friend')
+        const friends = await Friend.find({ user: idUser, confirmed: true }).lean()
+        const friendIds = friends.map(friend => friend.friend)
+        const userAsOwner = await User.find({ _id: { $in: friendIds } })
+
         // Obtener amigos donde el usuario es el amigo
-        const userAsFriend = await Friend.find({
-            friend: idUser,
-            confirmed: true
-        }).populate('user')
+        const users = await Friend.find({ friend: idUser, confirmed: true }).lean()
+        const usersIds = users.map(user => user.user)
+        const userAsFriend = await User.find({ _id: { $in: usersIds } })
 
         // Concatenar ambos conjuntos de amigos
         const userFriends = userAsOwner.concat(userAsFriend)
+
         // Ordenar los amigos según el nick del usuario
         userFriends.sort((a, b) => {
-            const nickA = (a.user.nick) ? a.user.nick.toLowerCase() : a.friend.nick.toLowerCase();
-            const nickB = (b.user.nick) ? b.user.nick.toLowerCase() : b.friend.nick.toLowerCase();
+            const nickA = a.nick.toLowerCase();
+            const nickB = b.nick.toLowerCase();
             return nickA.localeCompare(nickB);
         })
         return res.status(200).json({
@@ -107,14 +107,14 @@ const getAllPendingFriends = async (req, res) => {
         const idUser = req.user.id    // Sabemos que existe
 
         // Obtener todas las solicitudes enviadas
-        const userFriends = await Friend.find({
-            user: idUser,
-            confirmed: false
-        }).populate('friend')
+        const friends = await Friend.find({ user: idUser, confirmed: false }).lean()
+        const friendIds = friends.map(friend => friend.friend)
+        const userFriends = await User.find({ _id: { $in: friendIds } })
+
         // Ordenar los amigos según el nick del usuario
         userFriends.sort((a, b) => {
-            const nickA = a.friend.nick.toLowerCase();
-            const nickB = b.friend.nick.toLowerCase();
+            const nickA = a.nick.toLowerCase();
+            const nickB = b.nick.toLowerCase();
             return nickA.localeCompare(nickB);
         })
         return res.status(200).json({
@@ -136,14 +136,14 @@ const getAllReceivedFriends = async (req, res) => {
         const idUser = req.user.id    // Sabemos que existe
 
         // Obtener todos sus amigos
-        const userFriends = await Friend.find({
-            friend: idUser,
-            confirmed: false
-        }).populate('user') 
+        const users = await Friend.find({ friend: idUser, confirmed: false }).lean()
+        const usersIds = users.map(user => user.user)
+        const userFriends = await User.find({ _id: { $in: usersIds } })
+
         // Ordenar los amigos según el nick del usuario
         userFriends.sort((a, b) => {
-            const nickA = a.user.nick.toLowerCase();
-            const nickB = b.user.nick.toLowerCase();
+            const nickA = a.nick.toLowerCase();
+            const nickB = b.nick.toLowerCase();
             return nickA.localeCompare(nickB);
         })
         return res.status(200).json({
