@@ -1,7 +1,8 @@
 /*******************************************************************************
  * Tabla: Friend
- * Descripcion: contiene el nombre de una imagen junto con su precio de los
- * diseños de cartas que pueden poseer los usuarios en el juego
+ * Descripcion: contiene una pareja de usuarios que son amigos. El user ha
+ * solicitado a friend de ser su amigo. Confirmed es si la solicitud ha sido
+ * confirmada. 
  ******************************************************************************/
 
 const {Schema, model} = require('mongoose')
