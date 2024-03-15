@@ -1,5 +1,5 @@
 // Imports de esquemas necesarios
-const Board = require("../models/boardSchema")
+// const Board = require("../models/boardSchema")
 
 
 // Join public board

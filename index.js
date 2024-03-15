@@ -5,7 +5,7 @@ const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const connection = require('./database/connection')
-const { appConfig, db } = require('./config')
+const { appConfig, db, dirUploads } = require('./config')
 const app = express()
 
 // Conexión con la BD
@@ -15,6 +15,9 @@ connection(db)
 app.use(cors())
 app.use(express.json())
 app.use(cookieParser())
+
+// Serve static images
+app.use(`/${dirUploads}`, express.static(dirUploads))
 
 // routes
 app.use('/api/avatar', require('./routes/avatarRoute'))

@@ -9,7 +9,8 @@ const config = {
     },
     secretToken: {
         key: process.env.TOKEN_SECRET
-    }
+    },
+    dirUploads: process.env.DIR_UPLOAD
 }
 
 module.exports = config

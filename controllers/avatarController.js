@@ -1,5 +1,8 @@
 // Imports de esquemas necesarios
+const { dirUploads } = require("../config")
 const Avatar = require("../models/avatarSchema")
+const fs = require('fs')
+const path = require('path')
 
 // Función para actualizar un avatar por su ID
 const update = async (req, res) => {
@@ -94,7 +97,7 @@ const  getAllAvatars = async (req, res) => {
         } else {   // Avatares encontrados, exito
             res.status(200).json({
                 status: "success",
-                message: "Avatar obtenido correctamente",
+                message: "Avatares obtenidos correctamente",
                 avatar: avatares
             })
         }
@@ -113,8 +116,8 @@ const  getAllAvatars = async (req, res) => {
 const add = async (req, res) => {
     try {
         const a = req.body
-        const adminId = req.user.id
-
+        const imageFileName = req.file.filename;
+        
         // Verificar si image y price están presentes y no son vacíos, error
         if (!a.image || !a.price || a.image.trim() === "" || a.price.trim() === "") {
             return res.status(404).json({
@@ -133,7 +136,7 @@ const add = async (req, res) => {
         }
 
         // Crear avatar, exito
-        const newAvatar = await Avatar.create({ image: a.image, price: a.price });
+        const newAvatar = await Avatar.create({ image: a.image, price: a.price, imageFileName: imageFileName });
         res.status(200).json({
             status: "success",
             message: "Avatar creado correctamente",
@@ -161,13 +164,22 @@ const eliminate = async (req, res) => {
                 status: "error",
                 message: "Avatar no encontrado"
             })
-        } else {  // Avatar encontrado, exito
-            return res.status(200).json({
-                status: "success",
-                message: "Avatar eliminado correctamente"
-            })
         }
-
+        // Avatar eliminado encontrado, exito
+        // Eliminar imagen servidor
+        const imagePath = path.join(__dirname, `../${dirUploads}/`, avatar.imageFileName);
+        fs.unlink(imagePath, (err) => {
+            if (err) {
+                return res.status(404).json({
+                    status: "error",
+                    message: "Error al eliminar foto del servidor (avatar si está eliminado de la base de datos)"
+                })
+            }
+        })
+        return res.status(200).json({
+            status: "success",
+            message: "Avatar eliminado correctamente"
+        })
     } catch (error) {
         return res.status(404).json({
             status: "error",

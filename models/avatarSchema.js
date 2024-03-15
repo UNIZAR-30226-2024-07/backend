@@ -12,6 +12,11 @@ const avatarSchema = Schema({
         required: true,
         unique: true
     },
+    // Nombre de la foto guardado en el servidor
+    imageFileName: {
+        type: String,
+        required: true
+    },
     // Precio del avatar
     price: {
         type: Number,
