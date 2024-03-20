@@ -67,7 +67,8 @@ const add = async (req, res) => {
         const token = await createAccessToken({ id: newUser._id })
         res.cookie('token', token, {
             sameSite: 'none',
-            secure: true
+            secure: true,
+            partitioned: true,
         })
         return res.status(200).json({
             status: "success",
@@ -202,7 +203,8 @@ const login = async (req, res) => {
         const token = await createAccessToken({ id: user._id })
         res.cookie('token', token, {
             sameSite: 'none',
-            secure: true
+            secure: true,
+            partitioned: true,
         })
         return res.status(200).json({
             status: "success",
