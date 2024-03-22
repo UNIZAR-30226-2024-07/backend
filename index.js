@@ -8,6 +8,11 @@ const connection = require("./database/connection")
 const MatcherController = require("./controllers/matcherContoller")
 const { Sockets } = require("./sockets/socketMain")
 const { appConfig, db } = require("./config")
+const express = require('express')
+const cors = require('cors')
+const cookieParser = require('cookie-parser')
+const connection = require('./database/connection')
+const { appConfig, db, dirUploads } = require('./config')
 const app = express()
 
 // Se inicializa el Matcher
@@ -34,9 +39,14 @@ const connect = async () => {
 connect()
 
 // middlewares
-app.use(cors())
+app.use(cors({
+    origin: true,
+    credentials: true,
+}))
 app.use(express.json())
-app.use(cookieParser())
+
+// Serve static images
+app.use(`/${dirUploads}`, express.static(dirUploads))
 
 // routes
 app.use("/api/avatar", require("./routes/avatarRoute"))

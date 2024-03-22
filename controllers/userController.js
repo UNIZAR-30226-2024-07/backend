@@ -8,15 +8,15 @@ const bcrypt = require('bcrypt')
 const { createAccessToken } = require('../jwt/jwt')
 
 // Devuelve error si el usuario no es administrador
-// Parámetros: req.userId
+// Parámetros: req.user.id
 const isAdmin = async (req, res, next) => {
-    const userId = req.userId
+    const userId = req.user.id
 
     const user = await User.findById(userId)
     if (!user) {
         return res.status(400).json({
             status: "error",
-            message: "Usuario sin permisos"
+            message: "Usuario inexistente"
         })
     }
 
@@ -63,10 +63,18 @@ const add = async (req, res) => {
                                    password: hPasswd,
                                    coins: 0 })
 
+        // Se crea el token y se responde
+        const token = await createAccessToken({ id: newUser._id })
+        // res.cookie('token', token, {
+        //     sameSite: 'none',
+        //     secure: true,
+        //     partitioned: true,
+        // })
         return res.status(200).json({
             status: "success",
             message: "Usuario añadido correctamente",
-            user: newUser
+            user: newUser,
+            token
         })
     } catch (e) {
         console.log(e)
@@ -194,11 +202,16 @@ const login = async (req, res) => {
 
         // Se crea el token y se responde
         const token = await createAccessToken({ id: user._id })
-        res.cookie('token', token)
+        // res.cookie('token', token, {
+        //     sameSite: 'none',
+        //     secure: true,
+        //     partitioned: true,
+        // })
         return res.status(200).json({
             status: "success",
             message: "Credenciales válidas",
-            user: user
+            user: user,
+            token
         })
 
     } catch (e) {

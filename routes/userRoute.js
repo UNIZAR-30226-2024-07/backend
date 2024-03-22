@@ -1,7 +1,7 @@
 const { Router } = require('express')
 const router = Router()
 const UserController = require('../controllers/userController')
-const { authRequired } = require('../jwt/jwt')
+const { authRequired, verifyToken } = require('../jwt/jwt')
 
 router.post('/add', UserController.add)
 router.put('/update', authRequired, UserController.update)
@@ -20,5 +20,8 @@ router.put('/getReward', authRequired, UserController.getReward)
 router.put('/extractCoins/:id', authRequired, UserController.isAdmin, UserController.extractCoins)
 router.put('/insertCoins/:id', authRequired, UserController.isAdmin, UserController.insertCoins)
 router.delete('/eliminate/:id', authRequired, UserController.isAdmin, UserController.eliminate)
+
+// Función verificar token
+router.get('/verify', verifyToken)
 
 module.exports = router
