@@ -21,40 +21,66 @@ function createAccessToken(payload) {
     })
 }
 
-const authRequired = (req, res, next) => {
-    const cookies = req.cookies
-    const token = cookies.token
+// const authRequired = (req, res, next) => {
+//     const cookies = req.cookies
+//     const token = cookies.token
 
-    if (!token) {
+//     if (!token) {
+//         return res.status(400).json({
+//             status: "error",
+//             message: "Autorización denegada por falta de token"
+//         })
+//     }
+
+//     jwt.verify(token, secretToken.key, (err, user) => {
+//         if (err) {
+//             return res.status(400).json({
+//                 status: "error",
+//                 message: "Token inválido"
+//             })    
+//         }
+//         req.user = user
+//         next()
+//     })
+// }
+
+const authRequired = (req, res, next) => {
+    if(!req.headers.authorization){
         return res.status(400).json({
             status: "error",
-            message: "Autorización denegada por falta de token"
+            message: "La peticion no tiene la cabecera de autenticación"
         })
     }
-
-    jwt.verify(token, secretToken.key, (err, user) => {
-        if (err) {
-            return res.status(400).json({
-                status: "error",
-                message: "Token inválido"
-            })    
-        }
-        req.user = user
-        next()
-    })
+    const token = req.headers.authorization.replace(/['"]+/g, '')
+    try{
+        jwt.verify(token, secretToken.key, (err, user) => {
+            if (err) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "Token inválido"
+                })    
+            }
+            req.user = user
+            next()
+        })
+    }catch(error){
+        return res.status(400).json({
+            status: "error",
+            message: "Token invalida",
+            error
+        })
+    }
 }
 
 // Verifica que el token del usuario sea correcto
 const verifyToken = async (req, res) => {
-    // const { token } = req.cookies;
-    const cookies = req.cookies
-    const token = cookies.token
-    if (!token) {
+    if(!req.headers.authorization){
         return res.status(400).json({
             status: "error",
-            message: "Autorización denegada por falta de token"
+            message: "La peticion no tiene la cabecera de autenticación"
         })
     }
+    const token = req.headers.authorization.replace(/['"]+/g, '')
   
     jwt.verify(token, secretToken.key, async (err, user) => {
         if (err) {

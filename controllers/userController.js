@@ -65,15 +65,16 @@ const add = async (req, res) => {
 
         // Se crea el token y se responde
         const token = await createAccessToken({ id: newUser._id })
-        res.cookie('token', token, {
-            sameSite: 'none',
-            secure: true,
-            partitioned: true,
-        })
+        // res.cookie('token', token, {
+        //     sameSite: 'none',
+        //     secure: true,
+        //     partitioned: true,
+        // })
         return res.status(200).json({
             status: "success",
             message: "Usuario añadido correctamente",
-            user: newUser
+            user: newUser,
+            token
         })
     } catch (e) {
         console.log(e)
@@ -201,15 +202,16 @@ const login = async (req, res) => {
 
         // Se crea el token y se responde
         const token = await createAccessToken({ id: user._id })
-        res.cookie('token', token, {
-            sameSite: 'none',
-            secure: true,
-            partitioned: true,
-        })
+        // res.cookie('token', token, {
+        //     sameSite: 'none',
+        //     secure: true,
+        //     partitioned: true,
+        // })
         return res.status(200).json({
             status: "success",
             message: "Credenciales válidas",
-            user: user
+            user: user,
+            token
         })
 
     } catch (e) {
