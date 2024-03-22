@@ -17,11 +17,18 @@ const publicBoardSchema = Schema({
     publicBoardType: {
         type: Schema.ObjectId,
         ref: "PublicBoardType",
+        required: true
+    },
+    // Número de jugadores que debe haber al empezar la partida
+    numPlayers: {
+        type: Number,
+        required: true
     },
     // Banca asociada
     bank: {
         type: Schema.ObjectId,
-        ref: "Bank"
+        ref: "Bank",
+        required: true
     },
     // Chat de la partida
     chat: [{

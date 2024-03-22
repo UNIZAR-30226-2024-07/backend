@@ -10,8 +10,8 @@ const tournamentSchema = Schema({
     },
     // Nombre de la banca a usar en el torneo
     bankLevel: {
-        type: Schema.ObjectId,
-        ref: "Bank"
+        type: String,
+        required: true
     },
     // Precio de entrada del torneo
     price: {

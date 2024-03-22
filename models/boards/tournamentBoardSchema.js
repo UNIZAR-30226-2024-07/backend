@@ -23,6 +23,11 @@ const tournamentBoardSchema = Schema({
         type: Schema.ObjectId,
         ref: "Bank"
     },
+    // Ronda en la que se juega la mesa
+    round: {
+        type: Number,
+        required: true
+    },
     // Chat de la partida
     chat: [{
         msg: {
@@ -42,4 +47,4 @@ const tournamentBoardSchema = Schema({
     },
 }, {timestamps: true})
 
-module.exports = model("PublicBoard", tournamentBoardSchema)
+module.exports = model("TournamentBoard", tournamentBoardSchema)

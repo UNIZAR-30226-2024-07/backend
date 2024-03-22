@@ -30,6 +30,11 @@ const privateBoardSchema = Schema({
         }],
         default: []
     },
+    // Número de jugadores que debe haber al empezar la partida
+    numPlayers: {
+        type: Number,
+        required: true
+    },
     // Banca asociada
     bank: {
         type: Schema.ObjectId,

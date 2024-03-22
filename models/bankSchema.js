@@ -11,11 +11,6 @@ const bankSchema = Schema({
         type: String,
         required: true,
     },
-    // Partida a la que pertenece la banca
-    board: {
-        type: Schema.ObjectId,
-        required: true
-    }
 }, {timestamps: true})
 
 module.exports = model("Bank", bankSchema)

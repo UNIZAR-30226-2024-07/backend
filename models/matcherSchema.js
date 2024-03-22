@@ -6,6 +6,16 @@
 const {Schema, model} = require('mongoose')
 
 const matcherSchema = Schema({
+    // Jugadores esperando partida
+    players_waiting: {
+        type: [{
+            player: {
+                type: Schema.ObjectId,
+                ref: "User",
+                required: true
+            }
+        }]
+    },
     // Partidas Públicas en espera
     waiting_public_boards: {
         type: [{
@@ -24,7 +34,7 @@ const matcherSchema = Schema({
         default: []
     },
     // Partidas Privadas en espera
-    waiting_public_boards: {
+    waiting_private_boards: {
         type: [{
             board: {
                 type: Schema.ObjectId,
@@ -40,7 +50,13 @@ const matcherSchema = Schema({
             board: {
                 type: Schema.ObjectId,
                 ref: "TournamentBoard",
-                required: true
+                required: true,
+            },
+            // Torneo al que pertenece
+            tournament: {
+                type: Schema.ObjectId,
+                ref: "Tournament",
+                required: true,
             },
             // Ronda en la que se juega la partida
             round: {
