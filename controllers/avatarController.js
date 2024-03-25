@@ -109,7 +109,6 @@ const  getAllAvatars = async (req, res) => {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
 // Funciones exclusivas del administrador
 
 // Función para agregar un nuevo avatar
