@@ -12,6 +12,11 @@ const rugSchema = Schema({
         required: true,
         unique: true
     },
+    // Nombre de la foto guardado en el servidor
+    imageFileName: {
+        type: String,
+        required: true
+    },
     // Precio del tapete
     price: {
         type: Number,
