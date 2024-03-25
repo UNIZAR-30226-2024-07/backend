@@ -41,6 +41,10 @@ const matcherSchema = Schema({
                 ref: "PrivateBoard",
                 required: true
             },
+            name: {
+                type: String,
+                required: true
+            }
         }],
         default: []
     },

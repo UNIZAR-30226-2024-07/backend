@@ -3,23 +3,23 @@ const User = require("../../models/userSchema")
 const BankController = require("../bankController")
 const bcrypt = require('bcrypt')
 
-// 
+// Crea una mesa privada
 async function add (req) {
+    // Parámetros en req.body: name, password, bankLevel, numPlayers, bet
 
     const b = req.body
 
     // Nos aseguramos de que se hayan enviado todos los parámetros
     if (!b.name || !b.password || !b.bankLevel || !b.bet || !b.numPlayers ||
         b.name.trim() === '' || b.password.trim() === '' || 
-        b.bankLevel.trim() === '' || b.bet) {
+        b.bankLevel.trim() === '') {
         return ({
             status: "error",
-            message: "Parámetros incorrectos. Los parámetros a enviar son: name, password, bankLevel, bet"
+            message: "Parámetros incorrectos. Los parámetros a enviar son: name, password, bankLevel, numPlayers, bet"
         })    
     }
 
     const name = b.name
-    const password = b.password
     const bankLevel = b.bankLevel
     const numPlayers = parseInt(b.numPlayers)
     const bet = parseInt(b.bet)
@@ -69,19 +69,20 @@ async function add (req) {
                                                       bank: resAddBank.bank._id,
                                                       bet: bet })
         if (!privBoard) {
-            return res.status(400).json({
+            return ({
                 status: "error",
                 message: "Error al crear la mesa privada"
             })
         }
 
-        return res.status(200).json({
+        return ({
             status: "success",
-            message: "Mesa privada creada correctamente"
+            message: "Mesa privada creada correctamente",
+            board: privBoard
         })
 
     } catch (e) {
-        return res.status(500).json({
+        return ({
             status: "error",
             message: "Error al crear la mesa privada"
         })
@@ -90,7 +91,7 @@ async function add (req) {
 }
 
 // Añade un jugador a la mesa si esta se encuentra esperando jugadores
-const addPlayer = async (req, res) => {
+async function addPlayer (req) {
     const userId = req.body.userId
     const name = req.body.name
     const password = req.body.password
@@ -99,7 +100,7 @@ const addPlayer = async (req, res) => {
         // Se verifica que el usuario exista
         const user = await User.findById(userId)
         if (!user) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Usuario no encontrado"
             })
@@ -108,12 +109,12 @@ const addPlayer = async (req, res) => {
         // Se verifica que la mesa exista
         const board = await PrivateBoard.findOne({name: name})
         if (!board) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Mesa privada no encontrada"
             })
         } else if (board.status !== 'waiting') {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "La mesa no está esperando jugadores"
             })
@@ -122,7 +123,7 @@ const addPlayer = async (req, res) => {
         // Se verifica que la contraseña de la partida sea igual
         const equal = await bcrypt.compare(password, board.password)
         if (!equal) {
-            return res.status(400).json({
+            return ({
                 status: "error",
                 message: "Contraseña no válida"
             })
@@ -135,23 +136,23 @@ const addPlayer = async (req, res) => {
             board.status = 'playing'
         }
         const updatedBoard = await PrivateBoard.findByIdAndUpdate(board._id,
-                                                                 board,
-                                                                 { new: true })
+                                                                  board,
+                                                                  { new: true })
         if (!updatedBoard) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "No se pudo añadir el jugador a la mesa privada"
             })
         }
 
-        return res.status(404).json({
+        return ({
             status: "success",
             message: "El jugador ha sido añadido a la mesa",
             board: board
         })
 
     } catch (e) {
-        return res.status(400).json({
+        return ({
             status: "error",
             message: "No se pudo añadir el jugador a la mesa privada"
         })
@@ -159,14 +160,14 @@ const addPlayer = async (req, res) => {
 }
 
 // Devuelve error si la mesa aún no está llena y success si ya lo está
-const isFull = async (req, res) => {
-    const name = req.body.name
+async function isFull (req) {
+    const boardId = req.body.boardId
 
     try {
         // Se verifica que la mesa existe
-        const board = await PrivateBoard.findOne({ name: name })
+        const board = await PrivateBoard.findById(boardId)
         if (!board) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Mesa no encontrada"
             })
@@ -175,19 +176,19 @@ const isFull = async (req, res) => {
         // Se verifica que se encuentra en el estado 'playing' que significa
         // que ya no caben más jugadores
         if (board.status === "playing") {
-            return res.status(200).json({
+            return ({
                 status: "success",
                 message: "La partida ya no acepta más jugadores",
                 board: board
             })
         } else {
-            return res.status(400).json({
+            return ({
                 status: "error",
                 message: "La mesa aún acepta jugadores"
             })
         }
     } catch (e) {
-        return res.status(400).json({
+        return ({
             status: "error",
             message: "No se pudo acceder a la información de la mesa"
         })
@@ -195,5 +196,7 @@ const isFull = async (req, res) => {
 }
 
 module.exports = {
-    add
+    add,
+    addPlayer,
+    isFull
 }

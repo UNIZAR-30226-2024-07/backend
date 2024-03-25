@@ -45,7 +45,7 @@ async function init() {
 
 function isAlreadyWaiting(matcher, userId) {
     const alreadyWaiting = matcher.players_waiting.find(player => 
-        player.player === userId)
+        player.player.equals(userId))
     if (alreadyWaiting) {
         return ({
             status: "error",
@@ -180,7 +180,7 @@ async function playTournament(req) {
 
         // Se busca una partida ya empezada
         var board = matcher.waiting_tournament_boards.find(board => 
-            board.tournament === tId && board.round === round)
+            board.tournament.equals(tId) && board.round === round)
         
         // Si no existe una partida en la que pueda jugar el usuario, se
         // crea una nueva con las características dadas
@@ -229,7 +229,7 @@ async function isTournamentBoardReady(req) {
 
         // Se elimina el board de la lista de mesas de torneo pendientes de jugadores        
         const boardIndex = matcher.waiting_tournament_boards.findIndex(board => 
-            board._id === boardId)
+            board.board.equals(boardId))
         if (boardIndex === -1) {
             return ({
                 status: "error",
@@ -322,7 +322,7 @@ async function playPublic(req) {
 
         // Se busca una partida ya empezada
         var board = matcher.waiting_public_boards.find(board => 
-            board.publicBoardType === typeId)
+            board.publicBoardType.equals(typeId))
 
         // Si no existe una partida en la que pueda jugar el usuario, se
         // crea una nueva con las características dadas
@@ -370,7 +370,7 @@ async function isPublicBoardReady(req) {
 
         // Se elimina el board de la lista de mesas de torneo pendientes de jugadores        
         const boardIndex = matcher.waiting_public_boards.findIndex(board => 
-            board._id === boardId)
+            board.board.equals(boardId))
         if (boardIndex === -1) {
             return ({
                 status: "error",
@@ -403,19 +403,39 @@ async function isPublicBoardReady(req) {
 ////////////////////////////////////////////////////////////////////////////////
 // Mesas Privadas
 ////////////////////////////////////////////////////////////////////////////////
-async function addPrivateBoard(req) {
+async function createPrivate(req) {
+    const userId = req.body.userId
+
     const name = req.body.name
     const password = req.body.password
-    const matcher = req.body.matcher
+    const bankLevel = req.body.bankLevel
+    const numPlayers = req.body.numPlayers
+    const bet = req.body.bet
 
     try {
-        // Se crea la mesa de torneo
-        const reqBoard = { body: { name: name, password: password }}
+        // Se recupera el emparejador
+        const matcher = await Matcher.findById(matcherId)
+        if (!matcher) {
+            return ({
+                status: "error",
+                message: "Error al encontrar el emparejador"
+            })
+        }
+
+        var res = isAlreadyWaiting(matcher, userId)
+        if (res.status === "error") return res
+
+        // Se crea la mesa privada
+        const reqBoard = { body: { name: name, 
+                                   password: password, 
+                                   bankLevel: bankLevel,
+                                   numPlayers: numPlayers,
+                                   bet: bet }}
         var res = await PrivateBoardController.add(reqBoard)
         if (res.status === "error") return res
 
         // Se añade la mesa a la lista de mesas de torneos esperando a jugadores
-        matcher.waiting_private_boards.push({ board: res.board._id })
+        matcher.waiting_private_boards.push({ board: res.board._id, name: name })
 
         const updatedMatcher = await Matcher.findByIdAndUpdate(matcherId, 
                                                                matcher,
@@ -423,48 +443,28 @@ async function addPrivateBoard(req) {
         if (!updatedMatcher) {
             return ({
                 status: "error",
-                message: "Error al añadir la mesa privada a la lista de mesas esperando jugadores"
+                message: "Error al añadir la mesa pública a la lista de mesas esperando jugadores"
             })    
         }
-
+        
         return ({
             status: "success",
-            message: "Mesa de torneo creada y añadida a la lista de espera correctamente",
+            message: "Mesa privada creada y añadida a la lista de espera correctamente",
             matcher: updatedMatcher,
             board: res.board
         })
-    
+
     } catch (e) {
         return ({
             status: "error",
-            message: "Error al crear la partida de torneo"
+            message: "Error al crear la mesa privada. " + e.message
         })
-
     }
 }
-
-async function createPrivate(req) {
-    const name = req.body.name
-    const password = req.body.password
-    const numPlayers = req.body.numPlayers
-    const bankLevel = req.body.bankLevel
-    const bet = req.body.bet
-
-    try {
-        // Se crea la mesa privada
-        const reqBoard = { body: { name: name, password: password, numPlayers,
-                                   bankLevel: bankLevel, bet: bet } }
-        var res = await PrivateBoardController.add(reqBoard)
-        if (res.status === "error") return res
-    } catch (e) {
-
-    }
-}
-
 
 async function playPrivate(req) {
     const name = req.body.name
-    const round = req.body.round
+    const password = req.body.password
     const userId = req.userId
 
     try {
@@ -481,30 +481,27 @@ async function playPrivate(req) {
         if (res.status === "error") return res
 
         // Se busca una partida ya empezada
-        var board = matcher.waiting_tournament_boards.find(board => 
-            board.tournament === tId && board.round === round)
+        var board = matcher.waiting_private_boards.find(board => 
+            board.name === name)
         
         // Si no existe una partida en la que pueda jugar el usuario, se
         // crea una nueva con las características dadas
         if (!board) {
-            const reqAdd = { body: {matcher: matcher,
-                                    tournamentId: tId, 
-                                    round: round } }
-            res = await addTournamentBoard(reqAdd)
-            if (res.status === "error") return res
-            board = res.board
+            return ({
+                status: "error",
+                message: "No hay ninguna partida empezada con el nombre proporcionado"
+            })
         }
 
         // Se añade el usuario a la partida
-        const reqAddPlayer = { body: { userId: userId, boardId: board._id }}
-        res = await TournamentBoardController.addPlayer(reqAddPlayer)
+        const reqAddPlayer = { body: { userId: userId, name: name, password: password }}
+        res = await PrivateBoardController.addPlayer(reqAddPlayer)
         if (res.status === "error") return res
         
-        board = res.board
         return ({
             status: "success",
-            message: "El jugador ha sido añadido a una mesa de torneo",
-            board: board
+            message: "El jugador ha sido añadido a una mesa privada",
+            board: res.board
         })
     } catch (e) {
         return ({
@@ -514,6 +511,52 @@ async function playPrivate(req) {
     }
 }
 
+async function isPrivateBoardReady(req) {
+    const boardId = req.body.boardId
+
+    try {
+        // Se recupera el matcher
+        var matcher = await Matcher.findById(matcherId)
+        if (!matcher) {
+            return console.error("No se encontró el emparejador")
+        }
+
+        // Se verifica si la mesa está llena
+        const req = { body: { boardId: boardId } }
+        var res = await PrivateBoardController.isFull(req)
+        if (res.status === "error") return res
+
+        // Se elimina el board de la lista de mesas de torneo pendientes de jugadores        
+        const boardIndex = matcher.waiting_private_boards.findIndex(board => 
+            board.board.equals(boardId))
+        if (boardIndex === -1) {
+            return ({
+                status: "error",
+                message: "Error al encontrar la mesa para eliminarla de la lista de espera"
+            })
+        }
+        matcher.waiting_private_boards = matcher.waiting_private_boards.filter((_, index) => index !== boardIndex);
+        const updatedMatcher = await Matcher.findByIdAndUpdate(matcherId, 
+                                                               matcher, 
+                                                               { new: true })
+        if (!updatedMatcher) {
+            return ({
+                status: "error",
+                message: "No se encontró el matcher al guardar los cambios"
+            })
+        }
+
+        return ({
+            status: "success",
+            message: "La partida está lista y ha sido eliminada de la lista de espera. Ahora elimine los usuarios de la lista de usuarios buscando partida",
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al verificar si la mesa privada está lista"
+        })
+    }
+}
 
 
 module.exports = {
@@ -524,6 +567,7 @@ module.exports = {
     isTournamentBoardReady,
     playPublic,
     isPublicBoardReady,
+    createPrivate,
     playPrivate,
-    // isPrivateBoardReady
+    isPrivateBoardReady
 }

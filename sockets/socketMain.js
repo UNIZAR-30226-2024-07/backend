@@ -49,7 +49,7 @@ const Sockets = async (io) => {
             res = await MatcherController.eliminateWaitingUsers(reqUsers)
             
         } catch (e) {
-            return console.log(res.message)
+            return console.log(e.message)
         }        
     })
 
@@ -61,7 +61,7 @@ const Sockets = async (io) => {
             ////////////////////////////////////////////////////////////////////
             // wait(PublicMutex)
             var res = await MatcherController.playPublic(req)
-            if (res.status === "error") return console.log(res.message)
+            if (res.status === "error") { return console.log(res.message) }
             const boardId = res.board._id
 
             socket.join("public:" + boardId)
@@ -72,43 +72,33 @@ const Sockets = async (io) => {
             // signal(PublicMutex)
             ////////////////////////////////////////////////////////////////////
 
-            io.to("public:" + boardId).emit("starting board", boardId)
+            io.to("public:" + boardId).emit("starting public board", boardId)
 
             const reqUsers = { body: { boardId: boardId, typeBoardName: "public" } }
             res = await MatcherController.eliminateWaitingUsers(reqUsers)
             
         } catch (e) {
-            return console.log(res.message)
+            return console.log(e.message)
         }
     })
     
 
     // Para los usuarios que quieren jugar en partida pública
     socket.on("create private board", async (req) => {
-        // Parámetros que debe haber en req.body: name, password
+        // Parámetros que debe haber en req.body: name, password, 
 
         try {
             ////////////////////////////////////////////////////////////////////
             // wait(PrivateMutex)
-            var res = await MatcherController.playPrivate(req)
+            var res = await MatcherController.createPrivate(req)
             if (res.status === "error") return console.log(res.message)
             const boardId = res.board._id
-
-            socket.join("public:" + boardId)
-
-            const reqIsFull = { body: { boardId: boardId }}
-            res = await MatcherController.isPublicBoardReady(reqIsFull)
-            if (res.status === "error") return;
             // signal(PrivateMutex)
             ////////////////////////////////////////////////////////////////////
 
-            io.to("public:" + boardId).emit("starting board", boardId)
-
-            const reqUsers = { body: { boardId: boardId, typeBoardName: "public" } }
-            res = await MatcherController.eliminateWaitingUsers(reqUsers)
-            
+            socket.join("private:" + boardId)            
         } catch (e) {
-            return console.log(res.message)
+            return console.log(e.message)
         }        
     })
 
@@ -124,100 +114,22 @@ const Sockets = async (io) => {
             if (res.status === "error") return console.log(res.message)
             const boardId = res.board._id
 
-            socket.join("public:" + boardId)
+            socket.join("private:" + boardId)
 
             const reqIsFull = { body: { boardId: boardId }}
-            res = await MatcherController.isPublicBoardReady(reqIsFull)
+            res = await MatcherController.isPrivateBoardReady(reqIsFull)
             if (res.status === "error") return;
             // signal(PrivateMutex)
             ////////////////////////////////////////////////////////////////////
 
-            io.to("public:" + boardId).emit("starting board", boardId)
+            io.to("private:" + boardId).emit("starting board", boardId)
 
-            const reqUsers = { body: { boardId: boardId, typeBoardName: "public" } }
+            const reqUsers = { body: { boardId: boardId, typeBoardName: "private" } }
             res = await MatcherController.eliminateWaitingUsers(reqUsers)
             
         } catch (e) {
-            return console.log(res.message)
+            return console.log(e.message)
         }        
-    })
-
-    // Para los usuarios que quieren jugar en partida pública
-    socket.on("enter public board", async (req) => {
-        // Parámetros que debe haber en req: typeId, round, userId
-        const typeId = req.typeId
-        const userId = req.userId
-
-        try {
-            // Se busca una partida en espera que coincida en torneo y ronda
-            const matcher = await Matcher.findById(MatcherController.matcherId)
-            if (!matcher) {
-                return console.error("No se encontró el emparejador")
-            }
-
-            // Se busca una partida ya empezada
-            const board = matcher.waiting_public_boards.find(board => 
-                board.typePublicBoard === typeId)
-
-            // Si no existe una partida en la que pueda jugar el usuario, se
-            // crea una nueva con las características dadas
-            if (!board) {
-                let resAdd
-                const reqAdd = { body: { typeId: typeId } }
-                await MatcherController.addPublicBoard(reqAdd, resAdd)
-                if (resAdd.status !== "success") {
-                    return console.error(resAdd.message)
-                }
-
-                // Se añade el usuario a la partida
-                let resAddPlayer
-                const reqAddPlayer = { body: { userId: userId, boardId: resAdd.board._id }}
-                await PublicBoardController.addPlayer(reqAddPlayer, resAddPlayer)
-                if (resAddPlayer.status !== "success") {
-                    return console.error("No se pudo añadir el jugador a la mesa. " + resAddPlayer.message)
-                }
-                
-                // Una vez creada, se añade este socket al grupo del board
-                // para que cuando esté lista se inicie
-                socket.join("public:" + resAdd.board._id)
-
-            } else { // Si existe una partida en la que puede jugar, se une a ella
-                let resAddPlayer
-                const reqAddPlayer = { body: { userId: userId, boardId: resAdd.board._id }}
-                await PublicBoardController.addPlayer(reqAddPlayer, resAddPlayer)
-                if (resAddPlayer.status === "success") {
-                    // Una vez creada, se añade este socket al grupo del board
-                    // para que cuando esté lista se inicie
-                    socket.join("public:" + resAdd.board._id)
-                } else {
-                    return console.error("No se pudo añadir el jugador a la mesa. " + resAddPlayer.message)
-                }
-            }
-            
-            // Ahora se comprueba si la mesa ya está ocupada y se puede empezar la partida
-            let resIsFull
-            const reqIsFull = { body: { boardId: resAddPlayer.board._id }}
-            await PublicBoardController.isFull(reqIsFull, resIsFull)
-
-            if (resIsFull.status === "success") {
-                // Se elimina el board de la lista de mesas de torneo pendientes de jugadores
-                const boardIndex = matcher.waiting_public_boards.findIndex(board => 
-                    board.typePublicBoard === typeId)
-                if (boardIndex !== -1) {
-                    matcher.waiting_public_boards = matcher.waiting_public_boards.filter((_, index) => index !== boardIndex);
-                    socket.in("public:" + resAddPlayer.board._id).emit("starting board", resAddPlayer.board)
-                }
-            }
-            
-            const updatedMatcher = await Matcher.findByIdAndUpdate(MatcherController.matcherId, matcher, { new: true })
-            if (!updatedMatcher) {
-                return console.error("No se encontró el matcher")
-            }
-            
-        } catch (e) {
-            console.error("No se pudo atender correctamente la petición de entrada a una mesa de torneo")
-        }
-
     })
 
     socket.on("pruebita", async (req) => {
