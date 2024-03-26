@@ -43,7 +43,7 @@ const Sockets = async (io) => {
             // signal(TournamentMutex)
             ////////////////////////////////////////////////////////////////////
 
-            io.to("tournament:" + boardId).emit("starting board", boardId)
+            io.to("tournament:" + boardId).emit("starting tournament board", boardId)
 
             const reqUsers = { body: { boardId: boardId, typeBoardname: "tournament" } }
             res = await MatcherController.eliminateWaitingUsers(reqUsers)
@@ -122,7 +122,7 @@ const Sockets = async (io) => {
             // signal(PrivateMutex)
             ////////////////////////////////////////////////////////////////////
 
-            io.to("private:" + boardId).emit("starting board", boardId)
+            io.to("private:" + boardId).emit("starting private board", boardId)
 
             const reqUsers = { body: { boardId: boardId, typeBoardName: "private" }}
             res = await MatcherController.eliminateWaitingUsers(reqUsers)

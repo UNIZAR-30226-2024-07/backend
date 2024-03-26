@@ -450,6 +450,11 @@ async function createPrivate(req) {
         var res = await PrivateBoardController.add(reqBoard)
         if (res.status === "error") return res
 
+        // Se añade el usuario a la partida
+        const reqAddPlayer = { body: { userId: userId, name: name, password: password }}
+        res = await PrivateBoardController.addPlayer(reqAddPlayer)
+        if (res.status === "error") return res
+
         // Se añade la mesa a la lista de mesas de torneos esperando a jugadores
         matcher.waiting_private_boards.push({ board: res.board._id, name: name })
 
@@ -481,7 +486,7 @@ async function createPrivate(req) {
 async function playPrivate(req) {
     const name = req.body.name
     const password = req.body.password
-    const userId = req.userId
+    const userId = req.body.userId
 
     try {
         // Se recupera el emparejador

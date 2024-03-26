@@ -20,6 +20,7 @@ async function add (req) {
     }
 
     const name = b.name
+    const password = b.password
     const bankLevel = b.bankLevel
     const numPlayers = parseInt(b.numPlayers)
     const bet = parseInt(b.bet)
@@ -71,7 +72,7 @@ async function add (req) {
         if (!privBoard) {
             return ({
                 status: "error",
-                message: "Error al crear la mesa privada"
+                message: "Error al añadir la mesa privada"
             })
         }
 
@@ -84,7 +85,7 @@ async function add (req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "Error al crear la mesa privada"
+            message: "Error al crear la mesa privada. " + e.message
         })
 
     }
