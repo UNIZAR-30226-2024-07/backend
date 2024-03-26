@@ -12,6 +12,9 @@ var matcherId = new mongoose.Types.ObjectId()
 ////////////////////////////////////////////////////////////////////////////////
 async function init() {
     try {
+        // Se eliminan todas las instancias de matcher
+        await Matcher.deleteMany({})
+
         const matcher = await Matcher.findById(matcherId)
         if (!matcher) {
             const newMatcher = await Matcher.create({})
@@ -89,8 +92,9 @@ async function eliminateWaitingUsers(req) {
         }
 
         // Se cogen todos aquellos que no esten en la partida pasada
-        matcher.players_waiting = matcher.players_waiting.filter(player => 
-            !res.board.players.includes(player.player));
+        matcher.players_waiting = matcher.players_waiting.filter(playerWaiting => 
+            !res.board.players.some(player => player.player.equals(playerWaiting.player))
+        );
 
         // Guardar los cambios en el emparejador
         const updatedMatcher = await Matcher.findByIdAndUpdate(matcherId,
@@ -178,6 +182,9 @@ async function playTournament(req) {
         var res = isAlreadyWaiting(matcher, userId)
         if (res.status === "error") return res
 
+        // Se añade el jugador a la lista de jugadores esperando partida
+        matcher.players_waiting.push({ player: userId })
+
         // Se busca una partida ya empezada
         var board = matcher.waiting_tournament_boards.find(board => 
             board.tournament.equals(tId) && board.round === round)
@@ -191,6 +198,8 @@ async function playTournament(req) {
             res = await addTournamentBoard(reqAdd)
             if (res.status === "error") return res
             board = res.board
+        } else {
+            board = board.board
         }
 
         // Se añade el usuario a la partida
@@ -274,8 +283,7 @@ async function addPublicBoard(req) {
 
         // Se añade la mesa a la lista de mesas de torneos esperando a jugadores
         matcher.waiting_public_boards.push({ board: res.board._id,
-                                             tournament: tId,
-                                             round: round })
+                                             typePublicBoard: typeId })
 
         const updatedMatcher = await Matcher.findByIdAndUpdate(matcherId, 
                                                                matcher,
@@ -297,7 +305,7 @@ async function addPublicBoard(req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "Error al crear la partida pública"
+            message: "Error al crear la partida pública. " + e.message
         })
 
     }
@@ -320,9 +328,12 @@ async function playPublic(req) {
         var res = isAlreadyWaiting(matcher, userId)
         if (res.status === "error") return res
 
+        // Se añade el jugador a la lista de jugadores esperando partida
+        matcher.players_waiting.push({ player: userId })
+
         // Se busca una partida ya empezada
         var board = matcher.waiting_public_boards.find(board => 
-            board.publicBoardType.equals(typeId))
+            board.typePublicBoard.equals(typeId))
 
         // Si no existe una partida en la que pueda jugar el usuario, se
         // crea una nueva con las características dadas
@@ -332,6 +343,8 @@ async function playPublic(req) {
             res = await addPublicBoard(reqAdd)
             if (res.status === "error") return res
             board = res.board
+        } else {
+            board = board.board
         }
 
         // Se añade el usuario a la partida
@@ -348,7 +361,7 @@ async function playPublic(req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "No se pudo asignar una partida al jugador"
+            message: "No se pudo asignar una partida al jugador. " + e.message
         })
     }
 }
@@ -425,6 +438,9 @@ async function createPrivate(req) {
         var res = isAlreadyWaiting(matcher, userId)
         if (res.status === "error") return res
 
+        // Se añade el jugador a la lista de jugadores esperando partida
+        matcher.players_waiting.push({ player: userId })
+
         // Se crea la mesa privada
         const reqBoard = { body: { name: name, 
                                    password: password, 
@@ -480,6 +496,9 @@ async function playPrivate(req) {
         var res = isAlreadyWaiting(matcher, userId)
         if (res.status === "error") return res
 
+        // Se añade el jugador a la lista de jugadores esperando partida
+        matcher.players_waiting.push({ player: userId })
+
         // Se busca una partida ya empezada
         var board = matcher.waiting_private_boards.find(board => 
             board.name === name)
@@ -491,6 +510,8 @@ async function playPrivate(req) {
                 status: "error",
                 message: "No hay ninguna partida empezada con el nombre proporcionado"
             })
+        } else {
+            board = board.board
         }
 
         // Se añade el usuario a la partida
@@ -557,7 +578,6 @@ async function isPrivateBoardReady(req) {
         })
     }
 }
-
 
 module.exports = {
     matcherId,

@@ -49,7 +49,7 @@ async function add (req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "Error al crear la mesa pública"
+            message: "Error al crear la mesa pública. " + e.message 
         })
     }
 }

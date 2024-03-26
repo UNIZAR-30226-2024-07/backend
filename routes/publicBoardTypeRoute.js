@@ -10,4 +10,7 @@ router.post("/add", authRequired, isAdmin, PBTController.add)
 // Eliminar un tipo de mesa pública
 router.delete("/eliminate", authRequired, isAdmin, PBTController.eliminate)
 
+// Obtener todos los tipos de partidas públicas existentes
+router.get("/getAll", authRequired, PBTController.getAll)
+
 module.exports = router

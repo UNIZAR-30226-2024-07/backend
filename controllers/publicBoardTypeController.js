@@ -1,4 +1,4 @@
-const PublicBoardType = require("../models/boards/publicBoardTypeSchema")
+const PublicBoardType = require("../models/publicBoardTypeSchema")
 const BankController = require("./bankController")
 
 const add = async (req, res) => {
@@ -113,7 +113,27 @@ const eliminate = async (req, res) => {
     }
 }
 
+const getAll = async (req, res) => {
+    try {
+        // Recuperar todos los tipos de mesas públicas
+        const publicBoardTypes = await PublicBoardType.find()
+
+        return res.status(200).json({
+            status: "success",
+            message: "Lista de tipos de partidas públicas obtenidas correctamente",
+            publicBoardTypes: publicBoardTypes
+        })
+
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los tipos de mesas públicas. " + e.message
+        })
+    }
+}
+
 module.exports = {
     add,
     eliminate,
+    getAll
 }

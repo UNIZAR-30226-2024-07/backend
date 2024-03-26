@@ -68,12 +68,12 @@ const Sockets = async (io) => {
 
             const reqIsFull = { body: { boardId: boardId }}
             res = await MatcherController.isPublicBoardReady(reqIsFull)
-            if (res.status === "error") return;
+            if (res.status === "error") return console.log("Usuario añadido a partida con id " + boardId);
             // signal(PublicMutex)
             ////////////////////////////////////////////////////////////////////
 
             io.to("public:" + boardId).emit("starting public board", boardId)
-
+            console.log("Usuario añadido a partida. Se comienza la partida")
             const reqUsers = { body: { boardId: boardId, typeBoardName: "public" } }
             res = await MatcherController.eliminateWaitingUsers(reqUsers)
             
@@ -85,7 +85,7 @@ const Sockets = async (io) => {
 
     // Para los usuarios que quieren jugar en partida pública
     socket.on("create private board", async (req) => {
-        // Parámetros que debe haber en req.body: name, password, 
+        // Parámetros que debe haber en req.body: name, password, userId
 
         try {
             ////////////////////////////////////////////////////////////////////
@@ -105,7 +105,7 @@ const Sockets = async (io) => {
 
     // Para los usuarios que quieren jugar en partida pública
     socket.on("enter private board", async (req) => {
-        // Parámetros que debe haber en req.body: typeId, userId
+        // Parámetros que debe haber en req.body: name, password, userId
 
         try {
             ////////////////////////////////////////////////////////////////////
@@ -124,7 +124,7 @@ const Sockets = async (io) => {
 
             io.to("private:" + boardId).emit("starting board", boardId)
 
-            const reqUsers = { body: { boardId: boardId, typeBoardName: "private" } }
+            const reqUsers = { body: { boardId: boardId, typeBoardName: "private" }}
             res = await MatcherController.eliminateWaitingUsers(reqUsers)
             
         } catch (e) {
