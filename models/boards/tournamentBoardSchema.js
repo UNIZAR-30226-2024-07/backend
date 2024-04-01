@@ -7,12 +7,30 @@ const {Schema, model} = require('mongoose')
 
 const tournamentBoardSchema = Schema({
     // Usuarios jugando en la mesa
-    players: [{
-        player: {
-            type: Schema.ObjectId,
-            ref: "User"
-        }
-    }],
+    players: {
+        type: [{
+            player: {
+                type: Schema.ObjectId,
+                ref: "User"
+            },
+            lifes: {
+                type: Number,
+                default: 4
+            },
+            // Número de jugadas en las que el jugador no ha enviado jugada
+            // A las 2 jugadas será expulsado
+            handsAbsent: {
+                type: Number,
+                default: 0
+            },
+            // True si es el guest de la partida (solo 1 por partida)
+            guest: {
+                type: Boolean,
+                default: "false"
+            },
+        }],
+        default: []
+    },
     tournament: {
         type: Schema.ObjectId,
         ref: "Tournament",
@@ -44,6 +62,28 @@ const tournamentBoardSchema = Schema({
     status: {
         type: String,
         default: 'waiting'
+    },
+    // Número de mano en la que se encuentra la partida y el número de jugadas
+    // recibidas en esa mano
+    hand: {
+        type: {
+            // Número de mano en la que se encuentra la partida
+            numHand: {
+                type: Number,
+                default: 1
+            },
+            // Número de jugadas recibidas en la mano 'numHand'
+            numPlays: {
+                type: Number,
+                default: 0
+            },
+            // Jugadores que han enviado la jugada en esta mano
+            players: [{
+                type: Schema.ObjectId,
+                ref: "User",
+                default: []
+            }]
+        },
     },
 }, {timestamps: true})
 

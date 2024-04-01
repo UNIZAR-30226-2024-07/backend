@@ -1,5 +1,6 @@
 const Matcher = require("../models/matcherSchema")
 const TournamentBoardController = require("./boards/tournamentBoardController")
+const TournamentController = require("./tournamentController")
 const PublicBoardController = require("./boards/publicBoardController")
 const PrivateBoardController = require("./boards/privateBoardController")
 const { default: mongoose } = require("mongoose")
@@ -166,7 +167,6 @@ async function addTournamentBoard(req) {
 
 async function playTournament(req) {
     const tId = req.body.tournamentId
-    const round = req.body.round
     const userId = req.body.userId
 
     try {
@@ -179,9 +179,16 @@ async function playTournament(req) {
             })
         }
 
+        // Se verifica que el jugador no esté esperando ya otra partida
         var res = isAlreadyWaiting(matcher, userId)
         if (res.status === "error") return res
 
+        // Se verifica que el jugador haya pagado la tasa de entrada al torneo
+        res = await TournamentController.isUserInTournamentFunction({ body: { tournamentId: tId,
+                                                                              userId: userId }})
+        if (res.status === "error") return res
+
+        const round = res.round
         // Se añade el jugador a la lista de jugadores esperando partida
         matcher.players_waiting.push({ player: userId })
 

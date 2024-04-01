@@ -1,6 +1,31 @@
 const PublicBoardType = require("../models/publicBoardTypeSchema")
 const BankController = require("./bankController")
 
+////////////////////////////////////////////////////////////////////////////////
+// Funciones para todos los usuarios
+////////////////////////////////////////////////////////////////////////////////
+const getAll = async (req, res) => {
+    try {
+        // Recuperar todos los tipos de mesas públicas
+        const publicBoardTypes = await PublicBoardType.find()
+
+        return res.status(200).json({
+            status: "success",
+            message: "Lista de tipos de partidas públicas obtenidas correctamente",
+            publicBoardTypes: publicBoardTypes
+        })
+
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los tipos de mesas públicas. " + e.message
+        })
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Funciones para administradores
+////////////////////////////////////////////////////////////////////////////////
 const add = async (req, res) => {
     // Parámetros en req.body: name, numPlayers, bankLevel, bet
     const b = req.body
@@ -113,24 +138,6 @@ const eliminate = async (req, res) => {
     }
 }
 
-const getAll = async (req, res) => {
-    try {
-        // Recuperar todos los tipos de mesas públicas
-        const publicBoardTypes = await PublicBoardType.find()
-
-        return res.status(200).json({
-            status: "success",
-            message: "Lista de tipos de partidas públicas obtenidas correctamente",
-            publicBoardTypes: publicBoardTypes
-        })
-
-    } catch (e) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener los tipos de mesas públicas. " + e.message
-        })
-    }
-}
 
 module.exports = {
     add,

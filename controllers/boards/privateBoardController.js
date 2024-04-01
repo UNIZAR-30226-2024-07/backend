@@ -91,6 +91,36 @@ async function add (req) {
     }
 }
 
+// Función para eliminar una mesa pública por su ID
+async function eliminate(req) {
+    // Parámetros en body: id
+    try {
+        const id = req.body.id
+        
+        // Encontrar y eliminar mesa por id
+        const board = await PrivateBoard.findByIdAndDelete(id)
+        
+        // Mesa no encontrada, error
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa pública no encontrada"
+            })
+        } else {  // Mesa encontrada, exito
+            return ({
+                status: "success",
+                message: "Mesa pública eliminada correctamente"
+            })
+        }
+
+    } catch (error) {
+        return ({
+            status: "error",
+            message: error.message
+        })
+    }
+}
+
 // Añade un jugador a la mesa si esta se encuentra esperando jugadores
 async function addPlayer (req) {
     const userId = req.body.userId
@@ -131,8 +161,10 @@ async function addPlayer (req) {
         }
 
         // Se añade el jugador a la mesa privada y se cierra la mesa a nuevos 
-        // usuarios si ya está completa
-        board.players.push({ player: userId })
+        // usuarios si ya está completa. Si el jugador es el primero, se establece
+        // este como guest
+        const isGuest = board.players.length === 0
+        board.players.push({ player: userId, guest: isGuest })
         if (board.players.length === board.numPlayers) {
             board.status = 'playing'
         }
@@ -198,6 +230,7 @@ async function isFull (req) {
 
 module.exports = {
     add,
+    eliminate,
     addPlayer,
     isFull
 }

@@ -26,7 +26,11 @@ const privateBoardSchema = Schema({
             player: {
                 type: Schema.ObjectId,
                 ref: "User"
-            }
+            },
+            guest: {
+                type: Boolean,
+                default: "false"
+            },
         }],
         default: []
     },
@@ -62,6 +66,22 @@ const privateBoardSchema = Schema({
     status: {
         type: String,
         default: 'waiting'
+    },
+    // Número de mano en la que se encuentra la partida y el número de jugadas
+    // recibidas en esa mano
+    hand: {
+        type: {
+            // Número de mano en la que se encuentra la partida
+            numHand: {
+                type: Number,
+                default: 1
+            },
+            // Número de jugadas recibidas en la mano 'numHand'
+            numPlays: {
+                type: Number,
+                default: 0
+            }
+        },
     },
 }, {timestamps: true})
 

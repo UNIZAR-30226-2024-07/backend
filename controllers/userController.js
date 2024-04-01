@@ -8,9 +8,9 @@ const bcrypt = require('bcrypt')
 const { createAccessToken } = require('../jwt/jwt')
 
 // Devuelve error si el usuario no es administrador
-// Parámetros: req.user.id
+// Parámetros: req.user._id
 const isAdmin = async (req, res, next) => {
-    const userId = req.user.id
+    const userId = req.user._id
 
     const user = await User.findById(userId)
     if (!user) {
@@ -88,7 +88,7 @@ const add = async (req, res) => {
 
 // Modifica un usuario ya existente si el nick y el email no estaban ocupados por otro usuario
 const update = async (req, res) => {
-    const userId = req.user.id
+    const userId = req.user._id
     const u = req.body
 
     try {
@@ -238,7 +238,7 @@ const logout = (req, res) => {
 // Dado un id de Usuario y un nombre de avatar, añade el avatar a la lista de avatares
 // del usuario y resta el precio del avatar a las monedas del usuario (si tiene suficientes).
 const buyAvatar = async (req, res) => {
-    const userId = req.user.id
+    const userId = req.user._id
     const avatarName = req.body.avatarName
 
     try {
@@ -301,7 +301,7 @@ const buyAvatar = async (req, res) => {
 // Dado un id de Usuario y un nombre de avatar, establece como avatar actual (en uso) el 
 // pasado por parámetro (si el usuario lo posee).
 const changeAvatar = async (req, res) => {
-    const userId = req.user.id
+    const userId = req.user._id
     const avatarName = req.body.avatarName
 
     try {
@@ -361,7 +361,7 @@ const changeAvatar = async (req, res) => {
 // Dado un id de Usuario y un nombre de diseño de carta, añade el diseño de carta a la lista de diseños de cartas
 // del usuario y resta el precio del diseño a las monedas del usuario (si tiene suficientes).
 const buyCard = async (req, res) => {
-    const userId = req.user.id
+    const userId = req.user._id
     const cardName = req.body.cardName
 
     try {
@@ -424,7 +424,7 @@ const buyCard = async (req, res) => {
 // Dado un id de Usuario y un nombre de diseño de carta, establece como diseño de carta
 // actual (en uso) el pasado por parámetro (si el usuario lo posee).
 const changeCard = async (req, res) => {
-    const userId = req.user.id
+    const userId = req.user._id
     const cardName = req.body.cardName
 
     try {
@@ -484,7 +484,7 @@ const changeCard = async (req, res) => {
 // Dado un id de Usuario y un nombre de avatar, añade el diseño de tapete a la lista de diseños de tapetes
 // del usuario y resta el precio del diseño a las monedas del usuario (si tiene suficientes).
 const buyRug = async (req, res) => {
-    const userId = req.user.id
+    const userId = req.user._id
     const rugName = req.body.rugName
 
     try {
@@ -547,7 +547,7 @@ const buyRug = async (req, res) => {
 // Dado un id de Usuario y un nombre de diseño de tapete, establece como diseño de tapete
 // actual (en uso) el pasado por parámetro (si el usuario lo posee).
 const changeRug = async (req, res) => {
-    const userId = req.user.id
+    const userId = req.user._id
     const rugName = req.body.rugName
 
     try {
@@ -608,7 +608,7 @@ const changeRug = async (req, res) => {
 // número de monedas correspondiente a la recompensa del día de la semana ‘day’.
 // ‘day’ es un día de la semana en español, con la primera letra en mayúscula y con tildes
 const getReward = async (req, res) => {
-    const userId = req.user.id
+    const userId = req.user._id
     const rewardDay = req.body.rewardDay
 
     try {
@@ -651,7 +651,9 @@ const getReward = async (req, res) => {
     }
 }
 
-// ------------------------ Funciones del administrador ------------------------
+////////////////////////////////////////////////////////////////////////////////
+// Funciones del administrador
+////////////////////////////////////////////////////////////////////////////////
 
 // Elimina un usuario ya existente del sistema
 const eliminate = async (req, res) => {
@@ -769,6 +771,57 @@ const insertCoins = async (req, res) => {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Funciones internas
+////////////////////////////////////////////////////////////////////////////////
+
+// Dado un id de usuario y una cantidad de monedas, añade esa cantidad al usuario.
+async function insertCoinsFunction(req) {
+    // Parámetros en req.body: userId, coins
+    const userId = req.body.userId
+    const inCoinsStr = req.body.coins
+
+    try {
+        // Nos aseguramos de que exCoins sea un entero > 0
+        const inCoins = parseInt(inCoinsStr)
+        if (typeof inCoins !== 'number' || inCoins <= 0 || !Number.isInteger(inCoins)) {
+            return ({
+                status: "error",
+                message: "El número de monedas a insertar no es correcto. Debe ser un entero positivo mayor de 0"
+            })
+        }
+
+        // Se busca el usuario por su ID
+        const user = await User.findById(userId)
+
+        if (!user) {
+            return ({
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            })
+        }    
+        
+        // Se suman las monedas al saldo del usuario
+        user.coins += inCoins
+
+        // Se guarda y se responde al cliente
+        await user.save()
+        return ({
+            status: "success",
+            message: "Dinero insertado correctamente",
+            coinsInserted: inCoins,
+            user: user
+        })
+
+    } catch (e) {
+        console.error(error)
+        return ({
+            status: "error",
+            message: "Error al extraer las monedas. Asegúrate de que la cadena de texto que representa el número de monedas a insertar es un entero mayor de 0 y que el ID del usuario es el correcto"
+        })
+    }
+}
+
 // Funciones que se exportan
 module.exports = {
     isAdmin,
@@ -786,5 +839,6 @@ module.exports = {
     changeCard,
     buyRug,
     changeRug,
-    getReward
+    getReward,
+    insertCoinsFunction
 }

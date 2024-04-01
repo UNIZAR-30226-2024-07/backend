@@ -1,7 +1,118 @@
 const User = require("../../models/userSchema")
 const TournamentBoard = require("../../models/boards/tournamentBoardSchema")
-const Tournament = require("../../models/tournamentSchema")
+const TournamentController = require("../tournamentController")
 const BankController = require("../bankController")
+const UserController = require("../userController")
+
+////////////////////////////////////////////////////////////////////////////////
+// Funciones para la lógica del juego
+////////////////////////////////////////////////////////////////////////////////
+
+// Devuelve true si y solo si el número de jugadas en esta ronda es igual al
+// número de jugadores que hay en la partida
+async function allPlayersPlayed(req) {
+    // Parámetros en req.body: req.body.boardId
+    const boardId = req.body.boardId
+    
+    try {
+        // Se recupera la mesa
+        const board = await TournamentBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "No se encontró la mesa de torneo"
+            })
+        }
+        
+        if (board.hand.numPlays !== board.players.length) {
+            return ({
+                status: "error",
+                message: "El número de jugadores que han realizado una jugada es menor al de jugadores en la partida"
+            })
+        } else {
+            return ({
+                status: "success",
+                message: "El número de jugadores que han realizado una jugada es igual al de jugadores en la partida",
+                board: board
+            })
+        }
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al encontrar el número de manos jugadas. " + e.message
+        })
+    }
+}
+
+// Elimina los jugadores que se pasan por un array de la mesa con el id especificado
+async function eliminatePlayers(req) {
+    // Parámetros en req.body: boardId, playersToDelete
+    const boardId = req.body.boardId
+    const playersToDelete = req.body.playersToDelete
+
+    try {
+        // Eliminar a los jugadores marcados para ser eliminados
+        await TournamentBoard.updateOne(
+            { _id: boardId },
+            { $pull: { 'players': { 'player': { $in: playersToDelete } } } }
+        )
+
+        return ({
+            status: "success",
+            message: "Usuarios eliminados correctamente"
+        })
+        
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al eliminar jugadores. " + e.message
+        })
+    }
+}
+
+// Dado un board, apunta todos aquellos jugadores que no han enviado su jugada
+// y elimina a todo aquel que ha dejado de jugar 2 manos
+// TODO: se puede poner aquí la lógica de después de cada jugada
+async function manageHand(req) {
+    // Parámetros en req.body: board (un board completo)
+    const board = req.body.board
+
+    try {
+        // Array para almacenar los IDs de los jugadores que serán eliminados
+        const playersToDelete = []
+
+        // Iterar sobre los jugadores en la mesa del torneo
+        for (const playerObj of board.players) {
+            // Incrementar el contador de manos ausentes si el jugador no ha jugado
+            if (!board.hand.players.includes(playerObj.player)) {
+                playerObj.handsAbsent++
+            }
+
+            // Eliminar al jugador si ha dejado de jugar dos manos consecutivas
+            if (playerObj.handsAbsent >= 2) {
+                playersToDelete.push(playerObj.player)
+            }
+        }
+
+        await board.save()
+
+        // Eliminar a los jugadores marcados para ser eliminados
+        var resEliminate = await eliminatePlayers({ body: { boardId: board._id,
+                                                            playersToDelete: playersToDelete }})
+        if (resEliminate.status === "error") return resEliminate
+        
+        return ({
+            status: "success",
+            message: "Gestión de manos completada"
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al ver los jugadores que no han enviado jugada. " + e.message
+        })
+    }
+}
 
 // Crea una mesa de torneo dado un torneo ya existente y la ronda en la que se
 // disputa el enfrentamiento
@@ -59,28 +170,29 @@ async function add (req) {
 }
 
 // Función para eliminar una mesa de torneo por su ID
-const eliminate = async (req, res) => {
+async function eliminate(req) {
+    // Parámetros en body: id
     try {
-        const id = req.params.id
+        const id = req.body.id
         
         // Encontrar y eliminar mesa por id
         const board = await TournamentBoard.findByIdAndDelete(id)
         
         // Mesa no encontrada, error
         if (!board) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Mesa de torneo no encontrada"
             })
         } else {  // Mesa encontrada, exito
-            return res.status(200).json({
+            return ({
                 status: "success",
                 message: "Mesa de torneo eliminada correctamente"
             })
         }
 
     } catch (error) {
-        return res.status(404).json({
+        return ({
             status: "error",
             message: error.message
         })
@@ -117,8 +229,10 @@ async function addPlayer (req) {
         }
 
         // Se añade el jugador a la mesa de torneo y se cierra la mesa a nuevos 
-        // usuarios si ya está completa
-        board.players.push({ player: userId })
+        // usuarios si ya está completa. Si el jugador es el primero, se establece
+        // este como guest
+        const isGuest = board.players.length === 0
+        board.players.push({ player: userId, guest: isGuest })
         if (board.players.length === 2) {
             board.status = 'playing'
         }
@@ -181,6 +295,130 @@ async function isFull(req) {
 
 }
 
+// Devuelve 'success' si y solo si se ha alcanzado el final de la partida
+async function isEndOfGame(req) {
+    // Parámetros en req.body: boardId
+    const boardId = req.body.boardId
+
+    try {
+        // Se recupera la mesa
+        const board = await TournamentBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "No se encontró la mesa"
+            })
+        }
+
+        // Se verifica si la partida ha terminado. La partida habrá terminado si
+        // algún jugador posee 0 vidas o si solo hay un jugador en la partida
+
+        // Verificar si algún jugador tiene 0 vidas
+        for (const playerObj of board.players) {
+            if (playerObj.lifes === 0) {
+                return ({
+                    status: "success",
+                    message: "La partida ha terminado porque un jugador se quedó sin vidas"
+                })
+            }
+        }
+
+        // Verificar si solo queda un jugador en la partida
+        if (board.players.length === 1) {
+            return ({
+                status: "success",
+                message: "La partida ha terminado porque solo queda un jugador en la partida"
+            })
+        }
+
+        // Si ningún jugador tiene 0 vidas y aún quedan más de un jugador en la
+        // partida, la partida no ha terminado
+        return ({
+            status: "error",
+            message: "La partida aún no ha terminado"
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al determinar si la partida ha acabado. " + e.message
+        })
+    }
+}
+
+// Realiza las acciones correspondientes a la finzalización de la partida. Si la
+// partida no era una final, se avanza al jugador de ronda en el torneo. Si la 
+// partida era una final, se da el correspondiente premio a cada uno de los dos
+// jugadores. Además se encarga de eliminar la mesa junto con su banca
+async function finishBoard(req) {
+    // Parámetros necesarios en req.body: boardId
+    const boardId = req.body.boardId
+
+    try {
+        var res = await boardByIdFunction({ body: { boardId: boardId }})
+        if (res.status === "error") return res
+        const board = res.board
+
+        var resTournament = await TournamentController.tournamentByIdFunction({ body: { tournamentId: board.tournament }})
+        if (resTournament.status === "error") return resTournament
+        const tournament = resTournament.tournament
+
+        const winner = board.players.find(playerObj => playerObj.lifes > 0)
+        const loser = board.players.find(playerObj => playerObj.lifes <= 0)
+
+        if (!winner || !loser) {
+            return ({
+                status: "error",
+                message: "Error al establecer el ganador y perdedor de la partida"
+            })
+        }
+
+        if (board.round === 1) {
+            // La partida era una final y por tanto se dan las recompensas al
+            // ganador
+            res = await UserController.insertCoinsFunction({ body: { userId: winner.player, coins: tournament.coins_winner } })
+            if (res.status === "error") return res
+
+            res = await UserController.insertCoinsFunction({ body: { userId: loser.player, coins: tournament.coins_subwinner } })
+            if (res.status === "error") return res
+
+            // También finaliza el torneo, luego se elimina a los dos del mismo
+            res = await TournamentController.tournamentLost({ body: { userId: winner.player, tournamentId: tournament._id }})
+            if (res.status === "error") return res
+
+            res = await TournamentController.tournamentLost({ body: { userId: loser.player, tournamentId: tournament._id }})
+            if (res.status === "error") return res
+
+        } else {
+            // La partida no era una final, luego se avanza de ronda al ganador
+            // y se elimina el torneo de la lista de torneos al perdedor
+            res = await TournamentController.advanceRound({ body: { userId: winner.player, tournamentId: tournament._id }})
+            if (res.status === "error") return res
+
+            res = await TournamentController.tournamentLost({ body: { userId: loser.player, tournamentId: tournament._id }})
+            if (res.status === "error") return res
+        }
+
+        // Se elimina la banca del sistema
+        await BankController.eliminate({ body: { bankId: board.bank }})
+
+        // Se elimina ahora la partida
+        await board.remove()
+
+        return ({
+            status: "success",
+            message: "Mesa finalizada y eliminada correctamente"
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al finalizar la partida. " + e.message
+        })
+    }
+}
+
+// Devuelve el 'board' completo dado su ID
 async function boardByIdFunction(req) {
     const boardId = req.body.boardId
 
@@ -206,6 +444,7 @@ async function boardByIdFunction(req) {
     }
 }
 
+// Devuelve el 'board' completo dado su ID
 const boardById = async (req, res) => {
     const boardId = req.body.boardId
 
@@ -231,9 +470,65 @@ const boardById = async (req, res) => {
     }
 }
 
+// Función 
+const play = async (req, res) => {
+    // Parámetros en body: boardId, numHand
+    const boardId = req.body.boardId
+    const numHand = req.body.numHand
+    // ...
+
+    try {
+        // Se recupera la mesa
+        const board = await TournamentBoard.findById(boardId)
+        if (!board) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontró la mesa de torneo"
+            })
+        }
+
+        // Se verifica que el número de mano sea el actual
+        if (board.hand.numPlays !== numHand) {
+            return res.status(400).json({
+                status: "error",
+                message: "El número de mano no es el actual. Jugada no válida"
+            })
+        }
+
+        // Lógica de juego
+        // ...
+
+        board.hand.numHand = board.hand.numHand + 1
+        const updatedBoard = await TournamentBoard.findByIdAndUpdate(boardId)
+        if (!updatedBoard) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontró la mesa de torneo"
+            })
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "",
+            board: updatedBoard
+        })
+
+    } catch (e) {
+        return res.status(400).json({
+            status: "error",
+            message: "Error al realizar la jugada. " + e.message
+        })
+    }
+}
+
 module.exports = {
+    allPlayersPlayed,
+    manageHand,
     isFull,
+    isEndOfGame,
+    finishBoard,
     add,
+    eliminate,
     addPlayer,
     boardByIdFunction,
     boardById

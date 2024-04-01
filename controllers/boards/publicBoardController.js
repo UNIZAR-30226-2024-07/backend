@@ -55,30 +55,101 @@ async function add (req) {
 }
 
 // Función para eliminar una mesa pública por su ID
-const eliminate = async (req, res) => {
+async function eliminate(req) {
+    // Parámetros en body: id
     try {
-        const id = req.params.id
+        const id = req.body.id
         
         // Encontrar y eliminar mesa por id
         const board = await PublicBoard.findByIdAndDelete(id)
         
         // Mesa no encontrada, error
         if (!board) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Mesa pública no encontrada"
             })
         } else {  // Mesa encontrada, exito
-            return res.status(200).json({
+            return ({
                 status: "success",
                 message: "Mesa pública eliminada correctamente"
             })
         }
 
     } catch (error) {
-        return res.status(404).json({
+        return ({
             status: "error",
             message: error.message
+        })
+    }
+}
+
+// Elimina los jugadores que se pasan por un array de la mesa con el id especificado
+async function eliminatePlayers(req) {
+    // Parámetros en req.body: boardId, playersToDelete
+    const boardId = req.body.boardId
+    const playersToDelete = req.body.playersToDelete
+
+    try {
+        // Eliminar a los jugadores marcados para ser eliminados
+        await TournamentBoard.updateOne(
+            { _id: boardId },
+            { $pull: { 'players': { 'player': { $in: playersToDelete } } } }
+        )
+
+        return ({
+            status: "success",
+            message: "Usuarios eliminados correctamente"
+        })
+        
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al eliminar jugadores. " + e.message
+        })
+    }
+}
+
+// Dado un board, apunta todos aquellos jugadores que no han enviado su jugada
+// y elimina a todo aquel que ha dejado de jugar 2 manos
+// TODO: se puede poner aquí la lógica de después de cada jugada
+async function manageHand(req) {
+    // Parámetros en req.body: board (un board completo)
+    const board = req.body.board
+
+    try {
+        // Array para almacenar los IDs de los jugadores que serán eliminados
+        const playersToDelete = []
+
+        // Iterar sobre los jugadores en la mesa del torneo
+        for (const playerObj of board.players) {
+            // Incrementar el contador de manos ausentes si el jugador no ha jugado
+            if (!board.hand.players.includes(playerObj.player)) {
+                playerObj.handsAbsent++
+            }
+
+            // Eliminar al jugador si ha dejado de jugar dos manos consecutivas
+            if (playerObj.handsAbsent >= 2) {
+                playersToDelete.push(playerObj.player)
+            }
+        }
+
+        await board.save()
+
+        // Eliminar a los jugadores marcados para ser eliminados
+        var resEliminate = await eliminatePlayers({ body: { boardId: board._id,
+                                                            playersToDelete: playersToDelete }})
+        if (resEliminate.status === "error") return resEliminate
+        
+        return ({
+            status: "success",
+            message: "Gestión de manos completada"
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al ver los jugadores que no han enviado jugada. " + e.message
         })
     }
 }
@@ -113,8 +184,10 @@ async function addPlayer(req) {
         }
 
         // Se añade el jugador a la mesa pública y se cierra la mesa a nuevos 
-        // usuarios si ya está completa
-        board.players.push({ player: userId })
+        // usuarios si ya está completa. Si el jugador es el primero, se establece
+        // este como guest
+        const isGuest = board.players.length === 0
+        board.players.push({ player: userId, guest: isGuest })
         if (board.players.length === board.numPlayers) {
             board.status = 'playing'
         }
@@ -231,6 +304,7 @@ const boardById = async (req, res) => {
 module.exports = {
     isFull,
     add,
+    eliminate,
     addPlayer,
     boardByIdFunction,
     boardById

@@ -7,12 +7,19 @@ const {Schema, model} = require('mongoose')
 
 const publicBoardSchema = Schema({
     // Usuarios jugando en la mesa
-    players: [{
-        player: {
-            type: Schema.ObjectId,
-            ref: "User"
-        }
-    }],
+    players: {
+        type: [{
+            player: {
+                type: Schema.ObjectId,
+                ref: "User"
+            },
+            guest: {
+                type: Boolean,
+                default: "false"
+            },
+        }],
+        default: []
+    },
     // Tipo de mesa pública
     publicBoardType: {
         type: Schema.ObjectId,
@@ -46,6 +53,22 @@ const publicBoardSchema = Schema({
     status: {
         type: String,
         default: 'waiting'
+    },
+    // Número de mano en la que se encuentra la partida y el número de jugadas
+    // recibidas en esa mano
+    hand: {
+        type: {
+            // Número de mano en la que se encuentra la partida
+            numHand: {
+                type: Number,
+                default: 1
+            },
+            // Número de jugadas recibidas en la mano 'numHand'
+            numPlays: {
+                type: Number,
+                default: 0
+            }
+        },
     },
 }, {timestamps: true})
 
