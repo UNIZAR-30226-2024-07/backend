@@ -43,8 +43,8 @@ const userSchema = Schema({
                 ref: "Tournament",
                 required: true
             },
-            // round = 8 (octavos) | 4 (cuartos) | 2 (semifinal) | 1 (final)
-            round: {
+            // position = 8 (octavos) | 4 (cuartos) | 2 (semifinal) | 1 (final)
+            position: {
                 type: Number,
                 default: 8
             }

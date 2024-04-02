@@ -1,6 +1,7 @@
 // Imports de esquemas necesarios
 const Tournament = require("../models/tournamentSchema")
 const User = require("../models/userSchema")
+const BankController = require("./bankController")
 
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones de usuario
@@ -293,15 +294,20 @@ const getAll = async (req, res) => {
 
 // Añade un nuevo torneo al sistema si su nombre aún no existe
 const add = async (req, res) => {
+    // Parámetros en req.body: name, price, bankLevel
     const t = req.body
 
     // Nos aseguramos de que se hayan enviado todos los parámetros
-    if (!t.name || t.name.trim() === '' || !t.price) {
+    if (!t.name || t.name.trim() === '' || !t.price || !t.bankLevel) {
         return res.status(400).json({
             status: "error",
             message: "Parámetros enviados incorrectamente. Se deben incluir los campos: name, price"
         })
     }
+
+    var res = await BankController.correctName({ body: { level: t.bankLevel }})
+    if (res.status === "error") return res
+
     const price = parseInt(t.price)
     if (typeof price !== 'number' || price <= 0 || !Number.isInteger(price)) {
         return res.status(500).json({
@@ -331,6 +337,7 @@ const add = async (req, res) => {
         // Se crea el torneo
         const newTournament = await Tournament.create({
             name: t.name,
+            bankLevel: t.bankLevel,
             price: price,
             coins_winner: coins_winner,
             coins_subwinner: coins_subwinner

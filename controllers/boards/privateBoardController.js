@@ -1,7 +1,14 @@
 const PrivateBoard = require("../../models/boards/privateBoardSchema")
 const User = require("../../models/userSchema")
 const BankController = require("../bankController")
+const UserController = require("../userController")
 const bcrypt = require('bcrypt')
+
+const maxRounds = 20
+
+////////////////////////////////////////////////////////////////////////////////
+// Funciones internas
+////////////////////////////////////////////////////////////////////////////////
 
 // Crea una mesa privada
 async function add (req) {
@@ -121,6 +128,32 @@ async function eliminate(req) {
     }
 }
 
+// Elimina los jugadores que se pasan por un array de la mesa con el id especificado
+async function eliminatePlayers(req) {
+    // Parámetros en req.body: boardId, playersToDelete
+    const boardId = req.body.boardId
+    const playersToDelete = req.body.playersToDelete
+
+    try {
+        // Eliminar a los jugadores marcados para ser eliminados
+        await PrivateBoard.updateOne(
+            { _id: boardId },
+            { $pull: { 'players': { 'player': { $in: playersToDelete } } } }
+        )
+
+        return ({
+            status: "success",
+            message: "Usuarios eliminados correctamente"
+        })
+        
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al eliminar jugadores. " + e.message
+        })
+    }
+}
+
 // Añade un jugador a la mesa si esta se encuentra esperando jugadores
 async function addPlayer (req) {
     const userId = req.body.userId
@@ -228,9 +261,236 @@ async function isFull (req) {
     }
 }
 
+// Devuelve 'success' si y solo si se ha alcanzado el final de la partida
+async function isEndOfGame(req) {
+    // Parámetros en req.body: boardId
+    const boardId = req.body.boardId
+
+    try {
+        // Se recupera la mesa
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "No se encontró la mesa"
+            })
+        }
+
+        // Se verifica si la partida ha terminado. La partida habrá terminado si
+        // se han alcanzado las 20 rondas o si solo hay un jugador en la partida
+
+        // Verificar si se han alcanzado las 20 rondas
+        if (board.hand.numHand >= maxRounds) {
+            return ({
+                status: "success",
+                message: "La partida ha terminado porque se han alcanzado el número máximo de rondas"
+            })
+        }
+
+        // Verificar si solo queda un jugador en la partida
+        if (board.players.length === 1) {
+            return ({
+                status: "success",
+                message: "La partida ha terminado porque solo queda un jugador en la partida"
+            })
+        }
+
+        // Si no se han alcanzado las rondas máximas y aún queda más de un 
+        // jugador en la partida, la partida no ha terminado
+        return ({
+            status: "error",
+            message: "La partida aún no ha terminado"
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al determinar si la partida ha acabado. " + e.message
+        })
+    }
+}
+
+// Dado un board, apunta todos aquellos jugadores que no han enviado su jugada
+// y elimina a todo aquel que ha dejado de jugar 2 manos
+// TODO: se puede poner aquí la lógica de después de cada jugada
+async function seeAbsents(req) {
+    // Parámetros en req.body: board (un board completo)
+    const board = req.body.board
+
+    try {
+        // Array para almacenar los IDs de los jugadores que serán eliminados
+        const playersToDelete = []
+
+        // Iterar sobre los jugadores en la mesa del torneo
+        for (const playerObj of board.players) {
+            // Incrementar el contador de manos ausentes si el jugador no ha jugado
+            if (!board.hand.players.includes(playerObj.player)) {
+                playerObj.handsAbsent++
+            }
+
+            // Eliminar al jugador si ha dejado de jugar dos manos consecutivas
+            if (playerObj.handsAbsent >= 2) {
+                playersToDelete.push(playerObj.player)
+            }
+        }
+
+        await board.save()
+
+        // Eliminar a los jugadores marcados para ser eliminados
+        var resEliminate = await eliminatePlayers({ body: { boardId: board._id,
+                                                            playersToDelete: playersToDelete }})
+        if (resEliminate.status === "error") return resEliminate
+        
+        return ({
+            status: "success",
+            message: "Gestión de manos completada"
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al ver los jugadores que no han enviado jugada. " + e.message
+        })
+    }
+}
+
+// Realiza las acciones correspondientes a la finzalización de la partida. Se
+// insertan las monedas correspondientes a aquellos jugadores que han ganado y
+// se extrae a los que han perdido. Además se encarga de eliminar la mesa junto
+// con su banca
+async function finishBoard(req) {
+    // Parámetros necesarios en req.body: boardId
+    const boardId = req.body.boardId
+
+    try {
+        var res = await boardByIdFunction({ body: { boardId: boardId }})
+        if (res.status === "error") return res
+        const board = res.board
+
+        for (playerObj of board.players) {
+            if (playerObj.earnedCoins != 0) {
+                res = await UserController.insertCoinsFunction({ body: { userId: playerObj.player, 
+                                                                         coins: playerObj.earnedCoins }})
+                if (res.status === "error") return res
+            }
+        }
+
+        // Se elimina la banca del sistema
+        await BankController.eliminate({ body: { bankId: board.bank }})
+
+        // Se elimina ahora la partida
+        await board.remove()
+
+        return ({
+            status: "success",
+            message: "Mesa finalizada y eliminada correctamente"
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al finalizar la partida. " + e.message
+        })
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Funciones públicas
+////////////////////////////////////////////////////////////////////////////////
+
+// Devuelve el 'board' completo dado su ID
+const boardById = async (req, res) => {
+    const boardId = req.params.id
+
+    try {
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return res.status(404).json({
+                status: "error",
+                message: "No existe una mesa de torneo con el ID proporcionado"
+            })
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Se ha obtenido la mesa de torneo correctamente. Se encuentra en el campo board de esta respuesta",
+            board: board
+        })
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al recuperar la mesa dado su ID"
+        })
+    }
+}
+
+// Abandona la partida si el usuario estaba dentro de ella. Si el usuario 
+// llevaba monedas ganadas, se le proporciona la mitad de las monedas ganadas.
+const leaveBoard = async (req, res) => {
+    // Parámetros necesarios en URL: id
+    const boardId = req.params.id
+    const userId = req.user._id
+    var res
+
+    try {
+        // Se verifica que la mesa exista
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return res.status(404).json({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        // Se verifica que el usuario esté en la partida
+        const playerIndex = board.players.findIndex(player => player.player.equals(userId))
+        if (playerIndex === -1) {
+            return res.status(404).json({
+                status: "error",
+                message: "El usuario no está en la partida"
+            })
+        }
+
+        // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
+        // las monedas ganadas
+        var inCoins
+        if (board.players[playerIndex].earnedCoins > 0) {
+            inCoins = Math.floor(board.players[playerIndex].earnedCoins / 2)
+            res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
+            if (res.status === "error") return res
+        } 
+        else if (board.players[playerIndex].earnedCoins < 0) {
+            inCoins = board.players[playerIndex].earnedCoins
+            res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
+            if (res.status === "error") return res
+        }
+
+        // Eliminar al usuario de la lista de jugadores en la partida
+        board.players.splice(playerIndex, 1);
+
+        // Guardar los cambios en la base de datos
+        await board.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "El usuario abandonó la partida correctamente"
+        })
+
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al abandonar la partida. " + e.message
+        })
+    }
+}
+
 module.exports = {
     add,
     eliminate,
     addPlayer,
-    isFull
+    isFull,
+    isEndOfGame,
+    finishBoard,
+    boardById,
+    leaveBoard
 }

@@ -2,6 +2,7 @@ const Matcher = require("../models/matcherSchema")
 const MatcherController = require("../controllers/matcherContoller")
 const TournamentBoardController = require("../controllers/boards/tournamentBoardController")
 const PublicBoardController = require("../controllers/boards/publicBoardController")
+const PrivateBoardController = require("../controllers/boards/privateBoardController")
 
 var mutex = true
 var mutexPublic = true
@@ -21,9 +22,10 @@ function signalPublic() {
     mutexPublic = true
 }
 
-async function turnTimeout(boardId, boardType) {
-    // boardType = "tournament", "public", "private"
-    
+// Espera hasta que todos los jugadores hayan enviado sus jugadas un máximo de
+// 30 segundos. Devuelve 'success' si y solo si todos los jugadores han enviado
+// sus jugadas antes de los 30 segundos y 'error' en caso contrario
+async function turnTimeout(boardId) {    
     try {
         var res = { status: "error" }
         var iter = 30 / 5
@@ -36,24 +38,18 @@ async function turnTimeout(boardId, boardType) {
         }
 
         if (res.status === "error") {
-            // El timeout se ha consumido y por tanto algún jugador no ha 
-            // enviado su jugada
-            var resManage
-            if (boardType === "tournament") {
-                resManage = await TournamentBoardController.manageHand({ body: { board: res.board }})
-            } else if (boardType === "public") {
-                resManage = await PublicBoardController.manageHand({ body: { board: res.board }})
-            } else if (boardType === "private") {
-                resManage = await PrivateBoardController.manageHand({ body: { board: res.board }})
-            }
-            
-            if (resManage.status === "error") return resManage
+            return ({
+                status: "error",
+                message: "Se agotó el tiempo de espera sin que todos los jugadores mandaran su jugada",
+                board: res.board
+            })
+        } else {
+            return ({
+                status: "success",
+                message: "Todos los jugadores mandaron su jugada antes de que acabara el tiempo de espera",
+                board: res.board
+            })
         }
-
-        return ({
-            status: "success",
-            message: "Todos los jugadores enviaron su partida"
-        })
 
     } catch (e) {
         return ({
@@ -114,6 +110,7 @@ const Sockets = async (io) => {
         const boardId = req.body.boardId
 
         try {
+            var res
             var resEndBoard = { status: "error" }
 
             while (resEndBoard.status === "error") {
@@ -124,6 +121,13 @@ const Sockets = async (io) => {
                 // Se espera a que lleguen las jugadas
                 res = await turnTimeout(boardId)
 
+                if (res.status === "error") {
+                    // Si se agotó el tiempo y no todos mandaron su jugada, se
+                    // apunta
+                    res = await TournamentBoardController.seeAbsents({ body: { board: res.board }})
+                    if (res.status === "error") return res
+                }
+
                 // TODO: o se mete aquí otra función con la lógica, o se mete en
                 // TournamentBoardController.manageHand
 
@@ -133,6 +137,8 @@ const Sockets = async (io) => {
             // Se mira quién ha sido el ganador de la partida, se le avanza en
             // la ronda y se dan monedas si se tienen que dar
             await TournamentBoardController.finishBoard({ body: { boardId: boardId }})
+
+            // io.to("tournament:" + boardId).emit("finish board")
 
         } catch (e) {
             return ({
@@ -183,6 +189,7 @@ const Sockets = async (io) => {
         const boardId = req.body.boardId
 
         try {
+            var res
             var resEndBoard = { status: "error" }
 
             while (resEndBoard.status === "error") {
@@ -193,15 +200,25 @@ const Sockets = async (io) => {
                 // Se espera a que lleguen las jugadas
                 res = await turnTimeout(boardId)
 
+                if (res.status === "error") {
+                    // Si se agotó el tiempo y no todos mandaron su jugada, se
+                    // apunta
+                    res = await PublicBoardController.seeAbsents({ body: { board: res.board }})
+                    if (res.status === "error") return res
+                }
+
                 // TODO: o se mete aquí otra función con la lógica, o se mete en
                 // TournamentBoardController.manageHand
 
-                resEndBoard = await TournamentBoardController.isEndOfGame(req)
+                resEndBoard = await PublicBoardController.isEndOfGame(req)
             }
 
             // Se mira quién ha sido el ganador de la partida, se le avanza en
             // la ronda y se dan monedas si se tienen que dar
-            await TournamentBoardController.finishBoard({ body: { boardId: boardId }})
+            await PublicBoardController.finishBoard({ body: { boardId: boardId }})
+
+            // io.to("public:" + boardId).emit("finish board")
+
 
         } catch (e) {
             return ({
@@ -211,7 +228,6 @@ const Sockets = async (io) => {
         }
     })
 
-    
 
     ////////////////////////////////////////////////////////////////////////////
     // Partidas privadas
@@ -265,22 +281,51 @@ const Sockets = async (io) => {
         }        
     })
 
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Gestión de partidas
-    ////////////////////////////////////////////////////////////////////////////
-
-    socket.on("movement", async (req) => {
-        // Parámetros en req.body: boardId, userId
+    // Este evento lo emite el guest de la mesa y sirve para empezar a enviar
+    // eventos que permitan jugar la partida
+    socket.on("players private ready", async (req) => {
+        // Parámetros en body: boardId
         const boardId = req.body.boardId
-        const userId = req.body.userId
 
         try {
+            var res
+            var resEndBoard = { status: "error" }
+
+            while (resEndBoard.status === "error") {
+                // Primero se envía un evento para que todos los jugadores hagan
+                // una jugada
+                io.to("private:" + boardId).emit("play hand")
+                
+                // Se espera a que lleguen las jugadas
+                res = await turnTimeout(boardId)
+
+                if (res.status === "error") {
+                    // Si se agotó el tiempo y no todos mandaron su jugada, se
+                    // apunta
+                    res = await PrivateBoardController.seeAbsents({ body: { board: res.board }})
+                    if (res.status === "error") return res
+                }
+
+                // TODO: o se mete aquí otra función con la lógica, o se mete en
+                // TournamentBoardController.manageHand
+
+                resEndBoard = await PrivateBoardController.isEndOfGame(req)
+            }
+
+            // Se mira quién ha sido el ganador de la partida, se le avanza en
+            // la ronda y se dan monedas si se tienen que dar
+            await PrivateBoardController.finishBoard({ body: { boardId: boardId }})
+
+            // io.to("private:" + boardId).emit("finish board")
 
         } catch (e) {
-
+            return ({
+                status: "error",
+                message: "Error en el transcurso de la partida. " + e.message
+            })
         }
     })
+
     })
 }
 

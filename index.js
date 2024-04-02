@@ -53,6 +53,9 @@ app.use("/api/stat", require("./routes/statRoute"))
 app.use("/api/tournament", require("./routes/tournamentRoute"))
 app.use("/api/publicBoardType", require("./routes/publicBoardTypeRoute"))
 app.use("/api/user", require("./routes/userRoute"))
+app.use("/api/publicBoard", require("./routes/boards/publicBoardRoute"))
+app.use("/api/privateBoard", require("./routes/boards/privateBoardRoute"))
+app.use("/api/tournamentBoard", require("./routes/boards/tournamentBoardRoute"))
 
 const server = app.listen(appConfig.port, () => {
     console.log("Servidor de node escuchando en el puerto: ", appConfig.port)

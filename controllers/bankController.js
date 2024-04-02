@@ -1,6 +1,53 @@
 // Imports de esquemas necesarios
 const Bank = require("../models/bankSchema")
 
+class Card {
+    constructor(value, suit) {
+        this.value = value
+        this.suit = suit
+    }
+}
+
+class Deck {
+    constructor() {
+        this.cards = this.createDeck() // Las cartas son fijas y no se tocan
+        this.maze = this.cards // El mazo puede ir variando al sacar cartas
+    }
+
+    // Hearts: corazones
+    // Diamonds: diamantes
+    // Clubs: tréboles
+    // Spades: picas
+    createDeck() {
+        const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']
+        const cards = []
+
+        for (const suit of suits) {
+            for (const value of values) {
+                cards.push(new Card(value, suit))
+            }
+        }
+
+        return new Deck(cards)
+    }
+
+    collectCards() {
+        this.maze = this.cards
+    }
+
+    drawCard() {
+        if (this.maze.length === 0) {
+            this.collectCards()
+        }
+
+        const randomIndex = Math.floor(Math.random() * this.maze.length)
+        const card = this.maze[randomIndex]
+        this.maze.splice(randomIndex, 1) // Remover la carta de la baraja
+        return card
+    }
+}
+
 
 /*************** Eliminar esta función **************/
 const eliminateAll = async (req, res) => {
@@ -21,7 +68,10 @@ const eliminateAll = async (req, res) => {
 }
 /****************************************************/
 
+// Devuelve "success" si y solo si 'level' es igual a 'beginner', 'medium' o 
+// 'expert'. Devuelve "error" en caso contrario
 async function correctName(req) {
+    // Parámetros en req.body: level
     const level = req.body.level
 
     if (level !== 'beginner' && level !== 'medium' && level !== 'expert') {

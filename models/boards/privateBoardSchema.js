@@ -31,6 +31,17 @@ const privateBoardSchema = Schema({
                 type: Boolean,
                 default: "false"
             },
+            // Número de jugadas en las que el jugador no ha enviado jugada
+            // A las 2 jugadas será expulsado
+            handsAbsent: {
+                type: Number,
+                default: 0
+            },
+            // Monedas obtenidas durante la partida (negativas si ha perdido)
+            earnedCoins: {
+                type: Number,
+                default: 0
+            }
         }],
         default: []
     },
@@ -80,7 +91,13 @@ const privateBoardSchema = Schema({
             numPlays: {
                 type: Number,
                 default: 0
-            }
+            },
+            // Jugadores que han enviado la jugada en esta mano
+            players: [{
+                type: Schema.ObjectId,
+                ref: "User",
+                default: []
+            }]
         },
     },
 }, {timestamps: true})

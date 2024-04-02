@@ -5,7 +5,7 @@ const BankController = require("../bankController")
 const UserController = require("../userController")
 
 ////////////////////////////////////////////////////////////////////////////////
-// Funciones para la lógica del juego
+// Funciones internas
 ////////////////////////////////////////////////////////////////////////////////
 
 // Devuelve true si y solo si el número de jugadas en esta ronda es igual al
@@ -73,7 +73,7 @@ async function eliminatePlayers(req) {
 // Dado un board, apunta todos aquellos jugadores que no han enviado su jugada
 // y elimina a todo aquel que ha dejado de jugar 2 manos
 // TODO: se puede poner aquí la lógica de después de cada jugada
-async function manageHand(req) {
+async function seeAbsents(req) {
     // Parámetros en req.body: board (un board completo)
     const board = req.body.board
 
@@ -444,9 +444,13 @@ async function boardByIdFunction(req) {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Funciones públicas
+////////////////////////////////////////////////////////////////////////////////
+
 // Devuelve el 'board' completo dado su ID
 const boardById = async (req, res) => {
-    const boardId = req.body.boardId
+    const boardId = req.params.id
 
     try {
         const board = await TournamentBoard.findById(boardId)
@@ -470,60 +474,53 @@ const boardById = async (req, res) => {
     }
 }
 
-// Función 
-const play = async (req, res) => {
-    // Parámetros en body: boardId, numHand
-    const boardId = req.body.boardId
-    const numHand = req.body.numHand
-    // ...
+// Abandona la partida si el usuario estaba dentro de ella
+const leaveBoard = async (req, res) => {
+    // Parámetros necesarios en req.body: boardId
+    const boardId = req.params.id
+    const userId = req.user._id
 
     try {
-        // Se recupera la mesa
+        // Se verifica que la mesa exista
         const board = await TournamentBoard.findById(boardId)
         if (!board) {
             return res.status(404).json({
                 status: "error",
-                message: "No se encontró la mesa de torneo"
+                message: "Mesa no encontrada"
             })
         }
 
-        // Se verifica que el número de mano sea el actual
-        if (board.hand.numPlays !== numHand) {
-            return res.status(400).json({
-                status: "error",
-                message: "El número de mano no es el actual. Jugada no válida"
-            })
-        }
-
-        // Lógica de juego
-        // ...
-
-        board.hand.numHand = board.hand.numHand + 1
-        const updatedBoard = await TournamentBoard.findByIdAndUpdate(boardId)
-        if (!updatedBoard) {
+        // Se verifica que el usuario esté en la partida
+        const playerIndex = board.players.findIndex(player => player.player.equals(userId))
+        if (playerIndex === -1) {
             return res.status(404).json({
                 status: "error",
-                message: "No se encontró la mesa de torneo"
+                message: "El usuario no está en la partida"
             })
         }
+
+        // Eliminar al usuario de la lista de jugadores en la partida
+        board.players.splice(playerIndex, 1);
+
+        // Guardar los cambios en la base de datos
+        await board.save();
 
         return res.status(200).json({
             status: "success",
-            message: "",
-            board: updatedBoard
+            message: "El usuario abandonó la partida correctamente"
         })
 
     } catch (e) {
-        return res.status(400).json({
+        return res.status(500).json({
             status: "error",
-            message: "Error al realizar la jugada. " + e.message
+            message: "Error al abandonar la partida. " + e.message
         })
     }
 }
 
 module.exports = {
     allPlayersPlayed,
-    manageHand,
+    seeAbsents,
     isFull,
     isEndOfGame,
     finishBoard,
@@ -531,5 +528,6 @@ module.exports = {
     eliminate,
     addPlayer,
     boardByIdFunction,
-    boardById
+    boardById,
+    leaveBoard
 }
