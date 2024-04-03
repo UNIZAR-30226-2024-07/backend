@@ -378,7 +378,9 @@ const Sockets = async (io) => {
             var res = await PrivateBoardController.newMessage(req)
             if (res.status === "error") return console.error(res)
 
-            io.to('private:' + boardId).emit("new message", { message: message, userId: userId})
+            io.to('private:' + boardId).emit("new message", { message: message, 
+                                                              name: res.nameEmitter,
+                                                              userId: userId })
         } catch (e) {
             return console.error(e.message)
         }
