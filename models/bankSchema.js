@@ -11,6 +11,12 @@ const bankSchema = Schema({
         type: String,
         required: true,
     },
+    // Mazo de cartas de la banca
+    // Cada subgrupo en maze es un montón de cartas. Uno por jugador.
+    maze: [[{
+        value: String,
+        suit: String
+    }]]
 }, {timestamps: true})
 
 module.exports = model("Bank", bankSchema)
