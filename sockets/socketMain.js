@@ -90,16 +90,9 @@ const Sockets = async (io) => {
 
             // Si está lista, se notifica a los jugadores de la mesa
             io.to("tournament:" + boardId).emit("starting tournament board", boardId)
-
-            // Se elimina a los jugadores de la lista de jugadores esperando mesa
-            const reqUsers = { body: { boardId: boardId, typeBoardname: "tournament" } }
-            res = await MatcherController.eliminateWaitingUsers(reqUsers)
-            if (res.status === "error") return console.error(res.message)
-
-
-            
+                        
         } catch (e) {
-            return console.log(e.message)
+            return console.error(e.message)
         }        
     })
 
@@ -134,6 +127,11 @@ const Sockets = async (io) => {
                 resEndBoard = await TournamentBoardController.isEndOfGame(req)
             }
 
+            // Se elimina a los jugadores de la lista de jugadores esperando mesa
+            const reqUsers = { body: { boardId: boardId, typeBoardname: "tournament" } }
+            res = await MatcherController.eliminateWaitingUsers(reqUsers)
+            if (res.status === "error") return console.error(res.message)
+            
             // Se mira quién ha sido el ganador de la partida, se le avanza en
             // la ronda y se dan monedas si se tienen que dar
             await TournamentBoardController.finishBoard({ body: { boardId: boardId }})
@@ -180,24 +178,22 @@ const Sockets = async (io) => {
             ////////////////////////////////////////////////////////////////////
             // wait(PublicMutex)
             var res = await MatcherController.playPublic(req)
-            if (res.status === "error") { return console.log(res.message) }
+            if (res.status === "error") return console.error(res.message)
             const boardId = res.board._id
 
             socket.join("public:" + boardId)
 
             const reqIsFull = { body: { boardId: boardId }}
             res = await MatcherController.isPublicBoardReady(reqIsFull)
-            if (res.status === "error") return console.log("Usuario añadido a partida con id " + boardId);
+            if (res.status === "error") return console.error("Usuario añadido a partida con id " + boardId)
             // signal(PublicMutex)
             ////////////////////////////////////////////////////////////////////
 
+            // Si está lista, se notifica a los jugadores de la mesa
             io.to("public:" + boardId).emit("starting public board", boardId)
-            console.log("Usuario añadido a partida. Se comienza la partida")
-            const reqUsers = { body: { boardId: boardId, typeBoardName: "public" } }
-            res = await MatcherController.eliminateWaitingUsers(reqUsers)
             
         } catch (e) {
-            return console.log(e.message)
+            return console.error(e.message)
         }
     })
 
@@ -232,6 +228,11 @@ const Sockets = async (io) => {
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
             }
 
+            // Se elimina a los jugadores de la lista de jugadores esperando mesa
+            const reqUsers = { body: { boardId: boardId, typeBoardName: "public" } }
+            res = await MatcherController.eliminateWaitingUsers(reqUsers)
+            if (res.status === "error") return console.error(res.message)
+            
             // Se mira quién ha sido el ganador de la partida, se le avanza en
             // la ronda y se dan monedas si se tienen que dar
             await PublicBoardController.finishBoard({ body: { boardId: boardId }})
@@ -267,7 +268,6 @@ const Sockets = async (io) => {
     })
 
 
-
     ////////////////////////////////////////////////////////////////////////////
     // Partidas privadas
     ////////////////////////////////////////////////////////////////////////////
@@ -280,14 +280,15 @@ const Sockets = async (io) => {
             ////////////////////////////////////////////////////////////////////
             // wait(PrivateMutex)
             var res = await MatcherController.createPrivate(req)
-            if (res.status === "error") return console.log(res.message)
+            if (res.status === "error") return console.error(res.message)
             const boardId = res.board._id
             // signal(PrivateMutex)
             ////////////////////////////////////////////////////////////////////
 
-            socket.join("private:" + boardId)            
+            socket.join("private:" + boardId)     
+
         } catch (e) {
-            return console.log(e.message)
+            return console.error(e.message)
         }        
     })
 
@@ -299,7 +300,7 @@ const Sockets = async (io) => {
             ////////////////////////////////////////////////////////////////////
             // wait(PrivateMutex)
             var res = await MatcherController.playPrivate(req)
-            if (res.status === "error") return console.log(res.message)
+            if (res.status === "error") return console.error(res.message)
             const boardId = res.board._id
 
             socket.join("private:" + boardId)
@@ -310,13 +311,11 @@ const Sockets = async (io) => {
             // signal(PrivateMutex)
             ////////////////////////////////////////////////////////////////////
 
+            // Si está lista, se notifica a los jugadores de la mesa
             io.to("private:" + boardId).emit("starting private board", boardId)
-
-            const reqUsers = { body: { boardId: boardId, typeBoardName: "private" }}
-            res = await MatcherController.eliminateWaitingUsers(reqUsers)
             
         } catch (e) {
-            return console.log(e.message)
+            return console.error(e.message)
         }        
     })
 
@@ -342,7 +341,7 @@ const Sockets = async (io) => {
                     // Si se agotó el tiempo y no todos mandaron su jugada, se
                     // apunta
                     res = await PrivateBoardController.seeAbsents({ body: { board: res.board }})
-                    if (res.status === "error") return res
+                    if (res.status === "error") return console.error(res)
                 }
 
                 // TODO: o se mete aquí otra función con la lógica, o se mete en
@@ -351,6 +350,11 @@ const Sockets = async (io) => {
                 resEndBoard = await PrivateBoardController.isEndOfGame(req)
             }
 
+            // Se elimina a los jugadores de la lista de jugadores esperando mesa
+            const reqUsers = { body: { boardId: boardId, typeBoardName: "private" }}
+            res = await MatcherController.eliminateWaitingUsers(reqUsers)
+            if (res.status === "error") return console.error(res.message)
+            
             // Se mira quién ha sido el ganador de la partida, se le avanza en
             // la ronda y se dan monedas si se tienen que dar
             await PrivateBoardController.finishBoard({ body: { boardId: boardId }})
@@ -358,10 +362,7 @@ const Sockets = async (io) => {
             // io.to("private:" + boardId).emit("finish board")
 
         } catch (e) {
-            return ({
-                status: "error",
-                message: "Error en el transcurso de la partida. " + e.message
-            })
+            return console.error(e.message)
         }
     })
 
