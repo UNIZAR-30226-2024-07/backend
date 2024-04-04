@@ -53,11 +53,11 @@ const add = async (req, res) => {
     }
 
     // Nos aseguramos de que numPlayers sea un entero > 1 y <= 4
-    if (typeof numPlayers !== 'number' || numPlayers > 1 || numPlayers <= 4 
+    if (typeof numPlayers !== 'number' || numPlayers <= 1 || numPlayers > 4 
         || !Number.isInteger(numPlayers)) {
         return res.status(400).json({
             status: "error",
-            message: "El campo numPlayers debe ser una cadena que represente un entero mayor de 1"
+            message: "El campo numPlayers debe ser una cadena que represente un entero mayor de 1 y menor de 5"
         })
     }   
 
@@ -73,13 +73,18 @@ const add = async (req, res) => {
 
         // Se verifica que el nivel de la banca sea válido
         const reqAddBank = { body: { level: bankLevel } }
-        var res = await BankController.correctName(reqAddBank)
-        if (res.status === "error") return res;
+        var resBank = await BankController.correctName(reqAddBank)
+        if (resBank.status === "error") {
+            return res.status(400).json({
+                status: "error",
+                message: resBank.message
+            })
+        }
 
         // Se crea la partida privada
         const publicBoardType = await PublicBoardType.create({ name: name,
                                                                numPlayers: numPlayers,
-                                                               bank: bankLevel,
+                                                               bankLevel: bankLevel,
                                                                bet: bet })
         if (!publicBoardType) {
             return res.status(400).json({
@@ -97,7 +102,7 @@ const add = async (req, res) => {
     } catch (e) {
         return res.status(500).json({
             status: "error",
-            message: "Error al crear la mesa privada"
+            message: "Error al crear la mesa pública. " + e.message
         })
     }
 }

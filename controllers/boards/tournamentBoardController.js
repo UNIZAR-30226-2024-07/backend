@@ -3,6 +3,7 @@ const TournamentBoard = require("../../models/boards/tournamentBoardSchema")
 const TournamentController = require("../tournamentController")
 const BankController = require("../bankController")
 const UserController = require("../userController")
+const MatcherController = require("../matcherContoller")
 
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones internas
@@ -59,6 +60,11 @@ async function eliminatePlayers(req) {
             { _id: boardId },
             { $pull: { 'players': { 'player': { $in: playersToDelete } } } }
         )
+
+        // Se elimina el usuario de la lista de jugadores en espera para que
+        // pueda solicitar jugar otra partida
+        res = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        if (res.status === "error") return res
 
         return ({
             status: "success",
@@ -559,6 +565,12 @@ const leaveBoard = async (req, res) => {
                 message: "El usuario no está en la partida"
             })
         }
+
+        // Se elimina el usuario de la lista de jugadores en espera para que
+        // pueda solicitar jugar otra partida
+        res = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        if (res.status === "error") return res
+
 
         // Eliminar al usuario de la lista de jugadores en la partida
         board.players.splice(playerIndex, 1);

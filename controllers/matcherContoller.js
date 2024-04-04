@@ -64,7 +64,7 @@ function isAlreadyWaiting(matcher, userId) {
 }
 
 async function eliminateWaitingUsers(req) {
-    // Parámetros requeridos: boardId, typeBoardName
+    // Parámetros en req.body: boardId, typeBoardName
     const typeBoardName = req.body.typeBoardName // 'tournament', 'public', 'private'
 
     try {
@@ -98,15 +98,43 @@ async function eliminateWaitingUsers(req) {
         );
 
         // Guardar los cambios en el emparejador
-        const updatedMatcher = await Matcher.findByIdAndUpdate(matcherId,
-                                                               matcher,
-                                                               { new: true})
-        if (!updatedMatcher) {
+        await matcher.save()
+
+        return ({
+            status: "success",
+            message: "Usuarios eliminados de la lista de espera correctamente"
+        })
+        
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al eliminar los usuarios de la lista de espera"
+        })
+    }
+}
+
+// Elimina un solo usuario con ID proporcionado de la lista de usuarios en espera
+async function eliminateWaitingUser(req) {
+    // Parámetros en req.body: userId
+    const userId = req.body.userId
+
+    try {
+        // Se busca una partida en espera que coincida en torneo y ronda
+        const matcher = await Matcher.findById(matcherId)
+        if (!matcher) {
             return ({
                 status: "error",
-                message: "Error al actualizar la lista de usuarios en espera"
-            })    
+                message: "Error al encontrar el emparejador"
+            })
         }
+
+        // Se cogen todos aquellos que no esten en la partida pasada
+        matcher.players_waiting = matcher.players_waiting.filter(playerWaiting =>
+            playerWaiting.player !== userId)
+
+        // Guardar los cambios en el emparejador
+        await matcher.save()
+
         return ({
             status: "success",
             message: "Usuarios eliminados de la lista de espera correctamente"
@@ -595,6 +623,7 @@ module.exports = {
     matcherId,
     init,
     eliminateWaitingUsers,
+    eliminateWaitingUser,
     playTournament,
     isTournamentBoardReady,
     playPublic,

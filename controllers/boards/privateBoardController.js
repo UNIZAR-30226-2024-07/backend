@@ -2,6 +2,7 @@ const PrivateBoard = require("../../models/boards/privateBoardSchema")
 const User = require("../../models/userSchema")
 const BankController = require("../bankController")
 const UserController = require("../userController")
+const MatcherController = require("../matcherContoller")
 const bcrypt = require('bcrypt')
 
 const maxRounds = 20
@@ -41,10 +42,10 @@ async function add (req) {
     }
 
     // Nos aseguramos de que numPlayers sea un entero > 1
-    if (typeof numPlayers !== 'number' || numPlayers <= 1 || !Number.isInteger(numPlayers)) {
+    if (typeof numPlayers !== 'number' || numPlayers <= 1 || numPlayers > 4 || !Number.isInteger(numPlayers)) {
         return ({
             status: "error",
-            message: "El campo numPlayers debe ser una cadena que represente un entero mayor de 1"
+            message: "El campo numPlayers debe ser una cadena que represente un entero mayor de 1 y menor de 5"
         })
     }   
 
@@ -141,6 +142,11 @@ async function eliminatePlayers(req) {
             { _id: boardId },
             { $pull: { 'players': { 'player': { $in: playersToDelete } } } }
         )
+
+        // Se elimina el usuario de la lista de jugadores en espera para que
+        // pueda solicitar jugar otra partida
+        res = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        if (res.status === "error") return res
 
         return ({
             status: "success",
@@ -513,6 +519,11 @@ const leaveBoard = async (req, res) => {
                 message: "El usuario no está en la partida"
             })
         }
+
+        // Se elimina el usuario de la lista de jugadores en espera para que
+        // pueda solicitar jugar otra partida
+        res = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        if (res.status === "error") return res
 
         // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
         // las monedas ganadas
