@@ -275,30 +275,36 @@ const drawCard = async (req, res) => {
             })
         }
 
-        // // Obtener el mazo correspondiente al jugador
-        // const playerIndex = board.players.findIndex(player => player.player == userId);
-        // const playerMaze = bank.maze[playerIndex];
-
-        return res.status(404).json({
-            status: "error",
-            message: "El mazo de la banca está vacío",
-            board,
-            bank
-        })
-
-        const randomIndex = Math.floor(Math.random() * bank.maze.length)
-        const card = bank.maze[randomIndex]
-        bank.maze.splice(randomIndex, 1)
-
-        const updatedBank = await Bank.findByIdAndUpdate(bankId, { maze: bank.maze }, { new: true }).session(session);
-
-        if (updatedBank) {
-            return res.status(200).json({
-                status: "success",
-                message: "Carta obtenida con exito",
-                card: card
+        // Obtener el mazo correspondiente al jugador
+        const playerIndex = board.players.findIndex(player => player.player == userId);
+        if (playerIndex === -1) {
+            return res.status(404).json({
+                status: "error",
+                message: "El jugador no está en el vector de jugadores de la partida"
             })
         }
+        const playerMaze = bank.maze[playerIndex];
+        if (playerMaze.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "El mazo del jugador está vacío"
+            })
+        }
+
+        // Tomar la primera carta del mazo del jugador
+        const drawnCard = playerMaze.shift();
+
+        // Actualizar el mazo del jugador en el tablero
+        bank.maze[playerIndex] = playerMaze;
+
+        // Guardar el tablero actualizado en la base de datos
+        await bank.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Carta obtenida correctamente",
+            drawnCard
+        })
 
     } catch (error) {
         return res.status(404).json({
