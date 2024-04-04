@@ -1,8 +1,5 @@
 // Imports de esquemas necesarios
 const Bank = require("../models/bankSchema")
-const TournamentBoardController = require("./boards/tournamentBoardController")
-const PublicBoardController = require("./boards/publicBoardController")
-const PrivateBoardController = require("./boards/privateBoardController")
 
 // Hearts: corazones
 // Diamonds: diamantes
@@ -25,6 +22,8 @@ const cards = [{ value: '2', suit: 'Hearts' }, { value: '3', suit: 'Hearts' }, {
                { value: '10', suit: 'Spades' }, { value: 'Jack', suit: 'Spades' }, { value: 'Queen', suit: 'Spades' }, { value: 'King', suit: 'Spades' },
                { value: 'Ace', suit: 'Spades' }]
 
+
+/*********************** Funciones internas ***********************************/
 // Función para mezclar las cartas (Fisher-Yates shuffle)
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -34,49 +33,18 @@ function shuffle(array) {
     return array;
 }
 
-
-/*********************** Funciones logica juego ******************************/
-
-const boardByIdGeneral = async(req) => {
-
-    const typeBoardName = req.body.typeBoardName // 'tournament', 'public', 'private'
-    var res
-    if (typeBoardName === "tournament") {
-        res = await TournamentBoardController.boardByIdFunction(req)
-        if (res.status === "error") return res
-
-    } else if (typeBoardName === "public") {
-        res = await PublicBoardController.boardByIdFunction(req)
-        if (res.status === "error") return res
-    
-    } else if (typeBoardName === "private") {
-        res = await PrivateBoardController.boardByIdFunction(req)
-        if (res.status === "error") return res
-    }
-    // Exito, se ha encontrado el board
-    return res
-}
-
+// Barajea las cartas y pone en el bank tantos mazos como personas haya jugando
 const collectCards = async(req) => {
     // Parámetros body: bankId, numPlayers
-
     try {
-
-        // Id banca
         const bankId = req.body.bankId
-
-        // Cantidad jugadores
         const numPlayers = req.body.numPlayers
 
         // Mezclar las cartas
         const shuffledCards = shuffle(cards);
 
-        // Calcular cuántas cartas recibirá cada jugador
         const cartasPorJugador = Math.floor(shuffledCards.length / numPlayers);
-
-        // Crear una matriz para almacenar los mazos de cartas
         const maze = [];
-
         // Dividir las cartas en mazos según el número de jugadores
         for (let i = 0; i < numPlayers; i++) {
             // Obtener las cartas para el mazo actual
@@ -97,7 +65,7 @@ const collectCards = async(req) => {
             }
         }
 
-        // Poner el mazo
+        // Actualizar la banca. Poner los mazos
         const newBank = await Bank.findByIdAndUpdate(bankId, { maze: maze }, { new: true });
         if (!newBank) {
             return {
@@ -117,78 +85,6 @@ const collectCards = async(req) => {
         }
     }
 }
-
-// Función para pedir una carta
-const drawCard = async (req, res) => {
-    // Parámetros requeridos: boardId, typeBoardName
-    try {
-
-        // Id del usuario peticion
-        const userId = req.user.id
-
-        // Obtener el board dado el id del board
-        const resBoard = await boardByIdGeneral(req)
-        if (resBoard.status === "error") {
-            return res.status(404).json(resBoard)
-        }
-        // Obtener board
-        const board = resBoard.board
-
-        // Obtener id de la banca
-        const bankId = board.bank
-
-        // Obtener la banca
-        const bank = await Bank.findById(bankId)
-        if (!bank) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se ha encontrado una banca con dicho id"
-            })
-        }
-        if (bank.maze.length === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "El mazo de la banca está vacío"
-            })
-        }
-
-        // Obtener el mazo correspondiente al jugador
-        const playerIndex = board.players.findIndex(player => player.player == userId);
-        const playerMaze = bank.maze[playerIndex];
-
-        return res.status(404).json({
-            status: "error",
-            message: "El mazo de la banca está vacío",
-            players: board.players,
-            numPlayers: board.numPlayers,
-            playerIndex,
-            userId,
-            cards,
-            suffle: shuffle(cards)
-        })
-
-        const randomIndex = Math.floor(Math.random() * bank.maze.length)
-        const card = bank.maze[randomIndex]
-        bank.maze.splice(randomIndex, 1)
-
-        const updatedBank = await Bank.findByIdAndUpdate(bankId, { maze: bank.maze }, { new: true }).session(session);
-
-        if (updatedBank) {
-            return res.status(200).json({
-                status: "success",
-                message: "Carta obtenida con exito",
-                card: card
-            })
-        }
-
-    } catch (error) {
-        return res.status(404).json({
-            status: "error",
-            message: error.message
-        })
-    }
-}
-
 
 /*************** Eliminar esta función **************/
 const eliminateAll = async (req, res) => {
@@ -230,6 +126,7 @@ async function correctName(req) {
 
 async function add(req) {
     const level = req.body.level
+    const numPlayers = req.body.numPlayers
     
     try {
         if (level !== 'beginner' && level !== 'medium' && level !== 'expert') {
@@ -247,7 +144,7 @@ async function add(req) {
             })
         }
 
-        const reqCollectCards = { body: { bankId: newBank._id, numPlayers: 2 } }
+        const reqCollectCards = { body: { bankId: newBank._id, numPlayers: numPlayers } }
         var resCollectCards = await collectCards(reqCollectCards)
         if (resCollectCards.status !== "success") return res
 
@@ -301,6 +198,5 @@ module.exports = {
     eliminateAll,
     add,
     correctName,
-    eliminate,
-    drawCard
+    eliminate
 }

@@ -8,6 +8,9 @@ const UserController = require("../userController")
 // Funciones internas
 ////////////////////////////////////////////////////////////////////////////////
 
+// En una partida de torneo siempre es 1 vs 1
+const numPlayers = 2
+
 // Devuelve true si y solo si el número de jugadas en esta ronda es igual al
 // número de jugadores que hay en la partida
 async function allPlayersPlayed(req) {
@@ -139,7 +142,8 @@ async function add (req) {
         }
 
         // Se crea la banca
-        const req = { body: { level: tournament.bankLevel } }
+        const req = { body: { level: tournament.bankLevel,
+                              numPlayers: numPlayers } }
         var res = await BankController.add(req)
 
         if (res.status === "error") return res

@@ -60,7 +60,8 @@ async function add (req) {
 
         // Se crea la banca
         var resAddBank
-        const reqAddBank = { body: { level: bankLevel } }
+        const reqAddBank = { body: { level: bankLevel,
+                             numPlayers: numPlayers } }
         resAddBank = await BankController.add(reqAddBank)
         if (resAddBank.status !== "success") {
             return ({
