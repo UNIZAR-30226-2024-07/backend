@@ -148,6 +148,25 @@ const Sockets = async (io) => {
         }
     })
 
+    // Este evento lo puede emitir cualquiera de los jugadores de una partida
+    socket.on("new tournament message", async (req) => {
+        // Parámetros en req.body: boardId, message, userId
+        const boardId = req.body.boardId
+        const message = req.body.message
+        const userId = req.body.userId
+
+        try {
+            // Se añade el nuevo mensaje a la partida si no es una cadena vacía
+            // y si el usuario se encuentra jugando la partida
+            var res = await TournamentBoardController.newMessage(req)
+            if (res.status === "error") return console.error(res)
+
+            io.to("tournament:" + boardId).emit("new message", message, userId)
+        } catch (e) {
+            return console.error(e.message)
+        }
+    })
+
     
     ////////////////////////////////////////////////////////////////////////////
     // Partidas públicas
@@ -227,6 +246,26 @@ const Sockets = async (io) => {
             })
         }
     })
+
+    // Este evento lo puede emitir cualquiera de los jugadores de una partida
+    socket.on("new public message", async (req) => {
+        // Parámetros en req.body: boardId, message, userId
+        const boardId = req.body.boardId
+        const message = req.body.message
+        const userId = req.body.userId
+
+        try {
+            // Se añade el nuevo mensaje a la partida si no es una cadena vacía
+            // y si el usuario se encuentra jugando la partida
+            var res = await PublicBoardController.newMessage(req)
+            if (res.status === "error") return console.error(res)
+
+            io.to("public:" + boardId).emit("new message", message, userId)
+        } catch (e) {
+            return console.error(e.message)
+        }
+    })
+
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -323,6 +362,27 @@ const Sockets = async (io) => {
                 status: "error",
                 message: "Error en el transcurso de la partida. " + e.message
             })
+        }
+    })
+
+    // Este evento lo puede emitir cualquiera de los jugadores de una partida
+    socket.on("new private message", async (req) => {
+        // Parámetros en req.body: boardId, message, userId
+        const boardId = req.body.boardId
+        const message = req.body.message
+        const userId = req.body.userId
+
+        try {
+            // Se añade el nuevo mensaje a la partida si no es una cadena vacía
+            // y si el usuario se encuentra jugando la partida
+            var res = await PrivateBoardController.newMessage(req)
+            if (res.status === "error") return console.error(res)
+
+            io.to('private:' + boardId).emit("new message", { message: message, 
+                                                              name: res.nameEmitter,
+                                                              userId: userId })
+        } catch (e) {
+            return console.error(e.message)
         }
     })
 

@@ -394,6 +394,68 @@ async function finishBoard(req) {
     }
 }
 
+// Añade al chat de la partida el mensaje 'message' del usuario con el ID
+// proporcionado si este se encontraba jugando la partida
+async function newMessage(req) {
+    // Parámetros en req.body: boardId, message, userId
+    const boardId = req.body.boardId
+    const message = req.body.message
+    const userId = req.body.userId
+
+    try {
+        // Se busca y verifica que la mesa exista
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        var res = await UserController.userByIdFunction({ body: {userId: userId }})
+        const user = res.user
+
+        // Verificar si el usuario está jugando en la mesa
+        const playerIndex = board.players.findIndex(player => player.player.equals(userId))
+        if (playerIndex === -1) {
+            return ({
+                status: "error",
+                message: "El usuario no está jugando en esta partida"
+            })
+        }
+
+        // Se verifica que el mensaje no sea una cadena vacía
+        if (message.trim() === '') {
+            return ({
+                status: "error",
+                message: "El mensaje no puede ser una cadena vacía"
+            })
+        }
+
+        // Agregar el mensaje al chat de la partida
+        board.chat.push({
+            msg: message,
+            emitter: userId
+        })
+
+        // Guardar los cambios en la base de datos
+        await board.save()
+
+        return ({
+            status: "success",
+            message: "Mensaje agregado al chat de la partida correctamente",
+            nameEmitter: user.nick
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al agregar el mensaje al chat. " + e.message
+        })
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones públicas
 ////////////////////////////////////////////////////////////////////////////////
@@ -490,7 +552,9 @@ module.exports = {
     addPlayer,
     isFull,
     isEndOfGame,
+    seeAbsents,
     finishBoard,
+    newMessage,
     boardById,
     leaveBoard
 }

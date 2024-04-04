@@ -6,6 +6,7 @@ const Card = require('../models/cardSchema')
 const Reward = require('../models/rewardSchema')
 const bcrypt = require('bcrypt')
 const { createAccessToken } = require('../jwt/jwt')
+const e = require('express')
 
 // Devuelve error si el usuario no es administrador
 // Parámetros: req.user._id
@@ -252,6 +253,36 @@ const userById = async (req, res) => {
         return res.status(500).json({
             status: "error",
             message: "Error interno del servidor al intentar buscar el usuario"
+        })
+    }
+}
+
+// Devuelve un usuario dado un id
+async function userByIdFunction(req) {
+    const userId = req.body.userId
+
+    try {
+        // Buscar el usuario por su ID
+        const user = await User.findById(userId)
+
+        // Si no se encontró, error
+        if (!user) {
+            return ({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Si se encontró, se devuelve el usuario
+        return ({
+            status: "success",
+            message: "Usuario encontrado",
+            user: user
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error interno del servidor al intentar buscar el usuario. " + e.message
         })
     }
 }
@@ -1033,6 +1064,7 @@ module.exports = {
     update,
     eliminate,
     userById,
+    userByIdFunction,
     getAllUsers,
     login,
     logout,
