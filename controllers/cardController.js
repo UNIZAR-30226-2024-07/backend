@@ -106,6 +106,52 @@ const currentCard = async (req, res) => {
     }
 };
 
+// Obtener el card actual de un usuario
+const currentCardById = async (req, res) => {
+
+    // Id del usuario se quiere ver current card
+    const userId = req.params.id
+
+    try {
+        // Buscar el usuario por su ID
+        const user = await User.findById(userId);
+
+        // Verificar si el usuario existe
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            });
+        }
+
+        // Encontrar el card actual del usuario (donde current es true)
+        const card = user.cards.find(card => card.current === true);
+
+        // Verificar si el usuario tiene un card actual
+        if (!card) {
+            return res.status(404).json({
+                status: "error",
+                message: "El usuario no tiene un card actual"
+            });
+        }
+
+        // Encontrar los detalles del card basado en su ID
+        const cardDetails = await Card.findById(card.card);
+
+        // Devolver el card encontrado
+        res.status(200).json({
+            status: "success",
+            message: "Card obtenido correctamente",
+            card: cardDetails
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: error.message
+        });
+    }
+};
+
 // Funciones exclusivas del administrador
 
 // Función para agregar un nuevo card
@@ -287,6 +333,7 @@ module.exports = {
     eliminate,
     update,
     cardById,
+    currentCardById,
     getAllCards,
     currentCard
 }

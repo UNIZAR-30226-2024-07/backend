@@ -106,6 +106,52 @@ const currentAvatar = async (req, res) => {
     }
 };
 
+// Obtener el avatar que tiene seleccionado un usuario
+const currentAvatarById = async (req, res) => {
+
+    // Id del usuario se quiere saber avatar
+    const userId = req.params.id
+
+    try {
+        // Buscar el usuario por su ID
+        const user = await User.findById(userId);
+
+        // Verificar si el usuario existe
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            });
+        }
+
+        // Encontrar el avatar actual del usuario (donde current es true)
+        const avatar = user.avatars.find(avatar => avatar.current === true);
+
+        // Verificar si el usuario tiene un avatar actual
+        if (!avatar) {
+            return res.status(404).json({
+                status: "error",
+                message: "El usuario no tiene un avatar actual"
+            });
+        }
+
+        // Encontrar los detalles del avatar basado en su ID
+        const avatarDetails = await Avatar.findById(avatar.avatar);
+
+        // Devolver el avatar encontrado
+        res.status(200).json({
+            status: "success",
+            message: "Avatar obtenido correctamente",
+            avatar: avatarDetails
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: error.message
+        });
+    }
+};
+
 // Funciones exclusivas del administrador
 
 // Función para agregar un nuevo avatar
@@ -286,6 +332,7 @@ module.exports = {
     avatarById,
     getAllAvatars,
     currentAvatar,
+    currentAvatarById,
     add,
     update,
     eliminate

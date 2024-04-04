@@ -8,6 +8,7 @@ const { uploadFile } = require('../upload/upload')
 router.get("/rugById/:id", authRequired, RugController.rugById)
 router.get("/getAllRugs", authRequired, RugController.getAllRugs)
 router.get("/currentRug", authRequired, RugController.currentRug)
+router.get("/currentRugById/:id", authRequired, RugController.currentRugById)
 
 // Funciones exclusivas del administrador
 router.post("/add", authRequired, UserController.isAdmin, uploadFile.single('imageFileName'), RugController.add)

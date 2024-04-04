@@ -106,6 +106,52 @@ const currentRug = async (req, res) => {
     }
 };
 
+// Obtener el rug actual de un usuario
+const currentRugById = async (req, res) => {
+
+    // Id del usuario se quiere obtener el rug actual
+    const userId = req.params.id
+
+    try {
+        // Buscar el usuario por su ID
+        const user = await User.findById(userId);
+
+        // Verificar si el usuario existe
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            });
+        }
+
+        // Encontrar el rug actual del usuario (donde current es true)
+        const rug = user.rugs.find(rug => rug.current === true);
+
+        // Verificar si el usuario tiene un rug actual
+        if (!rug) {
+            return res.status(404).json({
+                status: "error",
+                message: "El usuario no tiene un rug actual"
+            });
+        }
+
+        // Encontrar los detalles del rug basado en su ID
+        const rugDetails = await Rug.findById(rug.rug);
+
+        // Devolver el rug encontrado
+        res.status(200).json({
+            status: "success",
+            message: "Rug obtenido correctamente",
+            rug: rugDetails
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: error.message
+        });
+    }
+};
+
 // Funciones exclusivas del administrador
 
 // Función para agregar un nuevo rug
@@ -288,6 +334,7 @@ module.exports = {
     eliminate,
     update,
     rugById,
+    currentRugById,
     getAllRugs,
     currentRug
 }
