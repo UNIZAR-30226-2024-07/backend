@@ -1,5 +1,8 @@
 // Imports de esquemas necesarios
 const Bank = require("../models/bankSchema")
+const PublicBoard = require("../models/boards/publicBoardSchema")
+const PrivateBoard = require("../models/boards/privateBoardSchema")
+const TournamentBoard = require("../models/boards/tournamentBoardSchema")
 
 // Hearts: corazones
 // Diamonds: diamantes
@@ -86,6 +89,48 @@ const collectCards = async(req) => {
     }
 }
 
+// Obtener el board dado:
+// typeBoardName: tournament, public, private
+// boardId
+const boardByIdGeneral = async(req) => {
+
+    const typeBoardName = req.body.typeBoardName // 'tournament', 'public', 'private'
+    const boardId = req.body.boardId
+    var board
+    if (typeBoardName === "tournament") {
+        board = await TournamentBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "No existe una mesa de torneo con el ID proporcionado"
+            })
+        }
+    } else if (typeBoardName === "public") {
+        board = await PublicBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "No existe una mesa pública con el ID proporcionado"
+            })
+        }
+    
+    } else if (typeBoardName === "private") {
+        board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "No existe una mesa privada con el ID proporcionado"
+            })
+        }
+    }
+    // Exito, se ha encontrado el board
+    return ({
+        status: "success",
+        message: "Se ha obtenido la mesa correctamente. Se encuentra en el campo board de esta respuesta",
+        board: board
+    })
+}
+
 /*************** Eliminar esta función **************/
 const eliminateAll = async (req, res) => {
     try {
@@ -124,6 +169,7 @@ async function correctName(req) {
     }
 }
 
+// Añadir banca
 async function add(req) {
     const level = req.body.level
     const numPlayers = req.body.numPlayers
@@ -193,10 +239,86 @@ async function eliminate(req) {
     }
 }
 
+/*************************** Funciones route *****************************/
+
+// Función para pedir una carta
+const drawCard = async (req, res) => {
+    // Parámetros requeridos: boardId, typeBoardName
+    try {
+
+        // Id del usuario peticion
+        const userId = req.user.id
+
+        // Obtener el board dado el id del board
+        const resBoard = await boardByIdGeneral(req)
+        if (resBoard.status === "error") {
+            return res.status(404).json(resBoard)
+        }
+        // Obtener board
+        const board = resBoard.board
+
+        // Obtener id de la banca
+        const bankId = board.bank
+
+        // Obtener la banca
+        const bank = await Bank.findById(bankId)
+        if (!bank) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se ha encontrado una banca con dicho id"
+            })
+        }
+        if (bank.maze.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "El mazo de la banca está vacío"
+            })
+        }
+
+        // Obtener el mazo correspondiente al jugador
+        const playerIndex = board.players.findIndex(player => player.player == userId);
+        if (playerIndex === -1) {
+            return res.status(404).json({
+                status: "error",
+                message: "El jugador no está en el vector de jugadores de la partida"
+            })
+        }
+        const playerMaze = bank.maze[playerIndex];
+        if (playerMaze.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "El mazo del jugador está vacío"
+            })
+        }
+
+        // Tomar la primera carta del mazo del jugador
+        const drawnCard = playerMaze.shift();
+
+        // Actualizar el mazo del jugador en el tablero
+        bank.maze[playerIndex] = playerMaze;
+
+        // Guardar el tablero actualizado en la base de datos
+        await bank.save();
+
+        return res.status(200).json({
+            status: "success",
+            message: "Carta obtenida correctamente",
+            drawnCard
+        })
+
+    } catch (error) {
+        return res.status(404).json({
+            status: "error",
+            message: error.message
+        })
+    }
+}
+
 // Funciones que se exportan
 module.exports = {
     eliminateAll,
     add,
     correctName,
-    eliminate
+    eliminate,
+    drawCard
 }
