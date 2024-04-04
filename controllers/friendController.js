@@ -100,7 +100,6 @@ const getAllFriends = async (req, res) => {
     }
 }
 
-
 // Listar todas las solicitudes de amistad pendientes enviadas
 const getAllPendingFriends = async (req, res) => {
     try {
@@ -271,6 +270,58 @@ const reject = async (req, res) => {
     }
 }
 
+const eliminateFriend = async (req, res) => {
+    // Parámetros en URL: id (del amigo a eliminar)
+    const userId = req.user._id
+    const friendId = req.params.id
+
+    try {
+        // Verificar idFriend existe en user
+        const findUser = await User.findById(friendId)
+        if (!findUser) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario amigo no encontrado"
+            })
+        }
+
+        // Verificar userId e friendId no están ya relacionados
+        const existingFriendship = await Friend.exists({
+            $or: [
+              { user: userId, friend: friendId },
+              { user: friendId, friend: userId }
+            ],
+            confirmed: true
+        })
+        if (!existingFriendship) {
+            return res.status(404).json({
+                status: "error",
+                message: "Los dos usuarios no son amigos"
+            })
+        }
+
+        const eliminatedFriendship = await Friend.findByIdAndDelete(existingFriendship._id)
+        if (!eliminatedFriendship) {
+            return res.status(404).json({
+                status: "error",
+                message: "Error al eliminar al amigo"
+            })
+        }
+
+        return res.status(200).json({
+            status: "error",
+            message: "Amigo eliminado correctamente",
+            friendship: eliminatedFriendship
+        })
+
+    } catch (e) {
+        return res.status(400).json({
+            status: "error",
+            message: "Error al eliminar al amigo. " + e.message
+        })
+    }
+}
+
 // Funciones que se exportan
 module.exports = {
     add,
@@ -278,5 +329,6 @@ module.exports = {
     getAllPendingFriends,
     getAllReceivedFriends,
     accept,
-    reject
+    reject,
+    eliminateFriend
 }

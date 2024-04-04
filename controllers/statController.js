@@ -2,6 +2,49 @@
 const Stat = require('../models/statSchema')
 const User = require('../models/userSchema')
 
+const statNames = ["Torneos ganados", "Monedas ganadas en partida", 
+    "Torneos jugados", "Finales de torneos jugadas", "Número de amigos",
+    "Avatares adquiridos", "Tapetes adquiridos", "Cartas adquiridas"]
+
+// Crea e inicializa a cero todas las estadísticas del usuario
+async function initUserStats(req) {
+    // Parámetros en req.body: userId
+    const userId = req.body.userId
+
+    try {
+        // Verifica si el usuario existe
+        const user = await User.findById(userId)
+        if (!user) {
+            return ({ 
+                status: "error",
+                message: "Usuario no encontrado" 
+            })
+        }
+
+        // Inicializa las estadísticas del usuario con valores cero
+        const userStats = await Promise.all(statNames.map(async (name) => {
+            const stat = await Stat.create({
+                name: name,
+                user: userId,
+                value: 0
+            })
+            return stat
+        }))
+
+        // Retorna las estadísticas inicializadas
+        return ({
+            status: "error",
+            message: "Estadísticas inicializadas correctamente",
+            userStats: userStats
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al inicializar las estadísticas del usuario. " + e.message
+        })
+    }
+}
+
 // Añade una nueva estadística al sistema si existía el usuario al que va asociada la estadística
 const add = async (req, res) => {
     const s = req.body
@@ -150,10 +193,42 @@ const statByNameAndUser = async (req, res) => {
     }
 }
 
+// Devuelve todas las estadísticas de un usuario
+const getAllUserStats = async (req, res) => {
+    const userId = req.user._id
+
+    try {
+        // Busca todas las estadísticas del usuario con el ID proporcionado
+        const userStats = await Stat.find({ user: userId })
+
+        // Si no se encuentran estadísticas para el usuario, retorna un mensaje indicando que no se encontraron estadísticas
+        if (!userStats || userStats.length === 0) {
+            return res.status(404).json({ 
+                status: "error",
+                message: "No se encontraron estadísticas para este usuario"
+            })
+        }
+
+        // Si se encuentran estadísticas, las devuelve en la respuesta
+        return res.status(200).json({
+            status: "error",
+            message: "Estadísticas encontradas correctamente",
+            userStats: userStats
+        })
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al encontrar todas las estadísticas del usuario"
+        })
+    }
+}
+
 // Funciones que se exportan
 module.exports = {
+    initUserStats,
     add,
     update,
     eliminate,
-    statByNameAndUser
+    statByNameAndUser,
+    getAllUserStats
 }

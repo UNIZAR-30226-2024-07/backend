@@ -23,4 +23,7 @@ router.put("/accept/:id", authRequired, FriendController.accept)
 // Rechazar invitación
 router.delete("/reject/:id", authRequired, FriendController.reject)
 
+// Eliminar amigo
+router.delete("/eliminateFriend/:id", authRequired, FriendController.eliminateFriend)
+
 module.exports = router

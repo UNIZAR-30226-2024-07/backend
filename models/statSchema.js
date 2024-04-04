@@ -17,11 +17,6 @@ const statSchema = Schema({
         type: Number,
         required: true
     },
-    // Fecha de creación de la estadística
-    created_at: {
-        type: Date,
-        default: Date.now
-    },
 }, {timestamps: true})
 
 module.exports = model("Stat", statSchema)

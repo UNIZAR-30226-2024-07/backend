@@ -4,6 +4,7 @@ const Avatar = require('../models/avatarSchema')
 const Rug = require('../models/rugSchema')
 const Card = require('../models/cardSchema')
 const Reward = require('../models/rewardSchema')
+const StatController = require("../controllers/statController")
 const bcrypt = require('bcrypt')
 const { createAccessToken } = require('../jwt/jwt')
 const e = require('express')
@@ -157,6 +158,14 @@ const add = async (req, res) => {
             })
         }  
 
+        // Se inicializan todas las estadísticas del usuario
+        var resStat = await StatController.initUserStats({ body: {userId: newUser._id} })
+        if (resStat.status === "error") {
+            return res.status(400).json({
+                status: "error",
+                message: resStat.message
+            })
+        }
 
         // Se crea el token y se responde
         const token = await createAccessToken({ id: newUser._id })
@@ -253,36 +262,6 @@ const userById = async (req, res) => {
         return res.status(500).json({
             status: "error",
             message: "Error interno del servidor al intentar buscar el usuario"
-        })
-    }
-}
-
-// Devuelve un usuario dado un id
-async function userByIdFunction(req) {
-    const userId = req.body.userId
-
-    try {
-        // Buscar el usuario por su ID
-        const user = await User.findById(userId)
-
-        // Si no se encontró, error
-        if (!user) {
-            return ({
-                status: "error",
-                message: "Usuario no encontrado"
-            })
-        }
-
-        // Si se encontró, se devuelve el usuario
-        return ({
-            status: "success",
-            message: "Usuario encontrado",
-            user: user
-        })
-    } catch (e) {
-        return ({
-            status: "error",
-            message: "Error interno del servidor al intentar buscar el usuario. " + e.message
         })
     }
 }
@@ -1056,6 +1035,37 @@ async function insertCoinsFunction(req) {
         })
     }
 }
+
+// Devuelve un usuario dado un id
+async function userByIdFunction(req) {
+    const userId = req.body.userId
+
+    try {
+        // Buscar el usuario por su ID
+        const user = await User.findById(userId)
+
+        // Si no se encontró, error
+        if (!user) {
+            return ({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Si se encontró, se devuelve el usuario
+        return ({
+            status: "success",
+            message: "Usuario encontrado",
+            user: user
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error interno del servidor al intentar buscar el usuario. " + e.message
+        })
+    }
+}
+
 
 // Funciones que se exportan
 module.exports = {

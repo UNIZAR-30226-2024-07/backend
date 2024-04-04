@@ -39,36 +39,6 @@ const tournamentById = async (req, res) => {
 }
 
 // Devuelve un usuario dado un id
-async function tournamentByIdFunction(req) {
-    const tId = req.body.tournamentId
-
-    try {
-        // Buscar el usuario por su ID
-        const tournament = await Tournament.findById(tId)
-
-        // Si no se encontró, error
-        if (!tournament) {
-            return ({
-                status: "error",
-                message: "Torneo no encontrado"
-            })
-        }
-
-        // Si se encontró, se devuelve el usuario
-        return ({
-            status: "success",
-            message: "Torneo encontrado",
-            tournament: tournament
-        })
-    } catch (e) {
-        return ({
-            status: "error",
-            message: "Error interno del servidor al intentar buscar el torneo" + e.message
-        })
-    }
-}
-
-// Devuelve un usuario dado un id
 const tournamentByName = async (req, res) => {
     const t = req.body
 
@@ -218,55 +188,6 @@ const isUserInTournament = async (req, res) => {
     }
 }
 
-// Devuelve 'success' si el usuario con el ID proporcionado ya se encuentra
-// dentro del torneo con ID pasado por parámetro. Si el resultado es 'success'
-// devuelve en el campo tournament el torneo y en el campo round la ronda 
-async function isUserInTournamentFunction (req) {
-    // Parámetros en body: userId, tournamentId
-    const userId = req.body.userId
-    const tournamentId = req.body.tournamentId
-
-    try {
-        const user = await User.findById(userId)
-        if (!user) {
-            return ({
-                status: "error",
-                message: "No se encontró el usuario"
-            })
-        }
-
-        const tournament = await Tournament.findById(tournamentId)
-        if (!tournament) {
-            return ({
-                status: "error",
-                message: "No se encontró el torneo"
-            })
-        }
-
-        const tournamentInfo = user.tournaments.find(tournament =>
-            tournament.tournament === tournamentId)
-        if (!isUserIn) {
-            return ({
-                status: "error",
-                message: "El usuario no se encuentra jugando el torneo. Debe entrar primero (enterTournament) para poder jugar en él"
-            })
-        } else {
-            return ({
-                status: "success",
-                message: "El usuario se encuentra jugando el torneo",
-                tournament: tournament,
-                round: tournamentInfo.round
-            })    
-        }
-
-    } catch (e) {
-        return ({
-            status: "error",
-            message: "Error al verificar si el usuario está en el torneo. " + e.message
-        })
-    }
-}
-
 // Devuelve todos los torneos existentes en el sistema
 const getAll = async (req, res) => {
     try {
@@ -287,6 +208,45 @@ const getAll = async (req, res) => {
     }
 }
 
+// Devuelve la ronda en la que se encuentra un usuario dado el ID del torneo
+const roundInTournament = async (req, res) => {
+    // Parámetros en URL: id
+    const tId = req.params.id
+    const userId = req.user._id
+
+    try {
+        // Se verifica que el usuario existe
+        const user = await User.findById(userId)
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Se busca el torneo en los torneos del usuario
+        const tournamentInfo = user.tournaments.find(tournament => 
+            tournament.tournament === tId)
+        if (!tournamentInfo) {
+            return res.status(404).json({
+                status: "error",
+                message: "El usuario no está participando en este torneo"
+            });
+        }
+
+        // Se retorna la posición del usuario en el torneo
+        return res.status(200).json({
+            status: "success",
+            round: tournamentInfo.position
+        })
+        
+    } catch (e) {
+        return res.status(400).json({
+            status: "error",
+            message: "Error al obtener la ronda en la que se encuentra el jugador. " + e.message
+        })
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones del administrador
@@ -440,6 +400,55 @@ const eliminate = async (req, res) => {
 // Funciones internas
 ////////////////////////////////////////////////////////////////////////////////
 
+// Devuelve 'success' si el usuario con el ID proporcionado ya se encuentra
+// dentro del torneo con ID pasado por parámetro. Si el resultado es 'success'
+// devuelve en el campo tournament el torneo y en el campo round la ronda 
+async function isUserInTournamentFunction (req) {
+    // Parámetros en body: userId, tournamentId
+    const userId = req.body.userId
+    const tournamentId = req.body.tournamentId
+
+    try {
+        const user = await User.findById(userId)
+        if (!user) {
+            return ({
+                status: "error",
+                message: "No se encontró el usuario"
+            })
+        }
+
+        const tournament = await Tournament.findById(tournamentId)
+        if (!tournament) {
+            return ({
+                status: "error",
+                message: "No se encontró el torneo"
+            })
+        }
+
+        const tournamentInfo = user.tournaments.find(tournament =>
+            tournament.tournament === tournamentId)
+        if (!isUserIn) {
+            return ({
+                status: "error",
+                message: "El usuario no se encuentra jugando el torneo. Debe entrar primero (enterTournament) para poder jugar en él"
+            })
+        } else {
+            return ({
+                status: "success",
+                message: "El usuario se encuentra jugando el torneo",
+                tournament: tournament,
+                round: tournamentInfo.round
+            })    
+        }
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al verificar si el usuario está en el torneo. " + e.message
+        })
+    }
+}
+
 // Dado un id de usuario y un id de torneo, avanza una ronda al usuario en dicho torneo
 async function advanceRound(req) {
     // Parámetros en req.body: userId, tournamentId
@@ -551,6 +560,37 @@ async function tournamentLost(req) {
     }
 }
 
+// Devuelve un usuario dado un id
+async function tournamentByIdFunction(req) {
+    // Parámetros en req.body: tournamentId
+    const tId = req.body.tournamentId
+
+    try {
+        // Buscar el usuario por su ID
+        const tournament = await Tournament.findById(tId)
+
+        // Si no se encontró, error
+        if (!tournament) {
+            return ({
+                status: "error",
+                message: "Torneo no encontrado"
+            })
+        }
+
+        // Si se encontró, se devuelve el usuario
+        return ({
+            status: "success",
+            message: "Torneo encontrado",
+            tournament: tournament
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error interno del servidor al intentar buscar el torneo" + e.message
+        })
+    }
+}
+
 // Funciones que se exportan
 module.exports = {
     tournamentById,
@@ -560,6 +600,7 @@ module.exports = {
     isUserInTournament,
     isUserInTournamentFunction,
     getAll,
+    roundInTournament,
 
     add,
     update,

@@ -7,7 +7,9 @@ const { isAdmin } = require('../controllers/userController')
 router.get('/tournamentById/:id', authRequired, TournamentController.tournamentById)
 router.get('/tournamentByName/:id', authRequired, TournamentController.tournamentByName)
 router.put('/enterTournament/:id', authRequired, TournamentController.enterTournament)
+router.get('/isUserInTournament/:id', authRequired, TournamentController.isUserInTournament)
 router.get('/getAll', authRequired, TournamentController.getAll)
+router.get('/roundInTournament/:id', authRequired, TournamentController.roundInTournament)
 
 // Funciones para administrador
 router.post('/add', authRequired, isAdmin, TournamentController.add)
