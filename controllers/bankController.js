@@ -43,8 +43,10 @@ const collectCards = async(req) => {
         const bankId = req.body.bankId
         const numPlayers = req.body.numPlayers
 
+        const totalMaze = [...cards, ...cards]
+
         // Mezclar las cartas
-        const shuffledCards = shuffle(cards);
+        const shuffledCards = shuffle(totalMaze);
 
         const cartasPorJugador = Math.floor(shuffledCards.length / numPlayers);
         const maze = [];
@@ -190,9 +192,12 @@ async function add(req) {
             })
         }
 
-        const reqCollectCards = { body: { bankId: newBank._id, numPlayers: numPlayers } }
+        // Crear mazos. Numero de mazos: numJugadores + 1 (el último para la banca)
+        const reqCollectCards = { body: { bankId: newBank._id, numPlayers: numPlayers + 1 } }
         var resCollectCards = await collectCards(reqCollectCards)
         if (resCollectCards.status !== "success") return res
+
+        // Añadir las playedCards. Inicialmente vacío
 
         return ({
             status: "success",
@@ -248,6 +253,11 @@ const drawCard = async (req, res) => {
 
         // Id del usuario peticion
         const userId = req.user.id
+
+        // Cartas que tiene de momento
+        const cardsOnTable = req.body.cardsOnTable/////////////////////////////////////////////
+        // Después de sacar carta, mirar a ver si se pasa o no. En el caso de pasarse. Será igual que un confirm. 
+        // Devolver también si se ha pasado o no en la devolución del res
 
         // Obtener el board dado el id del board
         const resBoard = await boardByIdGeneral(req)

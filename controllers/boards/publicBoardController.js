@@ -7,6 +7,43 @@ const MatcherController = require("../matcherContoller")
 
 const maxRounds = 20
 
+// Devuelve true si y solo si el número de jugadas en esta ronda es igual al
+// número de jugadores que hay en la partida
+async function allPlayersPlayed(req) {
+    // Parámetros en req.body: req.body.boardId
+    const boardId = req.body.boardId
+    
+    try {
+        // Se recupera la mesa
+        const board = await PublicBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "No se encontró la mesa de torneo"
+            })
+        }
+        
+        if (board.hand.players.length !== board.players.length) {
+            return ({
+                status: "error",
+                message: "El número de jugadores que han realizado una jugada es menor al de jugadores en la partida"
+            })
+        } else {
+            return ({
+                status: "success",
+                message: "El número de jugadores que han realizado una jugada es igual al de jugadores en la partida",
+                board: board
+            })
+        }
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al encontrar el número de manos jugadas. " + e.message
+        })
+    }
+}
+
+
 // Crea una mesa pública dada un tipo de mesa pública
 async function add (req) {
     const typeId = req.body.typeId
@@ -527,6 +564,7 @@ const leaveBoard = async (req, res) => {
 }
 
 module.exports = {
+    allPlayersPlayed,
     isFull,
     isEndOfGame,
     finishBoard,

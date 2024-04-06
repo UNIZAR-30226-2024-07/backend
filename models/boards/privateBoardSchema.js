@@ -87,11 +87,6 @@ const privateBoardSchema = Schema({
                 type: Number,
                 default: 1
             },
-            // Número de jugadas recibidas en la mano 'numHand'
-            numPlays: {
-                type: Number,
-                default: 0
-            },
             // Jugadores que han enviado la jugada en esta mano
             players: [{
                 type: Schema.ObjectId,

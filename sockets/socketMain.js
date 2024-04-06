@@ -25,7 +25,7 @@ function signalPublic() {
 // Espera hasta que todos los jugadores hayan enviado sus jugadas un máximo de
 // 30 segundos. Devuelve 'success' si y solo si todos los jugadores han enviado
 // sus jugadas antes de los 30 segundos y 'error' en caso contrario
-async function turnTimeout(boardId) {    
+async function turnTimeout(boardId, typeBoardName) {    
     try {
         var res = { status: "error" }
         var iter = 30 / 5
@@ -33,7 +33,13 @@ async function turnTimeout(boardId) {
 
         while (res.status === "error" && i < iter) {
             await sleep(5000) // 5 segundos
-            res = await TournamentBoardController.allPlayersPlayed({ body: { boardId: boardId }})
+            if (typeBoardName === "tournament") {
+                res = await TournamentBoardController.allPlayersPlayed({ body: { boardId: boardId }})
+            } else if (typeBoardName === "public") {
+                res = await PublicBoardController.allPlayersPlayed({ body: { boardId: boardId }})
+            } else if (typeBoardName === "private") {
+                res = await PrivateBoardController.allPlayersPlayed({ body: { boardId: boardId }})
+            }
             i++
         }
 
@@ -122,7 +128,9 @@ const Sockets = async (io) => {
                 }
 
                 // TODO: o se mete aquí otra función con la lógica, o se mete en
-                // TournamentBoardController.manageHand
+                // res = TournamentBoardController.manageHand()
+                // results = res.results
+                // io.to("tournament:" + boardId).emit("results turn", results)
 
                 resEndBoard = await TournamentBoardController.isEndOfGame(req)
             }

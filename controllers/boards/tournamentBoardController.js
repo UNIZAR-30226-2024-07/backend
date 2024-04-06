@@ -28,7 +28,7 @@ async function allPlayersPlayed(req) {
             })
         }
         
-        if (board.hand.numPlays !== board.players.length) {
+        if (board.hand.players.length !== board.players.length) {
             return ({
                 status: "error",
                 message: "El número de jugadores que han realizado una jugada es menor al de jugadores en la partida"

@@ -12,11 +12,24 @@ const bankSchema = Schema({
         required: true,
     },
     // Mazo de cartas de la banca
-    // Cada subgrupo en maze es un montón de cartas. Uno por jugador.
+    // Cada subgrupo en maze es un montón de cartas. Uno por jugador, y el último la banca.
     maze: [[{
         value: String,
         suit: String
-    }]]
+    }]],
+    // Jugadas de cada jugador
+    playedCards: [{
+        split: {   // Cada jugador si ha hecho split o no
+            type: Boolean,
+            default: false
+        },
+        // Vector de vectores de cartas. Un vector por "jugada"
+        // Maximo dos "jugadas" por jugador.
+        cards: [[{
+            value: String,
+            suit: String
+        }]]
+    }]
 }, {timestamps: true})
 
 module.exports = model("Bank", bankSchema)
