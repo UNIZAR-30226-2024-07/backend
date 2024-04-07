@@ -18,14 +18,18 @@ const bankSchema = Schema({
         suit: String
     }]],
     // Jugadas de cada jugador
-    playedCards: [{
+    playersHands: [{
         split: {   // Cada jugador si ha hecho split o no
+            type: Boolean,
+            default: false
+        },
+        double: {   // Cada jugador si ha hecho double o no
             type: Boolean,
             default: false
         },
         // Vector de vectores de cartas. Un vector por "jugada"
         // Maximo dos "jugadas" por jugador.
-        cards: [[{
+        hands: [[{
             value: String,
             suit: String
         }]]

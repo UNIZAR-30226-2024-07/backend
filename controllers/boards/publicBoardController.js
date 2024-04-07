@@ -74,7 +74,8 @@ async function add (req) {
         // Se crea la partida de torneo
         const newBoard = await PublicBoard.create({ publicBoardType: typeId,
                                                     bank: resAddBank.bank._id,
-                                                    numPlayers: publicBoardType.numPlayers })
+                                                    numPlayers: publicBoardType.numPlayers,
+                                                    hand: { numHand: 1, players: []} })
         if (!newBoard) {
             return ({
                 status: "error",
