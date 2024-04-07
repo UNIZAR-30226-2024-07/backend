@@ -6,6 +6,25 @@ const statNames = ["Torneos ganados", "Monedas ganadas en partida",
     "Torneos jugados", "Finales de torneos jugadas", "Número de amigos",
     "Avatares adquiridos", "Tapetes adquiridos", "Cartas adquiridas"]
 
+////////////////////////////////////////////////////////////////////////////////
+// Funciones internas
+////////////////////////////////////////////////////////////////////////////////
+
+// Devuelve 'success' si y solo si statName es un nombre de estadística válido
+function correctName(statName) {
+    if (statNames.includes(statName)) {
+        return ({
+            status: "success",
+            message: "Nombre de estadística correcto"
+        })
+    } else {
+        return ({
+            status: "error",
+            message: "Nombre de estadística incorrecto"
+        })
+    }
+}
+
 // Crea e inicializa a cero todas las estadísticas del usuario
 async function initUserStats(req) {
     // Parámetros en req.body: userId
@@ -45,7 +64,89 @@ async function initUserStats(req) {
     }
 }
 
-// Añade una nueva estadística al sistema si existía el usuario al que va asociada la estadística
+// Incrementa el valor de la estadística ya existente si el name no estaba 
+// ocupado por otro torneo y si el precio de entrada es correcto
+async function incrementStatByName(req) {
+    // Parámetros en req.body: statName, userId, value
+    const userId = req.body.userId
+    const statName = req.body.statName
+    const value = req.body.value
+
+    try {
+        var res = correctName(statName)
+        if (res.status === "error") return res
+
+        // Actualizar la estadística
+        const stat = await Stat.findOne({user: userId, name: statName})
+        if (!stat) {
+            return ({
+                status: "error",
+                message: "No se encontró una estadística. Revisa que el ID del usuario sea correcto"
+            })
+        }
+
+        stat.value += value
+        await stat.save()
+
+        return ({
+            status: "success",
+            message: "Estadística actualizada correctamente",
+            stat: stat
+        })
+
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error interno del servidor al actualizar la estadística. " + e.message
+        })
+    }
+}
+
+// Decrementa el valor de la estadística ya existente si el name no estaba 
+// ocupado por otro torneo y si el precio de entrada es correcto
+async function decrementStatByName(req) {
+    // Parámetros en req.body: statName, userId, value
+    const userId = req.body.userId
+    const statName = req.body.statName
+    const value = req.body.value
+
+    try {
+        var res = correctName(statName)
+        if (res.status === "error") return res
+
+        // Actualizar la estadística
+        const stat = await Stat.findOne({user: userId, name: statName})
+        if (!stat) {
+            return ({
+                status: "error",
+                message: "No se encontró una estadística. Revisa que el ID del usuario sea correcto"
+            })
+        }
+
+        stat.value -= value
+        await stat.save()
+
+        return ({
+            status: "success",
+            message: "Estadística actualizada correctamente",
+            stat: stat
+        })
+        
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error interno del servidor al actualizar la estadística. " + e.message
+        })
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Funciones públicas
+////////////////////////////////////////////////////////////////////////////////
+
+// Añade una nueva estadística al sistema si existía el usuario al que va 
+// asociada la estadística
 const add = async (req, res) => {
     const s = req.body
     try {
@@ -86,8 +187,8 @@ const add = async (req, res) => {
     }
 }
 
-// Modifica una estadística ya existente si el name no estaba ocupado por otro torneo 
-// y si el precio de entrada es correcto
+// Modifica una estadística ya existente si el name no estaba ocupado por otro 
+// torneo y si el precio de entrada es correcto
 const update = async (req, res) => {
     try {
         const statId = req.params.id
@@ -157,7 +258,8 @@ const eliminate = async (req, res) => {
     }
 }
 
-// Devuelve una estadística dado un ‘name’ de estadística y el usuario a la que pertenece ‘user’
+// Devuelve una estadística dado un ‘name’ de estadística y el usuario a la que 
+// pertenece ‘user’
 const statByNameAndUser = async (req, res) => {
     const s = req.body
     try {
@@ -226,6 +328,8 @@ const getAllUserStats = async (req, res) => {
 // Funciones que se exportan
 module.exports = {
     initUserStats,
+    incrementStatByName,
+    decrementStatByName,
     add,
     update,
     eliminate,

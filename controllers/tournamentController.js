@@ -82,7 +82,7 @@ const tournamentByName = async (req, res) => {
 const enterTournament = async (req, res) => {
     const userId = req.user.id
     const tId = req.params.id
-    console.log("aaaaaaaaa")
+
     try {
         // Se verifica que el usuario no estuviese jugando ya el torneo
         var resAux = await isUserInTournamentFunction({ body: { userId: userId, 
@@ -124,6 +124,12 @@ const enterTournament = async (req, res) => {
         // lista de torneos activos
         user.coins -= tournament.price
         user.tournaments.push({ tournament: tId, round: '8' })
+
+        // Se incrementa en 1 el número de torneos jugados en las estadísticas
+        var resStat = await StatController.incrementStatByName({body: { userId: userId, 
+            statName: "Torneos jugados", value: 1 }})
+        if (resStat.status === "error") return res.status(400).json(resStat)
+
         await user.save()
         
         return res.status(200).json({
@@ -403,7 +409,7 @@ const eliminate = async (req, res) => {
 // Devuelve 'success' si el usuario con el ID proporcionado ya se encuentra
 // dentro del torneo con ID pasado por parámetro. Si el resultado es 'success'
 // devuelve en el campo tournament el torneo y en el campo round la ronda 
-async function isUserInTournamentFunction (req) {
+async function isUserInTournamentFunction(req) {
     // Parámetros en body: userId, tournamentId
     const userId = req.body.userId
     const tournamentId = req.body.tournamentId
@@ -539,6 +545,13 @@ async function tournamentLost(req) {
                 status: "error",
                 message: "El usuario no está jugando en este torneo"
             })
+        }
+
+        // Si llegó a la final, se incrementa en 1 el número de finales de torneo jugadas
+        if (user.tournaments[tournamentIndex].position === 1) {
+            var resStat = await StatController.incrementStatByName({body: { userId: userId, 
+                statName: "Finales de torneos jugadas", value: 1 }})
+            if (resStat.status === "error") return resStat    
         }
 
         // Eliminar el torneo de la lista de torneos del usuario

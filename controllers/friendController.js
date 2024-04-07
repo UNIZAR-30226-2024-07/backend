@@ -1,6 +1,7 @@
 // Imports de esquemas necesarios
 const Friend = require("../models/friendSchema")
 const User = require('../models/userSchema')
+const StatController = require("./statController")
 
 // Enviar solicitud de amistad a una persona
 const add = async (req, res) => {
@@ -48,6 +49,7 @@ const add = async (req, res) => {
                 message: "Error al solicitad amistad"
             })
         }
+
         // Exito, solicitud enviada
         return res.status(200).json({
             status: "success",
@@ -202,10 +204,21 @@ const accept = async (req, res) => {
             })
         }
 
+        // Se incrementa en 1 el número de amigos en las estadísticas para los
+        // dos jugadores
+        var resStat = await StatController.incrementStatByName({body: { userId: idUser, 
+            statName: "Número de amigos", value: 1 }})
+        if (resStat.status === "error") return res.status(400).json(resStat)
+
+        resStat = await StatController.incrementStatByName({body: { userId: idFriend, 
+            statName: "Número de amigos", value: 1 }})
+        if (resStat.status === "error") return res.status(400).json(resStat)
+
         return res.status(200).json({
             status: "success",
             message: "Solicitud de amistad aceptada con exito",
         })
+
     } catch (error) {
         return res.status(404).json({
             status: "error",
@@ -308,6 +321,16 @@ const eliminateFriend = async (req, res) => {
                 message: "Error al eliminar al amigo"
             })
         }
+
+        // Se decrementa en 1 el número de amigos en las estadísticas para los
+        // dos jugadores
+        var resStat = await StatController.decrementStatByName({body: { userId: userId, 
+            statName: "Número de amigos", value: 1 }})
+        if (resStat.status === "error") return res.status(400).json(resStat)
+
+        resStat = await StatController.decrementStatByName({body: { userId: friendId, 
+            statName: "Número de amigos", value: 1 }})
+        if (resStat.status === "error") return res.status(400).json(resStat)
 
         return res.status(200).json({
             status: "error",

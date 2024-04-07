@@ -12,7 +12,7 @@ router.post('/add', authRequired, StatController.add)
 router.put('/update/:id', authRequired, StatController.update)
 
 // Elimina una estadística ya existente del sistema
-router.delete('/eliminate/:id', authRequired, StatController.eliminate)
+// router.delete('/eliminate/:id', authRequired, StatController.eliminate)
 
 // Devuelve una estadística dado un ‘name’ de estadística y el usuario a la que
 // pertenece ‘user’

@@ -9,6 +9,474 @@ const bcrypt = require('bcrypt')
 const { createAccessToken } = require('../jwt/jwt')
 const e = require('express')
 
+////////////////////////////////////////////////////////////////////////////////
+// Funciones privadas
+////////////////////////////////////////////////////////////////////////////////
+
+// Dado un id de usuario y una cantidad de monedas, añade esa cantidad al usuario.
+async function insertCoinsFunction(req) {
+    // Parámetros en req.body: userId, coins
+    const userId = req.body.userId
+    const inCoinsStr = req.body.coins
+
+    try {
+        // Nos aseguramos de que exCoins sea un entero > 0
+        const inCoins = parseInt(inCoinsStr)
+        if (typeof inCoins !== 'number' || inCoins <= 0 || !Number.isInteger(inCoins)) {
+            return ({
+                status: "error",
+                message: "El número de monedas a insertar no es correcto. Debe ser un entero positivo mayor de 0"
+            })
+        }
+
+        // Se busca el usuario por su ID
+        const user = await User.findById(userId)
+
+        if (!user) {
+            return ({
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            })
+        }    
+        
+        // Se suman las monedas al saldo del usuario
+        user.coins += inCoins
+
+        // Se guarda y se responde al cliente
+        await user.save()
+        return ({
+            status: "success",
+            message: "Dinero insertado correctamente",
+            coinsInserted: inCoins,
+            user: user
+        })
+
+    } catch (e) {
+        console.error(error)
+        return ({
+            status: "error",
+            message: "Error al extraer las monedas. Asegúrate de que la cadena de texto que representa el número de monedas a insertar es un entero mayor de 0 y que el ID del usuario es el correcto"
+        })
+    }
+}
+
+// Devuelve un usuario dado un id
+async function userByIdFunction(req) {
+    const userId = req.body.userId
+
+    try {
+        // Buscar el usuario por su ID
+        const user = await User.findById(userId)
+
+        // Si no se encontró, error
+        if (!user) {
+            return ({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Si se encontró, se devuelve el usuario
+        return ({
+            status: "success",
+            message: "Usuario encontrado",
+            user: user
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error interno del servidor al intentar buscar el usuario. " + e.message
+        })
+    }
+}
+
+// Dado un id de Usuario y un nombre de avatar, añade el avatar a la lista de avatares
+// del usuario y resta el precio del avatar a las monedas del usuario (si tiene suficientes).
+async function buyAvatarPriv(req) {
+    const userId = req.user.id
+    const avatarName = req.body.avatarName
+
+    try {
+        // Primero miramos que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return {
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            }
+        }
+
+        // Después se mira que el avatar exista
+        const avatar = await Avatar.findOne({ image: avatarName })
+        if (!avatar) {
+            return {
+                status: "error",
+                message: "El avatar no ha sido encontrado"
+            }
+        }
+
+        // Ahora verificamos que el usuario no tuviera ya el avatar
+        if (user.avatars.some(avatarItem => avatarItem.avatar.equals(avatar._id))) {
+            return {
+                status: "error",
+                message: "El usuario ya poseía en su inventario el avatar"
+            }
+        }
+
+        // Se verifica si el usuario tiene las suficientes monedas para comprar el avatar
+        if (user.coins < avatar.price) {
+            return {
+                status: "error",
+                message: "El usuario no tiene suficientes monedas para comprar el avatar"
+            }
+        }
+
+        // Una vez hechas todas las comprobaciones, se resta el dinero del precio del avatar,
+        // y se añade a su lista de avatares. El avatar comprado no es el actual por defecto
+        user.coins -= avatar.price
+
+        user.avatars.push({ avatar: avatar._id, current: false})
+
+        var res = await StatController.incrementStatByName({body: { userId: userId, 
+            statName: "Avatares adquiridos", value: 1 }})
+        if (res.status === "error") return res
+
+        await user.save()
+        
+        return {
+            status: "success",
+            message: "El avatar ha sido añadido al inventario correctamente",
+            user: user
+        }
+    } catch (e) {
+        console.error(e)
+        return {
+            status: "error",
+            message: "Error al intentar comprar el avatar. Revisa que el ID y el nombre del avatar sean correctos"
+        }
+    }
+}
+
+// Dado un id de Usuario y un nombre de avatar, establece como avatar actual (en uso) el 
+// pasado por parámetro (si el usuario lo posee).
+async function changeAvatarPriv(req) {
+    const userId = req.user.id
+    const avatarName = req.body.avatarName
+
+    try {
+        // Primero miramos que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return {
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            }
+        }
+
+        // Después se mira que el avatar exista
+        const avatar = await Avatar.findOne({ image: avatarName })
+        if (!avatar) {
+            return {
+                status: "error",
+                message: "El avatar no ha sido encontrado"
+            }
+        }
+
+        // Se verifica que el usuario posea el avatar pasado como parámetro
+        const newCurrent = user.avatars.find(avatarItem => avatarItem.avatar.equals(avatar._id))
+        if (!newCurrent) {
+            return {
+                status: "error",
+                message: "El usuario no posee el avatar"
+            }
+        }
+
+        // Se busca si hay un avatar que tenga el current a true, y se pone a false
+        const oldCurrent = user.avatars.find(avatarItem => avatarItem.current)
+        if (oldCurrent) {
+            oldCurrent.current = false
+        }
+
+        // El nuevo avatar seleccionado se pone a true
+        newCurrent.current = true
+
+        // Se guardan los resultados y se responde al cliente
+        await user.save()
+
+        return {
+            status: "success",
+            message: "El avatar ha sido seleccionado correctamente",
+            user: user
+        }
+    } catch (e) {
+        console.error(e)
+        return {
+            status: "error",
+            message: "Error al intentar seleccionar un avatar. Revisa que el ID y el nombre del avatar sean correctos"
+        }
+    }
+}
+
+// Dado un id de Usuario y un nombre de diseño de carta, añade el diseño de carta a la lista de diseños de cartas
+// del usuario y resta el precio del diseño a las monedas del usuario (si tiene suficientes).
+async function buyCardPriv(req) {
+    const userId = req.user.id
+    const cardName = req.body.cardName
+
+    try {
+        // Primero miramos que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return {
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            }
+        }
+
+        // Después se mira que el diseño de carta exista
+        const card = await Card.findOne({ image: cardName })
+        if (!card) {
+            return {
+                status: "error",
+                message: "El diseño de carta no ha sido encontrado"
+            }
+        }
+
+        // Ahora verificamos que el usuario no tuviera ya el diseño de carta
+        if (user.cards.some(cardItem => cardItem.card.equals(card._id))) {
+            return {
+                status: "error",
+                message: "El usuario ya poseía en su inventario el diseño de carta"
+            }
+        }
+
+        // Se verifica si el usuario tiene las suficientes monedas para comprar el diseño de carta
+        if (user.coins < card.price) {
+            return {
+                status: "error",
+                message: "El usuario no tiene suficientes monedas para comprar el diseño de carta"
+            }
+        }
+
+        // Una vez hechas todas las comprobaciones, se resta el dinero del precio del diseño de carta,
+        // y se añade a su lista de diseños de cartas. El diseño comprado no es el actual por defecto
+        user.coins -= card.price
+
+        user.cards.push({ card: card._id, current: false})
+
+        var res = await StatController.incrementStatByName({body: { userId: userId, 
+            statName: "Cartas adquiridas", value: 1 }})
+        if (res.status === "error") return res
+
+        await user.save()
+        
+        return {
+            status: "success",
+            message: "El diseño de carta ha sido añadido al inventario correctamente",
+            user
+        }
+    } catch (e) {
+        console.error(e)
+        return {
+            status: "error",
+            message: "Error al intentar comprar el diseño de carta. Revisa que el ID y el nombre del diseño sean correctos"
+        }
+    }
+}
+
+// Dado un id de Usuario y un nombre de diseño de carta, establece como diseño de carta
+// actual (en uso) el pasado por parámetro (si el usuario lo posee).
+async function changeCardPriv(req) {
+    const userId = req.user.id
+    const cardName = req.body.cardName
+
+    try {
+        // Primero miramos que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return {
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            }
+        }
+
+        // Después se mira que el diseño de carta exista
+        const card = await Card.findOne({ image: cardName })
+        if (!card) {
+            return {
+                status: "error",
+                message: "El diseño de carta no ha sido encontrado"
+            }
+        }
+
+        // Se verifica que el usuario posea el diseño de carta pasado como parámetro
+        const newCurrent = user.cards.find(cardItem => cardItem.card.equals(card._id))
+        if (!newCurrent) {
+            return {
+                status: "error",
+                message: "El usuario no posee el diseño de carta"
+            }
+        }
+
+        // Se busca si hay un diseño de carta que tenga el current a true, y se pone a false
+        const oldCurrent = user.cards.find(cardItem => cardItem.current)
+        if (oldCurrent) {
+            oldCurrent.current = false
+        }
+
+        // El nuevo diseño seleccionado se pone a true
+        newCurrent.current = true
+
+        // Se guardan los resultados y se responde al cliente
+        await user.save()
+
+        return {
+            status: "success",
+            message: "El diseño de carta ha sido seleccionado correctamente",
+            user
+        }
+    } catch (e) {
+        console.error(e)
+        return {
+            status: "error",
+            message: "Error al intentar seleccionar un diseño de carta. Revisa que el ID y el nombre del diseño sean correctos"
+        }
+    }
+}
+
+// Dado un id de Usuario y un nombre de avatar, añade el diseño de tapete a la lista de diseños de tapetes
+// del usuario y resta el precio del diseño a las monedas del usuario (si tiene suficientes).
+async function buyRugPriv(req) {
+    const userId = req.user.id
+    const rugName = req.body.rugName
+
+    try {
+        // Primero miramos que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return {
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            }
+        }
+
+        // Después se mira que el tapete exista
+        const rug = await Rug.findOne({ image: rugName })
+        if (!rug) {
+            return {
+                status: "error",
+                message: "El tapete no ha sido encontrado"
+            }
+        }
+
+        // Ahora verificamos que el usuario no tuviera ya el tapete
+        if (user.rugs.some(rugItem => rugItem.rug.equals(rug._id))) {
+            return {
+                status: "error",
+                message: "El usuario ya poseía en su inventario el tapete"
+            }
+        }
+
+        // Se verifica si el usuario tiene las suficientes monedas para comprar el tapete
+        if (user.coins < rug.price) {
+            return {
+                status: "error",
+                message: "El usuario no tiene suficientes monedas para comprar el tapete"
+            }
+        }
+
+        // Una vez hechas todas las comprobaciones, se resta el dinero del precio del tapete,
+        // y se añade a su lista de tapetes. El tapete comprado no es el actual por defecto
+        user.coins -= rug.price
+
+        user.rugs.push({ rug: rug._id, current: false})
+
+        var res = await StatController.incrementStatByName({body: { userId: userId, 
+            statName: "Tapetes adquiridos", value: 1 }})
+        if (res.status === "error") return res
+
+
+        await user.save()
+        
+        return {
+            status: "success",
+            message: "El tapete ha sido añadido al inventario correctamente",
+            user
+        }
+    } catch (e) {
+        console.error(e)
+        return {
+            status: "error",
+            message: "Error al intentar comprar el tapete. Revisa que el ID y el nombre del tapete sean correctos"
+        }
+    }
+}
+
+// Dado un id de Usuario y un nombre de diseño de tapete, establece como diseño de tapete
+// actual (en uso) el pasado por parámetro (si el usuario lo posee).
+async function changeRugPriv(req) {
+    const userId = req.user.id
+    const rugName = req.body.rugName
+
+    try {
+        // Primero miramos que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return {
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            }
+        }
+
+        // Después se mira que el tapete exista
+        const rug = await Rug.findOne({ image: rugName })
+        if (!rug) {
+            return {
+                status: "error",
+                message: "El tapete no ha sido encontrado"
+            }
+        }
+
+        // Se verifica que el usuario posea el tapete pasado como parámetro
+        const newCurrent = user.rugs.find(rugItem => rugItem.rug.equals(rug._id))
+        if (!newCurrent) {
+            return {
+                status: "error",
+                message: "El usuario no posee el tapete"
+            }
+        }
+
+        // Se busca si hay un tapete que tenga el current a true, y se pone a false
+        const oldCurrent = user.rugs.find(rugItem => rugItem.current)
+        if (oldCurrent) {
+            oldCurrent.current = false
+        }
+
+        // El nuevo tapete seleccionado se pone a true
+        newCurrent.current = true
+
+        // Se guardan los resultados y se responde al cliente
+        await user.save()
+
+        return {
+            status: "success",
+            message: "El tapete ha sido seleccionado correctamente",
+            user
+        }
+    } catch (e) {
+        console.error(e)
+        return {
+            status: "error",
+            message: "Error al intentar seleccionar un tapete. Revisa que el ID y el nombre del taoete sean correctos"
+        }
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Funciones públicas
+////////////////////////////////////////////////////////////////////////////////
+
 // Devuelve error si el usuario no es administrador
 // Parámetros: req.user._id
 const isAdmin = async (req, res, next) => {
@@ -267,7 +735,7 @@ const userById = async (req, res) => {
 }
 
 // Obtener todos los usuarios del servidor
-const  getAllUsers = async (req, res) => {
+const getAllUsers = async (req, res) => {
     try {
         // Id del usuario peticion
         const userId = req.user.id
@@ -359,70 +827,6 @@ const logout = (req, res) => {
 
 }
 
-// Función privada
-// Dado un id de Usuario y un nombre de avatar, añade el avatar a la lista de avatares
-// del usuario y resta el precio del avatar a las monedas del usuario (si tiene suficientes).
-const buyAvatarPriv = async (req) => {
-    const userId = req.user.id
-    const avatarName = req.body.avatarName
-
-    try {
-        // Primero miramos que el usuario exista
-        const user = await User.findById(userId)
-        if (!user) {
-            return {
-                status: "error",
-                message: "El usuario no ha sido encontrado"
-            }
-        }
-
-        // Después se mira que el avatar exista
-        const avatar = await Avatar.findOne({ image: avatarName })
-        if (!avatar) {
-            return {
-                status: "error",
-                message: "El avatar no ha sido encontrado"
-            }
-        }
-
-        // Ahora verificamos que el usuario no tuviera ya el avatar
-        if (user.avatars.some(avatarItem => avatarItem.avatar.equals(avatar._id))) {
-            return {
-                status: "error",
-                message: "El usuario ya poseía en su inventario el avatar"
-            }
-        }
-
-        // Se verifica si el usuario tiene las suficientes monedas para comprar el avatar
-        if (user.coins < avatar.price) {
-            return {
-                status: "error",
-                message: "El usuario no tiene suficientes monedas para comprar el avatar"
-            }
-        }
-
-        // Una vez hechas todas las comprobaciones, se resta el dinero del precio del avatar,
-        // y se añade a su lista de avatares. El avatar comprado no es el actual por defecto
-        user.coins -= avatar.price
-
-        user.avatars.push({ avatar: avatar._id, current: false})
-
-        await user.save()
-        
-        return {
-            status: "success",
-            message: "El avatar ha sido añadido al inventario correctamente",
-            user: user
-        }
-    } catch (e) {
-        console.error(e)
-        return {
-            status: "error",
-            message: "Error al intentar comprar el avatar. Revisa que el ID y el nombre del avatar sean correctos"
-        }
-    }
-}
-
 // Dado un id de Usuario y un nombre de avatar, añade el avatar a la lista de avatares
 // del usuario y resta el precio del avatar a las monedas del usuario (si tiene suficientes).
 const buyAvatar = async (req, res) => {
@@ -434,67 +838,6 @@ const buyAvatar = async (req, res) => {
             status: "error",
             message: error.message
         });
-    }
-}
-
-// Función privada
-// Dado un id de Usuario y un nombre de avatar, establece como avatar actual (en uso) el 
-// pasado por parámetro (si el usuario lo posee).
-const changeAvatarPriv = async (req) => {
-    const userId = req.user.id
-    const avatarName = req.body.avatarName
-
-    try {
-        // Primero miramos que el usuario exista
-        const user = await User.findById(userId)
-        if (!user) {
-            return {
-                status: "error",
-                message: "El usuario no ha sido encontrado"
-            }
-        }
-
-        // Después se mira que el avatar exista
-        const avatar = await Avatar.findOne({ image: avatarName })
-        if (!avatar) {
-            return {
-                status: "error",
-                message: "El avatar no ha sido encontrado"
-            }
-        }
-
-        // Se verifica que el usuario posea el avatar pasado como parámetro
-        const newCurrent = user.avatars.find(avatarItem => avatarItem.avatar.equals(avatar._id))
-        if (!newCurrent) {
-            return {
-                status: "error",
-                message: "El usuario no posee el avatar"
-            }
-        }
-
-        // Se busca si hay un avatar que tenga el current a true, y se pone a false
-        const oldCurrent = user.avatars.find(avatarItem => avatarItem.current)
-        if (oldCurrent) {
-            oldCurrent.current = false
-        }
-
-        // El nuevo avatar seleccionado se pone a true
-        newCurrent.current = true
-
-        // Se guardan los resultados y se responde al cliente
-        await user.save()
-
-        return {
-            status: "success",
-            message: "El avatar ha sido seleccionado correctamente",
-            user: user
-        }
-    } catch (e) {
-        console.error(e)
-        return {
-            status: "error",
-            message: "Error al intentar seleccionar un avatar. Revisa que el ID y el nombre del avatar sean correctos"
-        }
     }
 }
 
@@ -512,70 +855,6 @@ const changeAvatar = async (req, res) => {
     }
 }
 
-// Función privada
-// Dado un id de Usuario y un nombre de diseño de carta, añade el diseño de carta a la lista de diseños de cartas
-// del usuario y resta el precio del diseño a las monedas del usuario (si tiene suficientes).
-const buyCardPriv = async (req) => {
-    const userId = req.user.id
-    const cardName = req.body.cardName
-
-    try {
-        // Primero miramos que el usuario exista
-        const user = await User.findById(userId)
-        if (!user) {
-            return {
-                status: "error",
-                message: "El usuario no ha sido encontrado"
-            }
-        }
-
-        // Después se mira que el diseño de carta exista
-        const card = await Card.findOne({ image: cardName })
-        if (!card) {
-            return {
-                status: "error",
-                message: "El diseño de carta no ha sido encontrado"
-            }
-        }
-
-        // Ahora verificamos que el usuario no tuviera ya el diseño de carta
-        if (user.cards.some(cardItem => cardItem.card.equals(card._id))) {
-            return {
-                status: "error",
-                message: "El usuario ya poseía en su inventario el diseño de carta"
-            }
-        }
-
-        // Se verifica si el usuario tiene las suficientes monedas para comprar el diseño de carta
-        if (user.coins < card.price) {
-            return {
-                status: "error",
-                message: "El usuario no tiene suficientes monedas para comprar el diseño de carta"
-            }
-        }
-
-        // Una vez hechas todas las comprobaciones, se resta el dinero del precio del diseño de carta,
-        // y se añade a su lista de diseños de cartas. El diseño comprado no es el actual por defecto
-        user.coins -= card.price
-
-        user.cards.push({ card: card._id, current: false})
-
-        await user.save()
-        
-        return {
-            status: "success",
-            message: "El diseño de carta ha sido añadido al inventario correctamente",
-            user
-        }
-    } catch (e) {
-        console.error(e)
-        return {
-            status: "error",
-            message: "Error al intentar comprar el diseño de carta. Revisa que el ID y el nombre del diseño sean correctos"
-        }
-    }
-}
-
 // Dado un id de Usuario y un nombre de diseño de carta, añade el diseño de carta a la lista de diseños de cartas
 // del usuario y resta el precio del diseño a las monedas del usuario (si tiene suficientes).
 const buyCard = async (req, res) => {
@@ -587,67 +866,6 @@ const buyCard = async (req, res) => {
             status: "error",
             message: error.message
         });
-    }
-}
-
-// Función privada
-// Dado un id de Usuario y un nombre de diseño de carta, establece como diseño de carta
-// actual (en uso) el pasado por parámetro (si el usuario lo posee).
-const changeCardPriv = async (req) => {
-    const userId = req.user.id
-    const cardName = req.body.cardName
-
-    try {
-        // Primero miramos que el usuario exista
-        const user = await User.findById(userId)
-        if (!user) {
-            return {
-                status: "error",
-                message: "El usuario no ha sido encontrado"
-            }
-        }
-
-        // Después se mira que el diseño de carta exista
-        const card = await Card.findOne({ image: cardName })
-        if (!card) {
-            return {
-                status: "error",
-                message: "El diseño de carta no ha sido encontrado"
-            }
-        }
-
-        // Se verifica que el usuario posea el diseño de carta pasado como parámetro
-        const newCurrent = user.cards.find(cardItem => cardItem.card.equals(card._id))
-        if (!newCurrent) {
-            return {
-                status: "error",
-                message: "El usuario no posee el diseño de carta"
-            }
-        }
-
-        // Se busca si hay un diseño de carta que tenga el current a true, y se pone a false
-        const oldCurrent = user.cards.find(cardItem => cardItem.current)
-        if (oldCurrent) {
-            oldCurrent.current = false
-        }
-
-        // El nuevo diseño seleccionado se pone a true
-        newCurrent.current = true
-
-        // Se guardan los resultados y se responde al cliente
-        await user.save()
-
-        return {
-            status: "success",
-            message: "El diseño de carta ha sido seleccionado correctamente",
-            user
-        }
-    } catch (e) {
-        console.error(e)
-        return {
-            status: "error",
-            message: "Error al intentar seleccionar un diseño de carta. Revisa que el ID y el nombre del diseño sean correctos"
-        }
     }
 }
 
@@ -665,70 +883,6 @@ const changeCard = async (req, res) => {
     }
 }
 
-// Función privada
-// Dado un id de Usuario y un nombre de avatar, añade el diseño de tapete a la lista de diseños de tapetes
-// del usuario y resta el precio del diseño a las monedas del usuario (si tiene suficientes).
-const buyRugPriv = async (req) => {
-    const userId = req.user.id
-    const rugName = req.body.rugName
-
-    try {
-        // Primero miramos que el usuario exista
-        const user = await User.findById(userId)
-        if (!user) {
-            return {
-                status: "error",
-                message: "El usuario no ha sido encontrado"
-            }
-        }
-
-        // Después se mira que el tapete exista
-        const rug = await Rug.findOne({ image: rugName })
-        if (!rug) {
-            return {
-                status: "error",
-                message: "El tapete no ha sido encontrado"
-            }
-        }
-
-        // Ahora verificamos que el usuario no tuviera ya el tapete
-        if (user.rugs.some(rugItem => rugItem.rug.equals(rug._id))) {
-            return {
-                status: "error",
-                message: "El usuario ya poseía en su inventario el tapete"
-            }
-        }
-
-        // Se verifica si el usuario tiene las suficientes monedas para comprar el tapete
-        if (user.coins < rug.price) {
-            return {
-                status: "error",
-                message: "El usuario no tiene suficientes monedas para comprar el tapete"
-            }
-        }
-
-        // Una vez hechas todas las comprobaciones, se resta el dinero del precio del tapete,
-        // y se añade a su lista de tapetes. El tapete comprado no es el actual por defecto
-        user.coins -= rug.price
-
-        user.rugs.push({ rug: rug._id, current: false})
-
-        await user.save()
-        
-        return {
-            status: "success",
-            message: "El tapete ha sido añadido al inventario correctamente",
-            user
-        }
-    } catch (e) {
-        console.error(e)
-        return {
-            status: "error",
-            message: "Error al intentar comprar el tapete. Revisa que el ID y el nombre del tapete sean correctos"
-        }
-    }
-}
-
 // Dado un id de Usuario y un nombre de avatar, añade el diseño de tapete a la lista de diseños de tapetes
 // del usuario y resta el precio del diseño a las monedas del usuario (si tiene suficientes).
 const buyRug = async (req, res) => {
@@ -740,67 +894,6 @@ const buyRug = async (req, res) => {
             status: "error",
             message: error.message
         });
-    }
-}
-
-// Función privada
-// Dado un id de Usuario y un nombre de diseño de tapete, establece como diseño de tapete
-// actual (en uso) el pasado por parámetro (si el usuario lo posee).
-const changeRugPriv = async (req) => {
-    const userId = req.user.id
-    const rugName = req.body.rugName
-
-    try {
-        // Primero miramos que el usuario exista
-        const user = await User.findById(userId)
-        if (!user) {
-            return {
-                status: "error",
-                message: "El usuario no ha sido encontrado"
-            }
-        }
-
-        // Después se mira que el tapete exista
-        const rug = await Rug.findOne({ image: rugName })
-        if (!rug) {
-            return {
-                status: "error",
-                message: "El tapete no ha sido encontrado"
-            }
-        }
-
-        // Se verifica que el usuario posea el tapete pasado como parámetro
-        const newCurrent = user.rugs.find(rugItem => rugItem.rug.equals(rug._id))
-        if (!newCurrent) {
-            return {
-                status: "error",
-                message: "El usuario no posee el tapete"
-            }
-        }
-
-        // Se busca si hay un tapete que tenga el current a true, y se pone a false
-        const oldCurrent = user.rugs.find(rugItem => rugItem.current)
-        if (oldCurrent) {
-            oldCurrent.current = false
-        }
-
-        // El nuevo tapete seleccionado se pone a true
-        newCurrent.current = true
-
-        // Se guardan los resultados y se responde al cliente
-        await user.save()
-
-        return {
-            status: "success",
-            message: "El tapete ha sido seleccionado correctamente",
-            user
-        }
-    } catch (e) {
-        console.error(e)
-        return {
-            status: "error",
-            message: "Error al intentar seleccionar un tapete. Revisa que el ID y el nombre del taoete sean correctos"
-        }
     }
 }
 
@@ -864,6 +957,7 @@ const getReward = async (req, res) => {
         })
     }
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones del administrador
@@ -981,87 +1075,6 @@ const insertCoins = async (req, res) => {
         return res.status(500).json({
             status: "error",
             message: "Error al extraer las monedas. Asegúrate de que la cadena de texto que representa el número de monedas a insertar es un entero mayor de 0 y que el ID del usuario es el correcto"
-        })
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Funciones internas
-////////////////////////////////////////////////////////////////////////////////
-
-// Dado un id de usuario y una cantidad de monedas, añade esa cantidad al usuario.
-async function insertCoinsFunction(req) {
-    // Parámetros en req.body: userId, coins
-    const userId = req.body.userId
-    const inCoinsStr = req.body.coins
-
-    try {
-        // Nos aseguramos de que exCoins sea un entero > 0
-        const inCoins = parseInt(inCoinsStr)
-        if (typeof inCoins !== 'number' || inCoins <= 0 || !Number.isInteger(inCoins)) {
-            return ({
-                status: "error",
-                message: "El número de monedas a insertar no es correcto. Debe ser un entero positivo mayor de 0"
-            })
-        }
-
-        // Se busca el usuario por su ID
-        const user = await User.findById(userId)
-
-        if (!user) {
-            return ({
-                status: "error",
-                message: "El usuario no ha sido encontrado"
-            })
-        }    
-        
-        // Se suman las monedas al saldo del usuario
-        user.coins += inCoins
-
-        // Se guarda y se responde al cliente
-        await user.save()
-        return ({
-            status: "success",
-            message: "Dinero insertado correctamente",
-            coinsInserted: inCoins,
-            user: user
-        })
-
-    } catch (e) {
-        console.error(error)
-        return ({
-            status: "error",
-            message: "Error al extraer las monedas. Asegúrate de que la cadena de texto que representa el número de monedas a insertar es un entero mayor de 0 y que el ID del usuario es el correcto"
-        })
-    }
-}
-
-// Devuelve un usuario dado un id
-async function userByIdFunction(req) {
-    const userId = req.body.userId
-
-    try {
-        // Buscar el usuario por su ID
-        const user = await User.findById(userId)
-
-        // Si no se encontró, error
-        if (!user) {
-            return ({
-                status: "error",
-                message: "Usuario no encontrado"
-            })
-        }
-
-        // Si se encontró, se devuelve el usuario
-        return ({
-            status: "success",
-            message: "Usuario encontrado",
-            user: user
-        })
-    } catch (e) {
-        return ({
-            status: "error",
-            message: "Error interno del servidor al intentar buscar el usuario. " + e.message
         })
     }
 }
