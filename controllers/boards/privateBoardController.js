@@ -113,7 +113,8 @@ async function add (req) {
                                                       password: hPasswd,
                                                       numPlayers: numPlayers,
                                                       bank: resAddBank.bank._id,
-                                                      bet: bet })
+                                                      bet: bet,
+                                                      hand: { numHand: 1, players: []} })
         if (!privBoard) {
             return ({
                 status: "error",
