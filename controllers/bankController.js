@@ -494,6 +494,7 @@ const drawCard = async (req, res) => {
                 status: "success",
                 message: "Carta obtenida correctamente. Sigue jugando",
                 cardsOnTable,
+                totalCards,
                 defeat: false,
                 blackJack: false
             })
@@ -510,6 +511,7 @@ const drawCard = async (req, res) => {
                 status: "success",
                 message: "Carta obtenida correctamente. Se ha pasado de " + numBlackJack + ". Para de jugar. Ha perdido",
                 cardsOnTable,
+                totalCards,
                 defeat: true,
                 blackJack: false
             })
@@ -526,6 +528,7 @@ const drawCard = async (req, res) => {
                 status: "success",
                 message: "Carta obtenida correctamente. Ha obtenido justo " + numBlackJack + ". Para de jugar",
                 cardsOnTable,
+                totalCards,
                 defeat: false,
                 blackJack: true
             })
@@ -626,6 +629,7 @@ const double = async (req, res) => {
             status: "success",
             message: "Carta obtenida correctamente. Ha hecho un double",
             cardsOnTable,
+            totalCards,
             defeat: totalCards > numBlackJack,
             blackJack: totalCards == numBlackJack
         })
@@ -746,9 +750,11 @@ const split = async(req, res) => {
             status: "success",
             message: "Split hecho correctamente",
             cardsOnTableFirst,
+            totalCardsFirst,
             defeatFirst: totalCardsFirst > numBlackJack,
             blackJackFirst: totalCardsFirst == numBlackJack,
             cardsOnTableSecond,
+            totalCardsSecond,
             defeatSecond: totalCardsSecond > numBlackJack,
             blackJackSecond: totalCardsSecond == numBlackJack
         })
