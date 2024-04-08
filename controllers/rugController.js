@@ -61,6 +61,51 @@ const  getAllRugs = async (req, res) => {
 }
 
 // Obtener el rug que el usuario que realiza la petición tiene seleccionado
+const getAllMyRugs = async (req, res) => {
+    // Id del usuario peticion
+    const userId = req.user.id
+
+    try {
+        // Buscar el usuario por su ID
+        const user = await User.findById(userId);
+
+        // Verificar si el usuario existe
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        const rugs = user.rugs.map(async rugRef => {
+            const rug = await Rug.findById(rugRef.rug);
+            return {
+                current: rugRef.current,
+                image: rug.image,
+                imageFileName: rug.imageFileName,
+                price: rug.price
+            };
+        });
+
+        // Esperar a que se resuelvan todas las promesas para obtener los detalles de los tapetes
+        const resRugs = await Promise.all(rugs);
+
+        // Devolver el rug encontrado
+        return res.status(200).json({
+            status: "success",
+            message: "Tapetes obtenido correctamente",
+            rugs: resRugs
+        });
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: e.message
+        });
+    }
+};
+
+
+// Obtener el rug que el usuario que realiza la petición tiene seleccionado
 const currentRug = async (req, res) => {
 
     // Id del usuario peticion
@@ -336,5 +381,6 @@ module.exports = {
     rugById,
     currentRugById,
     getAllRugs,
+    getAllMyRugs,
     currentRug
 }

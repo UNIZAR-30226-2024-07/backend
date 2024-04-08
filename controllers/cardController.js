@@ -35,7 +35,7 @@ const cardById = async (req, res) => {
 }
 
 // Función para obtener todos los cardes
-const  getAllCards = async (req, res) => {
+const getAllCards = async (req, res) => {
     try {
         // Consulta todos los cardes en la base de datos
         const cardes = await Card.find()
@@ -59,6 +59,51 @@ const  getAllCards = async (req, res) => {
         })
     }
 }
+
+// Obtener el card que el usuario que realiza la petición tiene seleccionado
+const getAllMyCards = async (req, res) => {
+    // Id del usuario peticion
+    const userId = req.user.id
+
+    try {
+        // Buscar el usuario por su ID
+        const user = await User.findById(userId);
+
+        // Verificar si el usuario existe
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        const cards = user.cards.map(async cardRef => {
+            const card = await Card.findById(cardRef.card);
+            return {
+                current: cardRef.current,
+                image: card.image,
+                imageFileName: card.imageFileName,
+                price: card.price
+            };
+        });
+
+        // Esperar a que se resuelvan todas las promesas para obtener los detalles de los tapetes
+        const resCards = await Promise.all(cards);
+
+        // Devolver el card encontrado
+        return res.status(200).json({
+            status: "success",
+            message: "Tapetes obtenido correctamente",
+            cards: resCards
+        });
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: e.message
+        });
+    }
+};
+
 
 // Obtener el card que el usuario que realiza la petición tiene seleccionado
 const currentCard = async (req, res) => {
@@ -335,5 +380,6 @@ module.exports = {
     cardById,
     currentCardById,
     getAllCards,
+    getAllMyCards,
     currentCard
 }

@@ -104,7 +104,6 @@ const getAllMyAvatars = async (req, res) => {
     }
 };
 
-
 // Obtener el avatar que el usuario que realiza la petición tiene seleccionado
 const currentAvatar = async (req, res) => {
 
