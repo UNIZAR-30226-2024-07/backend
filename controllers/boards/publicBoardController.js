@@ -385,7 +385,7 @@ async function finishBoard(req) {
         const board = res.board
 
         for (playerObj of board.players) {
-            if (playerObj.earnedCoins != 0) {
+            if (playerObj.initialCoins != playerObj.currentCoins) {
                 res = await UserController.insertCoinsFunction({ body: 
                     { userId: playerObj.player, 
                       coins: playerObj.currentCoins - playerObj.initialCoins }})
@@ -499,16 +499,23 @@ async function manageHand(req) {
     // Parámetros en req.body: 
 
     try {
-        
         // Generar una respuesta con resultados []
-        //     En cada componente:
-        //           - 
+        // Llamar a res = board.bank.results
+        // [
+            // user: {
+                // [ cards ],
+                // coinsEarned,
+                // userId,
+                // userName
+            // },
+        // ]
+
+        // Apuntar los resultados en el currentCoins de cada jugador        
 
         // Limpiar el board.hand.players
         // Aumentar el board.hand.numHands
 
-        // 
-
+        // Devolver los resultados de la banca en el campo results
 
 
     } catch (e) {

@@ -234,6 +234,8 @@ const Sockets = async (io) => {
                 res = await PublicBoardController.manageHand()
                 if (res.status === "error") return res
 
+                io.to("public:" + boardId).emit("results turn", res.results)
+
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
             }
 

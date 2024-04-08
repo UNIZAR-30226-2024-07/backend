@@ -437,9 +437,10 @@ async function finishBoard(req) {
         const board = res.board
 
         for (playerObj of board.players) {
-            if (playerObj.earnedCoins != 0) {
-                res = await UserController.insertCoinsFunction({ body: { userId: playerObj.player, 
-                                                                         coins: playerObj.earnedCoins }})
+            if (playerObj.initialCoins != playerObj.currentCoins) {
+                res = await UserController.insertCoinsFunction({ body: 
+                    { userId: playerObj.player, 
+                      coins: playerObj.currentCoins - playerObj.initialCoins }})
                 if (res.status === "error") return res
             }
         }
