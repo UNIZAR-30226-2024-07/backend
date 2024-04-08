@@ -264,7 +264,9 @@ async function addPlayer (req) {
         // usuarios si ya está completa. Si el jugador es el primero, se establece
         // este como guest
         const isGuest = board.players.length === 0
-        board.players.push({ player: userId, guest: isGuest })
+        board.players.push({ player: userId, guest: isGuest, 
+            initialCoins: user.coins, currentCoins: user.coins })
+        
         if (board.players.length === board.numPlayers) {
             board.status = 'playing'
         }

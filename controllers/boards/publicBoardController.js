@@ -258,7 +258,9 @@ async function addPlayer(req) {
         // usuarios si ya está completa. Si el jugador es el primero, se establece
         // este como guest
         const isGuest = board.players.length === 0
-        board.players.push({ player: userId, guest: isGuest })
+        board.players.push({ player: userId, guest: isGuest, 
+            initialCoins: user.coins, currentCoins: user.coins })
+        
         if (board.players.length === board.numPlayers) {
             board.status = 'playing'
         }
@@ -386,8 +388,9 @@ async function finishBoard(req) {
 
         for (playerObj of board.players) {
             if (playerObj.earnedCoins != 0) {
-                res = await UserController.insertCoinsFunction({ body: { userId: playerObj.player, 
-                                                                         coins: playerObj.earnedCoins }})
+                res = await UserController.insertCoinsFunction({ body: 
+                    { userId: playerObj.player, 
+                      coins: playerObj.currentCoins - playerObj.initialCoins }})
                 if (res.status === "error") return res
             }
         }

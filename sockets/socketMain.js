@@ -231,7 +231,8 @@ const Sockets = async (io) => {
                 }
 
                 // TODO: o se mete aquí otra función con la lógica, o se mete en
-                // TournamentBoardController.manageHand
+                res = await PublicBoardController.manageHand()
+                if (res.status === "error") return res
 
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
             }

@@ -23,8 +23,13 @@ const publicBoardSchema = Schema({
                 type: Number,
                 default: 0
             },
-            // Monedas obtenidas durante la partida (negativas si ha perdido)
-            earnedCoins: {
+            // Monedas iniciales del jugador
+            initialCoins: {
+                type: Number,
+                default: 0
+            },
+            // Monedas actuales del jugador
+            currentCoins: {
                 type: Number,
                 default: 0
             }
