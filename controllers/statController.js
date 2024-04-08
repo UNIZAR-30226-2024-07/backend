@@ -178,11 +178,10 @@ const add = async (req, res) => {
             message: "Estadística añadida correctamente",
             stat: newStat
         })
-    } catch (error) {
-        console.error(error);
+    } catch (e) {
         return res.status(500).json({
             status: "error",
-            message: "Error interno del servidor al añadir la estadística"
+            message: "Error interno del servidor al añadir la estadística. " + e.message
         })
     }
 }
@@ -221,11 +220,10 @@ const update = async (req, res) => {
             message: "Estadística actualizada correctamente",
             stat: updatedStat
         })
-    } catch (error) {
-        console.error(error);
+    } catch (e) {
         return res.status(500).json({
             status: "error",
-            message: "Error interno del servidor al actualizar la estadística"
+            message: "Error interno del servidor al actualizar la estadística. " + e.message
         })
     }
 }
@@ -249,11 +247,10 @@ const eliminate = async (req, res) => {
             status: "success",
             message: "Estadística eliminada correctamente"
         })
-    } catch (error) {
-        console.error(error);
+    } catch (e) {
         return res.status(500).json({
             status: "error",
-            message: "Error interno del servidor al eliminar la estadística"
+            message: "Error interno del servidor al eliminar la estadística. " + e.message
         })
     }
 }
@@ -286,11 +283,10 @@ const statByNameAndUser = async (req, res) => {
             message: "Estadística encontrada correctamente",
             stat: stat
         })
-    } catch (error) {
-        console.error(error);
+    } catch (e) {
         return res.status(500).json({
             status: "error",
-            message: "Error interno del servidor al buscar la estadística"
+            message: "Error interno del servidor al buscar la estadística. " + e.message
         })
     }
 }

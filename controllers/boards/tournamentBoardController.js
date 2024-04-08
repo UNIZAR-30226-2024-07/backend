@@ -55,15 +55,38 @@ async function eliminatePlayers(req) {
     const playersToDelete = req.body.playersToDelete
 
     try {
+        // Se recupera la mesa
+        const board = await TournamentBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        // Se cogen los índices de los jugadores a eliminar
+        const playerIndicesToDelete = [];
+        playersToDelete.forEach(playerId => {
+            const index = board.players.findIndex(player => player.player.equals(playerId));
+            if (index !== -1) {
+                playerIndicesToDelete.push(index);
+            }
+        })
+
         // Eliminar a los jugadores marcados para ser eliminados
         await TournamentBoard.updateOne(
             { _id: boardId },
             { $pull: { 'players': { 'player': { $in: playersToDelete } } } }
         )
 
-        // Se elimina el usuario de la lista de jugadores en espera para que
+        // Eliminamos los jugadores de la banca de la partida
+        var res = await BankController.eliminatePlayersHand({ body: 
+            { bankId: board.bank, usersIndex: playerIndicesToDelete }})
+        if (res.status === "error") return res
+        
+        // Se eliminan los usuarios de la lista de jugadores en espera para que
         // pueda solicitar jugar otra partida
-        res = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        res = await MatcherController.eliminateWaitingUsers({ body: {playersToDelete: playersToDelete}})
         if (res.status === "error") return res
 
         return ({
@@ -567,11 +590,15 @@ const leaveBoard = async (req, res) => {
             })
         }
 
+        // Eliminamos los jugadores de la banca de la partida
+        var resAux = await BankController.eliminatePlayersHand({ body: 
+            { bankId: board.bank, usersIndex: [playerIndex] }})
+        if (resAux.status === "error") return res.status(400).json(resAux)
+
         // Se elimina el usuario de la lista de jugadores en espera para que
         // pueda solicitar jugar otra partida
-        res = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
-        if (res.status === "error") return res
-
+        resAux = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        if (resAux.status === "error") return res.status(400).json(resAux)
 
         // Eliminar al usuario de la lista de jugadores en la partida
         board.players.splice(playerIndex, 1);

@@ -64,8 +64,9 @@ function isAlreadyWaiting(matcher, userId) {
 }
 
 async function eliminateWaitingUsers(req) {
-    // Parámetros en req.body: boardId, typeBoardName
-    const typeBoardName = req.body.typeBoardName // 'tournament', 'public', 'private'
+    // Dos opciones de parámetros
+    // 1: req.body: boardId, typeBoardName
+    // 2: req.body: playersToDelete
 
     try {
         // Se busca una partida en espera que coincida en torneo y ronda
@@ -77,25 +78,38 @@ async function eliminateWaitingUsers(req) {
             })
         }
 
-        // Se recupera la partida para saber todos los jugadores
-        var res
-        if (typeBoardName === "tournament") {
-            res = await TournamentBoardController.boardByIdFunction(req)
-            if (res.status === "error") return res
+        if (req.body.typeBoardName && req.body.boardId) {
+            const typeBoardName = req.body.typeBoardName // 'tournament', 'public', 'private'
 
-        } else if (typeBoardName === "public") {
-            res = await PublicBoardController.boardByIdFunction(req)
-            if (res.status === "error") return res
-        
-        } else if (typeBoardName === "private") {
-            res = await PrivateBoardController.boardByIdFunction(req)
-            if (res.status === "error") return res
+            // Se recupera la partida para saber todos los jugadores
+            var res
+            if (typeBoardName === "tournament") {
+                res = await TournamentBoardController.boardByIdFunction(req)
+                if (res.status === "error") return res
+
+            } else if (typeBoardName === "public") {
+                res = await PublicBoardController.boardByIdFunction(req)
+                if (res.status === "error") return res
+            
+            } else if (typeBoardName === "private") {
+                res = await PrivateBoardController.boardByIdFunction(req)
+                if (res.status === "error") return res
+            }
+
+            // Se cogen todos aquellos que no esten en la partida pasada
+            matcher.players_waiting = matcher.players_waiting.filter(playerWaiting => 
+                !res.board.players.some(player => player.player.equals(playerWaiting.player)))
+        } else if (req.body.playersToDelete) {
+            const playersToDelete = req.body.playersToDelete
+
+            matcher.players_waiting = matcher.players_waiting.filter(playerWaiting =>
+                !playersToDelete.includes(playerWaiting.player))
+        } else {
+            return ({
+                status: "error",
+                message: "Parámetros incorrectos. Los parámetros deben ser boardId y typeBoardName ó playersToDelete"
+            })
         }
-
-        // Se cogen todos aquellos que no esten en la partida pasada
-        matcher.players_waiting = matcher.players_waiting.filter(playerWaiting => 
-            !res.board.players.some(player => player.player.equals(playerWaiting.player))
-        );
 
         // Guardar los cambios en el emparejador
         await matcher.save()
@@ -108,7 +122,7 @@ async function eliminateWaitingUsers(req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "Error al eliminar los usuarios de la lista de espera"
+            message: "Error al eliminar los usuarios de la lista de espera. " + e.message
         })
     }
 }
