@@ -20,7 +20,7 @@ const avatarById = async (req, res) => {
                 message: "Avatar no encontrado"
             })
         } else {   // Avatar encontrado, exito
-            res.status(200).json({
+            return res.status(200).json({
                 status: "success",
                 message: "Avatar obtenido correctamente",
                 avatar: avatar
@@ -46,7 +46,7 @@ const  getAllAvatars = async (req, res) => {
                 message: "Avatares no encontrados"
             })
         } else {   // Avatares encontrados, exito
-            res.status(200).json({
+            return res.status(200).json({
                 status: "success",
                 message: "Avatares obtenidos correctamente",
                 avatar: avatares
@@ -93,7 +93,7 @@ const currentAvatar = async (req, res) => {
         const avatarDetails = await Avatar.findById(avatar.avatar);
 
         // Devolver el avatar encontrado
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Avatar obtenido correctamente",
             avatar: avatarDetails
@@ -139,7 +139,7 @@ const currentAvatarById = async (req, res) => {
         const avatarDetails = await Avatar.findById(avatar.avatar);
 
         // Devolver el avatar encontrado
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Avatar obtenido correctamente",
             avatar: avatarDetails
@@ -179,7 +179,7 @@ const add = async (req, res) => {
 
         // Crear avatar, exito
         const newAvatar = await Avatar.create({ image: a.image, price: a.price, imageFileName: imageFileName });
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Avatar creado correctamente",
             avatar: newAvatar
@@ -229,7 +229,7 @@ const update = async (req, res) => {
 
         // Actualizar avatar, exito
         const updatedAvatar = await Avatar.findByIdAndUpdate(id, { image: updateAvatar.image, price: updateAvatar.price }, { new: true });
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Avatar actualizado correctamente",
             avatar: updatedAvatar
