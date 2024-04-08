@@ -35,7 +35,7 @@ const avatarById = async (req, res) => {
 }
 
 // Función para obtener todos los avatares
-const  getAllAvatars = async (req, res) => {
+const getAllAvatars = async (req, res) => {
     try {
         // Consulta todos los avatares en la base de datos
         const avatares = await Avatar.find()
@@ -59,6 +59,51 @@ const  getAllAvatars = async (req, res) => {
         })
     }
 }
+
+// Obtener el avatar que el usuario que realiza la petición tiene seleccionado
+const getAllMyAvatars = async (req, res) => {
+    // Id del usuario peticion
+    const userId = req.user.id
+
+    try {
+        // Buscar el usuario por su ID
+        const user = await User.findById(userId);
+
+        // Verificar si el usuario existe
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        const avatars = user.avatars.map(async avatarRef => {
+            const avatar = await Avatar.findById(avatarRef.avatar);
+            return {
+                current: avatarRef.current,
+                image: avatar.image,
+                imageFileName: avatar.imageFileName,
+                price: avatar.price
+            };
+        });
+
+        // Esperar a que se resuelvan todas las promesas para obtener los detalles de los avatares
+        const resAvatars = await Promise.all(avatars);
+
+        // Devolver el avatar encontrado
+        return res.status(200).json({
+            status: "success",
+            message: "Avatar obtenido correctamente",
+            avatars: resAvatars
+        });
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: e.message
+        });
+    }
+};
+
 
 // Obtener el avatar que el usuario que realiza la petición tiene seleccionado
 const currentAvatar = async (req, res) => {
@@ -93,7 +138,7 @@ const currentAvatar = async (req, res) => {
         const avatarDetails = await Avatar.findById(avatar.avatar);
 
         // Devolver el avatar encontrado
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Avatar obtenido correctamente",
             avatar: avatarDetails
@@ -139,7 +184,7 @@ const currentAvatarById = async (req, res) => {
         const avatarDetails = await Avatar.findById(avatar.avatar);
 
         // Devolver el avatar encontrado
-        res.status(200).json({
+         return res.status(200).json({
             status: "success",
             message: "Avatar obtenido correctamente",
             avatar: avatarDetails
@@ -331,6 +376,7 @@ const eliminate = async (req, res) => {
 module.exports = {
     avatarById,
     getAllAvatars,
+    getAllMyAvatars,
     currentAvatar,
     currentAvatarById,
     add,

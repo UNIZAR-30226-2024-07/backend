@@ -7,6 +7,7 @@ const { uploadFile } = require('../upload/upload')
 
 router.get("/avatarById/:id", authRequired, AvatarController.avatarById)
 router.get("/getAllAvatars", authRequired, AvatarController.getAllAvatars)
+router.get("/getAllMyAvatars", authRequired, AvatarController.getAllMyAvatars)
 router.get("/currentAvatar", authRequired, AvatarController.currentAvatar)
 router.get("/currentAvatarById/:id", authRequired, AvatarController.currentAvatarById)
 
