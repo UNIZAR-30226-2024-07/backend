@@ -20,7 +20,7 @@ const cardById = async (req, res) => {
                 message: "Card no encontrado"
             })
         } else {   // Card encontrado, exito
-            res.status(200).json({
+            return res.status(200).json({
                 status: "success",
                 message: "Card obtenido correctamente",
                 card: card
@@ -46,7 +46,7 @@ const  getAllCards = async (req, res) => {
                 message: "Cardes no encontrados"
             })
         } else {   // Cardes encontrados, exito
-            res.status(200).json({
+            return res.status(200).json({
                 status: "success",
                 message: "Cardes obtenidos correctamente",
                 card: cardes
@@ -93,7 +93,7 @@ const currentCard = async (req, res) => {
         const cardDetails = await Card.findById(card.card);
 
         // Devolver el card encontrado
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Card obtenido correctamente",
             card: cardDetails
@@ -139,7 +139,7 @@ const currentCardById = async (req, res) => {
         const cardDetails = await Card.findById(card.card);
 
         // Devolver el card encontrado
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Card obtenido correctamente",
             card: cardDetails
@@ -179,7 +179,7 @@ const add = async (req, res) => {
 
         // Crear card, exito
         const newCard = await Card.create({ image: c.image, price: c.price, imageFileName: imageFileName });
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Card creado correctamente",
             card: newCard
@@ -229,7 +229,7 @@ const update = async (req, res) => {
 
         // Actualizar card, exito
         const updatedCard = await Card.findByIdAndUpdate(id, { image: updateCard.image, price: updateCard.price }, { new: true });
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Card actualizado correctamente",
             card: updatedCard
