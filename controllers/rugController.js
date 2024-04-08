@@ -20,7 +20,7 @@ const rugById = async (req, res) => {
                 message: "Rug no encontrado"
             })
         } else {   // Rug encontrado, exito
-            res.status(200).json({
+            return res.status(200).json({
                 status: "success",
                 message: "Rug obtenido correctamente",
                 rug: rug
@@ -46,7 +46,7 @@ const  getAllRugs = async (req, res) => {
                 message: "Ruges no encontrados"
             })
         } else {   // Ruges encontrados, exito
-            res.status(200).json({
+            return res.status(200).json({
                 status: "success",
                 message: "Ruges obtenidos correctamente",
                 rug: ruges
@@ -138,7 +138,7 @@ const currentRug = async (req, res) => {
         const rugDetails = await Rug.findById(rug.rug);
 
         // Devolver el rug encontrado
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Rug obtenido correctamente",
             rug: rugDetails
@@ -184,7 +184,7 @@ const currentRugById = async (req, res) => {
         const rugDetails = await Rug.findById(rug.rug);
 
         // Devolver el rug encontrado
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Rug obtenido correctamente",
             rug: rugDetails
@@ -224,7 +224,7 @@ const add = async (req, res) => {
 
         // Crear rug, exito
         const newRug = await Rug.create({ image: r.image, price: r.price, imageFileName: imageFileName });
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Rug creado correctamente",
             rug: newRug
@@ -274,7 +274,7 @@ const update = async (req, res) => {
 
         // Actualizar rug, exito
         const updatedRug = await Rug.findByIdAndUpdate(id, { image: updateRug.image, price: updateRug.price }, { new: true });
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Rug actualizado correctamente",
             rug: updatedRug
