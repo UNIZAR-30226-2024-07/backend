@@ -43,7 +43,6 @@ async function allPlayersPlayed(req) {
     }
 }
 
-
 // Crea una mesa pública dada un tipo de mesa pública
 async function add (req) {
     const typeId = req.body.typeId
@@ -183,7 +182,6 @@ async function eliminatePlayers(req) {
 
 // Dado un board, apunta todos aquellos jugadores que no han enviado su jugada
 // y elimina a todo aquel que ha dejado de jugar 2 manos
-// TODO: se puede poner aquí la lógica de después de cada jugada
 async function seeAbsents(req) {
     // Parámetros en req.body: board (un board completo)
     const board = req.body.board
@@ -489,6 +487,31 @@ async function newMessage(req) {
         return ({
             status: "error",
             message: "Error al agregar el mensaje al chat. " + e.message
+        })
+    }
+}
+
+// 
+async function manageHand(req) {
+    // Parámetros en req.body: 
+
+    try {
+        
+        // Generar una respuesta con resultados []
+        //     En cada componente:
+        //           - 
+
+        // Limpiar el board.hand.players
+        // Aumentar el board.hand.numHands
+
+        // 
+
+
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al manejar los datos de la jugada. " + e.message
         })
     }
 }

@@ -231,6 +231,7 @@ const Sockets = async (io) => {
                 }
 
                 // TODO: o se mete aquí otra función con la lógica, o se mete en
+                // earnedCoins++ o --
                 // TournamentBoardController.manageHand
 
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
