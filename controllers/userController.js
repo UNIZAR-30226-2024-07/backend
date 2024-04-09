@@ -533,6 +533,15 @@ const add = async (req, res) => {
                                    password: hPasswd,
                                    coins: 0 })
 
+        // Se inicializan todas las estadísticas del usuario
+        var resStat = await StatController.initUserStats({ body: {userId: newUser._id} })
+        if (resStat.status === "error") {
+            return res.status(400).json({
+                status: "error",
+                message: resStat.message
+            })
+        }
+
         // Comprar avatar por defecto
         const resBuyAvatar = await buyAvatarPriv({
             user: {
@@ -545,7 +554,7 @@ const add = async (req, res) => {
         if (resBuyAvatar.status !== "success") {
             return res.status(400).json({
                 status: "error",
-                message: "No se ha podido comprar el avarar Default"
+                message: "No se ha podido comprar el avatar Default"
             })
         }
         // Asignar avatar por defecto
@@ -560,7 +569,7 @@ const add = async (req, res) => {
         if (resChangeAvatar.status !== "success") {
             return res.status(400).json({
                 status: "error",
-                message: "No se ha podido asignar el avarar Default"
+                message: "No se ha podido asignar el avatar Default"
             })
         }     
 
@@ -576,7 +585,7 @@ const add = async (req, res) => {
         if (resBuyCard.status !== "success") {
             return res.status(400).json({
                 status: "error",
-                message: "No se ha podido comprar el avarar Default"
+                message: "No se ha podido comprar el card Default"
             })
         }
         // Asignar card por defecto
@@ -591,7 +600,7 @@ const add = async (req, res) => {
         if (resChangeCard.status !== "success") {
             return res.status(400).json({
                 status: "error",
-                message: "No se ha podido asignar el avarar Default"
+                message: "No se ha podido asignar el card Default"
             })
         }
 
@@ -607,7 +616,7 @@ const add = async (req, res) => {
         if (resBuyRug.status !== "success") {
             return res.status(400).json({
                 status: "error",
-                message: "No se ha podido comprar el avarar Default"
+                message: "No se ha podido comprar el rug Default"
             })
         }
         // Asignar rug por defecto
@@ -622,18 +631,9 @@ const add = async (req, res) => {
         if (resChangeRug.status !== "success") {
             return res.status(400).json({
                 status: "error",
-                message: "No se ha podido asignar el avarar Default"
+                message: "No se ha podido asignar el rug Default"
             })
         }  
-
-        // Se inicializan todas las estadísticas del usuario
-        var resStat = await StatController.initUserStats({ body: {userId: newUser._id} })
-        if (resStat.status === "error") {
-            return res.status(400).json({
-                status: "error",
-                message: resStat.message
-            })
-        }
 
         // Se crea el token y se responde
         const token = await createAccessToken({ id: newUser._id })
