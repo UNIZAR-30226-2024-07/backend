@@ -52,7 +52,7 @@ async function initUserStats(req) {
 
         // Retorna las estadísticas inicializadas
         return ({
-            status: "error",
+            status: "success",
             message: "Estadísticas inicializadas correctamente",
             userStats: userStats
         })
