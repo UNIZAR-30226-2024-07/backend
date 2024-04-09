@@ -12,6 +12,8 @@ const numCardsDouble = 2
 const numCardsSplit = 2
 // Número que marca BlackJack
 const numBlackJack = 21
+// Número de cartas iniciales dadas a cada jugador
+const numInitialCards = 2
 
 // Hearts: corazones
 // Diamonds: diamantes
@@ -150,9 +152,7 @@ async function collectCards(req) {
 }
 
 // Devuelve el valor de las cartas de un jugador
-async function valueCards(req) {
-    const cardsOnTable = req.body.cardsOnTable
-
+function valueCards(cardsOnTable) {
     let total = 0
     let aceCount = 0
 
@@ -173,9 +173,7 @@ async function valueCards(req) {
         aceCount--;
     }
 
-    return ({
-        total: total
-    })
+    return total
 }
 
 // Función privada
@@ -351,12 +349,13 @@ async function add(req) {
         }
 
         // Inicializar vector de "jugadas"
+        // Última componente la banca
         // Cada componenete contiene:
         //    split: si el jugador ha hecho split
         //    double: si el jugador ha hecho double
         //    cards: un vector de "jugadas" que ha hecho el jugador
         const playersHands = []
-        for (let i = 0; i < numPlayers; i++) {
+        for (let i = 0; i <= numPlayers; i++) {
             playersHands.push({
                 split: false,
                 double: false,
@@ -456,6 +455,235 @@ async function eliminatePlayersHands(req) {
     }
 }
 
+// Resetea los valores de la banca
+// Resetea los valores de playersHands
+// Hace un collectCards
+async function resetBank(req) {
+    // Parámetros: bankId, numPlayers
+    try {
+        const bankId = req.body.bankId
+        const numPlayers = req.body.numPlayers
+
+        // Obtener la banca
+        const bank = await Bank.findById(bankId)
+        if (!bank) {
+            return ({
+                status: "error",
+                message: "No se ha encontrado una banca con dicho id"
+            })
+        }
+        // Resetear los playersHands
+        bank.playersHands.forEach(player => {
+            player.split = false;
+            player.double = false;
+            player.hands = [];
+        });
+        await bank.save()
+
+        // Collect cards (numplayers + 1 porque el último mazo es de la banca)
+        const reqCollectCards = { body: { bankId: bankId, numPlayers: numPlayers + 1 } }
+        var resCollectCards = await collectCards(reqCollectCards)
+        if (resCollectCards.status !== "success") return resCollectCards
+
+        return({
+            status: "success",
+            message: "Banca reseteada correctamente",
+            bank: resCollectCards.bank
+        })
+    } catch (error) {
+        return {
+            status: "error",
+            message: "Error al resetear la banca"
+        };
+    }
+
+}
+
+// Genera los resultados
+async function results(req) {
+    // Parámetros: bankId, players
+    try {
+        const bankId = req.body.bankId
+        const players = req.body.players
+        const bankIndex = players.length
+
+        // Obtener la banca
+        const bank = await Bank.findById(bankId)
+        if (!bank) {
+            return ({
+                status: "error",
+                message: "No se ha encontrado una banca con dicho id"
+            })
+        }
+        // Banca realiza su jugada
+        let cardsBank = bank.playersHands[bankIndex].hands[0]
+        let totalBank = valueCards(cardsBank)
+        let bankMaze = bank.maze[bankIndex]
+        if (bankMaze.length === 0) {
+            return ({
+                status: "error",
+                message: "El mazo de la banca está vacío"
+            })
+        }
+        switch (bank.level) {
+            case 'beginner':
+                while (totalBank < 15) {
+                    // Tomar la primera carta del mazo de la banca
+                    const drawnCard = bankMaze.shift()
+                    cardsBank.push(drawnCard)
+                    // Obtener el total de las cartas
+                    totalBank = valueCards(cardsBank)
+                }
+                break;
+            case 'medium':
+                while (totalBank < 17) {
+                    // Tomar la primera carta del mazo de la banca
+                    const drawnCard = bankMaze.shift()
+                    cardsBank.push(drawnCard)
+                    // Obtener el total de las cartas
+                    totalBank = valueCards(cardsBank)
+                }
+                break;
+            case 'expert':
+                // // Si la banca tiene 17 suave, se planta si el jugador muestra un total de 9, 10 u 11
+                // if (totalBanca === 17 && (totalJugador === 9 || totalJugador === 10 || totalJugador === 11)) {
+                //     return totalBanca;
+                // }
+                // // La banca pide carta si su total es menor que 17 o igual a 17 pero no es suave y el total del jugador no está entre 9 y 11
+                // while (totalBanca < 17 || (totalBanca === 17 && totalJugador !== 9 && totalJugador !== 10 && totalJugador !== 11)) {
+                //     cartasBanca.push(obtenerCarta());
+                //     totalBanca = calcularTotal(cartasBanca);
+                // }
+                break;
+            default:
+                return {
+                    status: "error",
+                    message: "Error. El nivel de la banca deber ser: beginner, medium o expert"
+                }
+        }
+
+        
+
+        // [
+            // user: {
+                // [[ cards ]]
+                // [ coinsEarned ]
+                // userId,
+                // userName
+            // },
+        // ]
+
+        return({
+            status: "success",
+            message: "Banca reseteada correctamente"
+        })
+    } catch (error) {
+        return {
+            status: "error",
+            message: "Error al obtener los resultados" + error.message
+        };
+    }
+}
+
+// Calcular premio
+function calcularPremio(totalBank, totalPlayer, isBlackJack, coins) {
+    if (isBlackJack) {
+        if (totalPlayer === 21 && totalBank !== 21) {
+            return 3 * coins; // Obtener BlackJack (superando a la banca): 3x coins
+        } else {
+            return 2 * coins; // Obtener BlackJack (y empatar con la banca): 2x coins
+        }
+    } else if (totalPlayer > 21) {
+        return 0; // Obtener más de 21 puntos: 0 coins
+    } else if (totalPlayer === totalBank) {
+        return coins; // Obtener misma puntuación que la banca: x coins
+    } else if (totalPlayer > totalBank || totalBank > 21) {
+        return 1.5 * coins; // Obtener mejor puntuación que la banca: 1.5x coins
+    } else {
+        return 0; // Obtener menor puntuación que la banca: 0 coins
+    }
+}
+
+// Inicializar la partida
+async function initBoard(req) {
+    // Parámetros: bankId, players
+    try {
+        const bankId = req.body.bankId
+        const players = req.body.players
+        const bankIndex = players.length
+
+        // Obtener la banca
+        const bank = await Bank.findById(bankId)
+        if (!bank) {
+            return ({
+                status: "error",
+                message: "No se ha encontrado una banca con dicho id"
+            })
+        }
+
+        const initBoard = [];
+        let index = 0
+        let drawnCard
+        let cards
+        // Sacar dos cartas por cada jugador del board
+        for (const userId of players) {
+            cards = []
+            const playerMaze = bank.maze[index];
+            if (playerMaze.length === 0) {
+                return ({
+                    status: "error",
+                    message: "El mazo del jugador está vacío"
+                })
+            }
+            // Obtener dos cartas del jugador
+            for (let i = 0; i < numInitialCards; i++) {
+                drawnCard = playerMaze.shift();
+                cards.push(drawnCard)
+            }
+            bank.maze[index] = playerMaze;
+            const playerObject = {
+                userId: userId,
+                cards: cards
+            }
+            initBoard.push(playerObject);
+            index = index + 1
+        }
+
+        // Sacar una carta de la banca
+        cards = []
+        const bankMaze = bank.maze[bankIndex];
+        if (bankMaze.length === 0) {
+            return ({
+                status: "error",
+                message: "El mazo de la banca está vacío"
+            })
+        }
+        // Obtener una carta de la banca
+        drawnCard = bankMaze.shift();
+        cards.push(drawnCard)
+        bank.maze[bankIndex] = bankMaze;
+        const bankObject = {
+            userId: "Board",
+            cards: cards
+        }
+        initBoard.push(bankObject);
+
+        // Guardarlo en playersHands de la banca
+        bank.playersHands[bankIndex].hands.push(cards)
+        await bank.save();
+        
+        return({
+            status: "success",
+            message: "Cartas iniciales de jugadores y banca obtenidos con éxito",
+            initBoard
+        })
+    } catch (error) {
+        return {
+            status: "error",
+            message: "Error al obtener los resultados" + error.message
+        };
+    }
+}
 /*************************** Funciones route *****************************/
 
 // Función para pedir una carta
@@ -519,8 +747,7 @@ const drawCard = async (req, res) => {
         const cardsOnTable = req.body.cardsOnTable
         cardsOnTable.push(drawnCard)
         // Obtener el total de las cartas
-        const resTotalCards = await valueCards({ body: { cardsOnTable: cardsOnTable}})
-        const totalCards = resTotalCards.total
+        const totalCards = valueCards(cardsOnTable)
 
         if (totalCards < numBlackJack) {   // Devolver las cartas
             return res.status(200).json({
@@ -646,8 +873,7 @@ const double = async (req, res) => {
 
         // Obtener el total de las cartas
         cardsOnTable.push(drawnCard)
-        const resTotalCards = await valueCards({ body: { cardsOnTable: cardsOnTable}})
-        const totalCards = resTotalCards.total
+        const totalCards = valueCards(cardsOnTable)
 
         // Responder
         const reqConfirm = { body: { userId: userId,
@@ -753,10 +979,8 @@ const split = async(req, res) => {
         const cardsOnTableFirst = [cardsOnTable[0], drawnCardFirst]
         const cardsOnTableSecond = [cardsOnTable[1], drawnCardSecond]
         // Obtener el total de las cartas
-        const resTotalCardsFirst = await valueCards({ body: { cardsOnTable: cardsOnTableFirst}})
-        const totalCardsFirst = resTotalCardsFirst.total
-        const resTotalCardsSecond = await valueCards({ body: { cardsOnTable: cardsOnTableSecond}})
-        const totalCardsSecond = resTotalCardsSecond.total
+        const totalCardsFirst = valueCards(cardsOnTableFirst)
+        const totalCardsSecond = valueCards(cardsOnTableSecond)
 
         if (totalCardsFirst >= numBlackJack) {  // Mirar cartas primer mazo
             const reqConfirm = { body: { userId: userId,
