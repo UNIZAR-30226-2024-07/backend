@@ -12,4 +12,8 @@ router.put("/split", authRequired, BankController.split)
 router.put("/stick", authRequired, BankController.stick)
 
 
+
+
+router.put("/prueba", BankController.prueba)
+
 module.exports = router

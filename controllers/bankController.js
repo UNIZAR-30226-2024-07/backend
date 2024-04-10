@@ -3,6 +3,7 @@ const Bank = require("../models/bankSchema")
 const PublicBoard = require("../models/boards/publicBoardSchema")
 const PrivateBoard = require("../models/boards/privateBoardSchema")
 const TournamentBoard = require("../models/boards/tournamentBoardSchema")
+const User = require('../models/userSchema')
 
 // Maximo número de hands o jugadas por persona
 const maxHands = 2
@@ -439,9 +440,9 @@ async function eliminatePlayersHands(req) {
             })
         }
         // Eliminar las manos de los jugadores cuyos indices están en usersIndex
-        const newPlayersHands = board.playersHands.filter((_, indice) => !usersIndex.includes(indice))
-        board.playerHands = newPlayersHands
-        await board.save()
+        const newPlayersHands = bank.playersHands.filter((_, indice) => !usersIndex.includes(indice))
+        bank.playersHands = newPlayersHands
+        await bank.save()
 
         return {
             status: "success",
@@ -450,7 +451,7 @@ async function eliminatePlayersHands(req) {
     } catch (error) {
         return {
             status: "error",
-            message: "Error al eliminar manos de los jugadores del banco"
+            message: "Error al eliminar manos de los jugadores del banco. " + error.message 
         };
     }
 }
@@ -499,6 +500,91 @@ async function resetBank(req) {
 
 }
 
+// Inicializar la partida
+async function initBoard(req) {
+    // Parámetros: bankId, players
+    try {
+        const bankId = req.body.bankId
+        const players = req.body.players
+        const bankIndex = players.length
+
+        // Obtener la banca
+        const bank = await Bank.findById(bankId)
+        if (!bank) {
+            return ({
+                status: "error",
+                message: "No se ha encontrado una banca con dicho id"
+            })
+        }
+
+        const initBoard = [];
+        let index = 0
+        let drawCard
+        let cards
+        // Sacar dos cartas por cada jugador del board
+        for (const player of players) {
+            cards = []
+            const playerMaze = bank.maze[index];
+            if (playerMaze.length === 0) {
+                return ({
+                    status: "error",
+                    message: "El mazo del jugador está vacío"
+                })
+            }
+            // Obtener dos cartas del jugador
+            for (let i = 0; i < numInitialCards; i++) {
+                drawCard = playerMaze.shift();
+                cards.push(drawCard)
+            }
+            const totalPlayerCards = valueCards(cards)
+            bank.maze[index] = playerMaze;
+            const playerObject = {
+                userId: player.player,
+                cards: cards,
+                totalCards: totalPlayerCards
+            }
+            initBoard.push(playerObject);
+            index = index + 1
+        }
+
+        // Sacar una carta de la banca
+        cards = []
+        const bankMaze = bank.maze[bankIndex];
+        if (bankMaze.length === 0) {
+            return ({
+                status: "error",
+                message: "El mazo de la banca está vacío"
+            })
+        }
+        // Obtener una carta de la banca
+        drawCard = bankMaze.shift();
+        cards.push(drawCard)
+        bank.maze[bankIndex] = bankMaze;
+        const totalBankCards = valueCards(cards)
+        const bankObject = {
+            userId: "Board",
+            cards: cards,
+            totalCards: totalBankCards
+        }
+        initBoard.push(bankObject);
+
+        // Guardarlo en playersHands de la banca
+        bank.playersHands[bankIndex].hands.push(cards)
+        await bank.save();
+        
+        return({
+            status: "success",
+            message: "Cartas iniciales de jugadores y banca obtenidos con éxito",
+            initBoard
+        })
+    } catch (error) {
+        return {
+            status: "error",
+            message: "Error al obtener los resultados. " + error.message
+        };
+    }
+}
+
 // Genera los resultados
 async function results(req) {
     // Parámetros: bankId, players
@@ -517,7 +603,7 @@ async function results(req) {
         }
         // Banca realiza su jugada
         let cardsBank = bank.playersHands[bankIndex].hands[0]
-        let totalBank = valueCards(cardsBank)
+        let totalBank = 0
         let bankMaze = bank.maze[bankIndex]
         if (bankMaze.length === 0) {
             return ({
@@ -529,8 +615,8 @@ async function results(req) {
             case 'beginner':
                 while (totalBank < 15) {
                     // Tomar la primera carta del mazo de la banca
-                    const drawnCard = bankMaze.shift()
-                    cardsBank.push(drawnCard)
+                    const drawCard = bankMaze.shift()
+                    cardsBank.push(drawCard)
                     // Obtener el total de las cartas
                     totalBank = valueCards(cardsBank)
                 }
@@ -538,8 +624,8 @@ async function results(req) {
             case 'medium':
                 while (totalBank < 17) {
                     // Tomar la primera carta del mazo de la banca
-                    const drawnCard = bankMaze.shift()
-                    cardsBank.push(drawnCard)
+                    const drawCard = bankMaze.shift()
+                    cardsBank.push(drawCard)
                     // Obtener el total de las cartas
                     totalBank = valueCards(cardsBank)
                 }
@@ -562,7 +648,32 @@ async function results(req) {
                 }
         }
 
-        
+        const results = []
+        let index = 0
+        for (const player of players) {
+            const playerCards = bank.playersHands[index].hands
+            const user = await User.findById(player.player);
+            if (!user) {
+                return {
+                    status: "error",
+                    message: "No existe un usuario que está en players del board. Error en Bank.results."
+                }
+            }
+            const playerObject = {
+                userId: player.player,
+                userName: user.name,    // nick
+                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                // Obtener el name o nick
+                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                cards: playerCards,
+                /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                // Devolver también el total cards??  [totalCards]
+                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                coinsEarned: "a"
+            }
+            results.push(playerObject);
+            index = index + 1
+        }
 
         // [
             // user: {
@@ -586,104 +697,65 @@ async function results(req) {
 }
 
 // Calcular premio
-function calcularPremio(totalBank, totalPlayer, isBlackJack, coins) {
-    if (isBlackJack) {
-        if (totalPlayer === 21 && totalBank !== 21) {
-            return 3 * coins; // Obtener BlackJack (superando a la banca): 3x coins
+function calcularPremios(puntuacionesJugadores, puntuacionBanca, coinsIniciales) {
+    const premioIgualBanca = coinsIniciales;
+    const premioMejorQueBanca = coinsIniciales * 1.5;
+    const premioMejorQueJugadores = coinsIniciales * 2;
+    const premioBlackjack = coinsIniciales * 3;
+
+    const coinsGanadasPorJugador = [];
+
+    for (let i = 0; i < puntuacionesJugadores.length; i++) {
+        const puntuacionJugador = puntuacionesJugadores[i];
+
+        // Si es mayor que 21 ha perdido
+        if (puntuacionJugador > 21) {
+            coinsGanadasPorJugador.push(0);
+        }
+        // Es blackJack -> pasar parámetro lo compruebe
+        // Banca no ha hecho BlackJack - /////////////////////////////////////////////////////////////////////////////////////
+        // O simplemente no ha hecho 21
+        else if (puntuacionJugador === 21 && puntuacionBanca < 21) {
+            coinsGanadasPorJugador.push(premioBlackjack);
+        }
+        // Igual que la banca
+        else if (puntuacionJugador === puntuacionBanca) {
+            coinsGanadasPorJugador.push(premioIgualBanca);
+        } 
+        // Mayor que la banca
+        else if (puntuacionJugador > puntuacionBanca) {
+            // Además, mayor que todos los jugadores
+            if (puntuacionesJugadores.every(puntuacion => puntuacion < puntuacionJugador)) {
+                coinsGanadasPorJugador.push(premioMejorQueJugadores);
+            } 
+            // Algún jugador igual o mejor que tú
+            else {
+                coinsGanadasPorJugador.push(premioMejorQueBanca);
+            }
         } else {
-            return 2 * coins; // Obtener BlackJack (y empatar con la banca): 2x coins
+            coinsGanadasPorJugador.push(0);
         }
-    } else if (totalPlayer > 21) {
-        return 0; // Obtener más de 21 puntos: 0 coins
-    } else if (totalPlayer === totalBank) {
-        return coins; // Obtener misma puntuación que la banca: x coins
-    } else if (totalPlayer > totalBank || totalBank > 21) {
-        return 1.5 * coins; // Obtener mejor puntuación que la banca: 1.5x coins
-    } else {
-        return 0; // Obtener menor puntuación que la banca: 0 coins
     }
+
+    return coinsGanadasPorJugador;
 }
 
-// Inicializar la partida
-async function initBoard(req) {
-    // Parámetros: bankId, players
+const prueba = async(req, res) => {
+    let resP
     try {
-        const bankId = req.body.bankId
-        const players = req.body.players
-        const bankIndex = players.length
+        resP = await initBoard(req)
+        if (resP.message === "error") return res.status(404).json(resP)
 
-        // Obtener la banca
-        const bank = await Bank.findById(bankId)
-        if (!bank) {
-            return ({
-                status: "error",
-                message: "No se ha encontrado una banca con dicho id"
-            })
-        }
+        return res.status(200).json(resP)
 
-        const initBoard = [];
-        let index = 0
-        let drawnCard
-        let cards
-        // Sacar dos cartas por cada jugador del board
-        for (const userId of players) {
-            cards = []
-            const playerMaze = bank.maze[index];
-            if (playerMaze.length === 0) {
-                return ({
-                    status: "error",
-                    message: "El mazo del jugador está vacío"
-                })
-            }
-            // Obtener dos cartas del jugador
-            for (let i = 0; i < numInitialCards; i++) {
-                drawnCard = playerMaze.shift();
-                cards.push(drawnCard)
-            }
-            bank.maze[index] = playerMaze;
-            const playerObject = {
-                userId: userId,
-                cards: cards
-            }
-            initBoard.push(playerObject);
-            index = index + 1
-        }
-
-        // Sacar una carta de la banca
-        cards = []
-        const bankMaze = bank.maze[bankIndex];
-        if (bankMaze.length === 0) {
-            return ({
-                status: "error",
-                message: "El mazo de la banca está vacío"
-            })
-        }
-        // Obtener una carta de la banca
-        drawnCard = bankMaze.shift();
-        cards.push(drawnCard)
-        bank.maze[bankIndex] = bankMaze;
-        const bankObject = {
-            userId: "Board",
-            cards: cards
-        }
-        initBoard.push(bankObject);
-
-        // Guardarlo en playersHands de la banca
-        bank.playersHands[bankIndex].hands.push(cards)
-        await bank.save();
-        
-        return({
-            status: "success",
-            message: "Cartas iniciales de jugadores y banca obtenidos con éxito",
-            initBoard
-        })
     } catch (error) {
-        return {
+        return res.status(404).json({
             status: "error",
-            message: "Error al obtener los resultados" + error.message
-        };
+            message: error.message + resP.message
+        })
     }
 }
+
 /*************************** Funciones route *****************************/
 
 // Función para pedir una carta
@@ -737,7 +809,7 @@ const drawCard = async (req, res) => {
         }
 
         // Tomar la primera carta del mazo del jugador
-        const drawnCard = playerMaze.shift();
+        const drawCard = playerMaze.shift();
         // Actualizar el mazo del jugador en el tablero
         bank.maze[playerIndex] = playerMaze;
         // Guardar el tablero actualizado en la base de datos
@@ -745,7 +817,7 @@ const drawCard = async (req, res) => {
 
         // Cartas que tiene de momento
         const cardsOnTable = req.body.cardsOnTable
-        cardsOnTable.push(drawnCard)
+        cardsOnTable.push(drawCard)
         // Obtener el total de las cartas
         const totalCards = valueCards(cardsOnTable)
 
@@ -863,7 +935,7 @@ const double = async (req, res) => {
         }
 
         // Tomar la primera carta del mazo del jugador
-        const drawnCard = playerMaze.shift();
+        const drawCard = playerMaze.shift();
         // Actualizar el mazo del jugador en el tablero
         bank.maze[playerIndex] = playerMaze
         // Indica que ha hecho double
@@ -872,7 +944,7 @@ const double = async (req, res) => {
         await bank.save();
 
         // Obtener el total de las cartas
-        cardsOnTable.push(drawnCard)
+        cardsOnTable.push(drawCard)
         const totalCards = valueCards(cardsOnTable)
 
         // Responder
@@ -966,8 +1038,8 @@ const split = async(req, res) => {
         }
 
         // Tomar las dos primeras cartas del mazo del jugador
-        const drawnCardFirst = playerMaze.shift();
-        const drawnCardSecond = playerMaze.shift();
+        const drawCardFirst = playerMaze.shift();
+        const drawCardSecond = playerMaze.shift();
         // Actualizar el mazo del jugador en el tablero
         bank.maze[playerIndex] = playerMaze;
         // Indica que ha hecho split
@@ -976,8 +1048,8 @@ const split = async(req, res) => {
         await bank.save();
 
         // Cartas que tiene de momento
-        const cardsOnTableFirst = [cardsOnTable[0], drawnCardFirst]
-        const cardsOnTableSecond = [cardsOnTable[1], drawnCardSecond]
+        const cardsOnTableFirst = [cardsOnTable[0], drawCardFirst]
+        const cardsOnTableSecond = [cardsOnTable[1], drawCardSecond]
         // Obtener el total de las cartas
         const totalCardsFirst = valueCards(cardsOnTableFirst)
         const totalCardsSecond = valueCards(cardsOnTableSecond)
@@ -1095,5 +1167,9 @@ module.exports = {
     drawCard,
     double,
     split,
-    stick
+    stick,
+
+
+
+    prueba
 }
