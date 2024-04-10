@@ -656,7 +656,7 @@ const add = async (req, res) => {
 
 // Modifica un usuario ya existente si el nick y el email no estaban ocupados por otro usuario
 const update = async (req, res) => {
-    const userId = req.user._id
+    const userId = req.user.id
     const u = req.body
 
     try {
