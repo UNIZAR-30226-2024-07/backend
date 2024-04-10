@@ -478,9 +478,9 @@ async function changeRugPriv(req) {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Devuelve error si el usuario no es administrador
-// Parámetros: req.user._id
+// Parámetros: req.user.id
 const isAdmin = async (req, res, next) => {
-    const userId = req.user._id
+    const userId = req.user.id
 
     const user = await User.findById(userId)
     if (!user) {
@@ -915,7 +915,7 @@ const changeRug = async (req, res) => {
 // número de monedas correspondiente a la recompensa del día de la semana ‘day’.
 // ‘day’ es un día de la semana en español, con la primera letra en mayúscula y con tildes
 const getReward = async (req, res) => {
-    const userId = req.user._id
+    const userId = req.user.id
     const rewardDay = req.body.rewardDay
 
     try {
