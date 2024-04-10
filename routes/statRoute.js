@@ -16,7 +16,7 @@ router.put('/update/:id', authRequired, StatController.update)
 
 // Devuelve una estadística dado un ‘name’ de estadística y el usuario a la que
 // pertenece ‘user’
-router.get('/statByNameAndUser', authRequired, StatController.statByNameAndUser)
+router.get('/statByNameAndUser/:user/:name', authRequired, StatController.statByNameAndUser)
 
 // Devuelve todas las estadísticas de un usuario
 router.get('/getAllUserStats', authRequired, StatController.getAllUserStats)

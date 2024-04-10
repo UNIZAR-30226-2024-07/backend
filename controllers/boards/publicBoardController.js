@@ -158,7 +158,7 @@ async function eliminatePlayers(req) {
         )
 
         // Eliminamos los jugadores de la banca de la partida
-        var res = await BankController.eliminatePlayersHand({ body: 
+        var res = await BankController.eliminatePlayersHands({ body: 
             { bankId: board.bank, usersIndex: playerIndicesToDelete }})
         if (res.status === "error") return res
 
@@ -494,29 +494,69 @@ async function newMessage(req) {
     }
 }
 
-// 
+// Realiza las acciones necesarias para finalizar el turno y devuelve los
+// resultados del mismo
 async function manageHand(req) {
-    // Parámetros en req.body: 
+    // Parámetros en req.body: boardId
+    const boardId = req.body.boardId 
 
     try {
-        // Generar una respuesta con resultados []
-        // Llamar a res = board.bank.results
-        // [
-            // user: {
-                // [ cards ],
-                // coinsEarned,
-                // userId,
-                // userName
-            // },
-        // ]
+        // Se recupera la mesa
+        const board = await PublicBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa pública no encontrada"
+            })
+        }
 
-        // Apuntar los resultados en el currentCoins de cada jugador        
+        // Se piden los resultados de la mano actual a la banca
+        var res = await BankController.results({ body: {bankId: board.bank, players: board.players}})
+        if (res.status === "error") return res
+        const results = res.results
 
-        // Limpiar el board.hand.players
-        // Aumentar el board.hand.numHands
+        // Se apuntan en el board las monedas ganadas por cada jugador
+        for (const result of results) {
+            const userId = result.userId
+            const coinsEarned = result.coinsEarned
 
-        // Devolver los resultados de la banca en el campo results
+            // Se busca al jugadore en la lista de jugadores de la mesa
+            const playerIndex = board.players.findIndex(player => 
+                player.player.equals(userId))
 
+            // Si el jugador no se encuentra en la lista, se emite un mensaje de
+            // error
+            if (playerIndex === -1) {
+                return ({
+                    status: "error",
+                    message: "El jugador con ID " + playerId + " no está en la mesa"
+                })
+            }
+        
+            // Se actualizan las monedas actuales del jugador en la mesa
+            board.players[playerIndex].currentCoins += coinsEarned[0]
+
+            if (coinsEarned[1]) board.players[playerIndex].currentCoins += coinsEarned[1]
+
+        }
+
+        // La mano ha terminado, luego se eliminan los jugadores que mandaron la
+        // jugada y se incrementa el número de la mano
+        board.hand.players = []
+        board.numHand += 1
+
+        // Se guarda la mesa con las monedas ganadas de cada jugador
+        await board.save()
+
+        await BankController.resetBank({body: {bankId: board.bank, 
+            numPlayers: board.players.length}})
+
+        // Se devuelven los resultados de la banca en el campo results
+        return ({
+            status: "success",
+            message: "Resultados del turno recuperados y acciones realizadas correctamente",
+            results: results
+        })
 
     } catch (e) {
         return ({
@@ -582,7 +622,7 @@ const leaveBoard = async (req, res) => {
         }
 
         // Eliminamos los jugadores de la banca de la partida
-        var resAux = await BankController.eliminatePlayersHand({ body: 
+        var resAux = await BankController.eliminatePlayersHands({ body: 
             { bankId: board.bank, usersIndex: [playerIndex] }})
         if (resAux.status === "error") return res.status(400).json(resAux)        
 
@@ -636,6 +676,7 @@ module.exports = {
     addPlayer,
     boardByIdFunction,
     newMessage,
+    manageHand,
     boardById,
     leaveBoard
 }

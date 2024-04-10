@@ -258,7 +258,7 @@ const eliminate = async (req, res) => {
 // Devuelve una estadística dado un ‘name’ de estadística y el usuario a la que 
 // pertenece ‘user’
 const statByNameAndUser = async (req, res) => {
-    const s = req.body
+    const s = req.params
     try {
         // Validar si se proporcionaron todos los datos necesarios
         if (!s.name || s.name.trim() === '' || !s.user) {
