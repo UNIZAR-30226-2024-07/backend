@@ -286,7 +286,7 @@ const reject = async (req, res) => {
 // Elimina la relación de amistad entre el usuario y otro usuario de ID dado
 const eliminateFriend = async (req, res) => {
     // Parámetros en URL: id (del amigo a eliminar)
-    const userId = req.user._id
+    const userId = req.user.id
     const friendId = req.params.id
 
     try {
