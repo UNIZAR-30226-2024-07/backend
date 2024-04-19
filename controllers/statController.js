@@ -293,7 +293,7 @@ const statByNameAndUser = async (req, res) => {
 
 // Devuelve todas las estadísticas de un usuario
 const getAllUserStats = async (req, res) => {
-    const userId = req.user._id
+    const userId = req.user.id
 
     try {
         // Busca todas las estadísticas del usuario con el ID proporcionado
