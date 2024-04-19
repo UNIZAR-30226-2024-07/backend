@@ -1,4 +1,5 @@
 const User = require("../../models/userSchema")
+const Tournament = require("../../models/tournamentSchema")
 const TournamentBoard = require("../../models/boards/tournamentBoardSchema")
 const TournamentController = require("../tournamentController")
 const BankController = require("../bankController")
@@ -135,7 +136,8 @@ async function seeAbsents(req) {
         
         return ({
             status: "success",
-            message: "Gestión de manos completada"
+            message: "Gestión de manos completada",
+            playersToDelete: playersToDelete
         })
 
     } catch (e) {

@@ -125,6 +125,10 @@ const Sockets = async (io) => {
                     // apunta
                     res = await TournamentBoardController.seeAbsents({ body: { board: res.board }})
                     if (res.status === "error") return res
+
+                    if (res.playersToDelete.length > 0) {
+                        io.to("tournament:" + boardId).emit("players deleted", res.playersToDelete)
+                    }
                 }
 
                 // TODO: o se mete aquí otra función con la lógica, o se mete en
@@ -228,6 +232,10 @@ const Sockets = async (io) => {
                     // apunta
                     res = await PublicBoardController.seeAbsents({ body: { board: res.board }})
                     if (res.status === "error") return res
+
+                    if (res.playersToDelete.length > 0) {
+                        io.to("public:" + boardId).emit("players deleted", res.playersToDelete)
+                    }
                 }
 
                 // TODO: o se mete aquí otra función con la lógica, o se mete en
@@ -285,13 +293,16 @@ const Sockets = async (io) => {
 
     // Para los usuarios que quieren jugar en partida pública
     socket.on("create private board", async (req) => {
-        // Parámetros que debe haber en req.body: name, password, userId
+        // Parámetros en req.body: userId, name, password, bankLevel, numPlayers, bet
 
         try {
             ////////////////////////////////////////////////////////////////////
             // wait(PrivateMutex)
             var res = await MatcherController.createPrivate(req)
-            if (res.status === "error") return console.error(res.message)
+            if (res.status === "error") {
+                socket.emit("error", res)
+                return console.error(res.message)
+            }
             const boardId = res.board._id
             // signal(PrivateMutex)
             ////////////////////////////////////////////////////////////////////
@@ -353,6 +364,10 @@ const Sockets = async (io) => {
                     // apunta
                     res = await PrivateBoardController.seeAbsents({ body: { board: res.board }})
                     if (res.status === "error") return console.error(res)
+
+                    if (res.playersToDelete.length > 0) {
+                        io.to("private:" + boardId).emit("players deleted", res.playersToDelete)
+                    }
                 }
 
                 // TODO: o se mete aquí otra función con la lógica, o se mete en

@@ -466,6 +466,7 @@ async function isPublicBoardReady(req) {
 // Mesas Privadas
 ////////////////////////////////////////////////////////////////////////////////
 async function createPrivate(req) {
+    // Parámetros en req.body: userId, name, password, bankLevel, numPlayers, bet
     const userId = req.body.userId
 
     const name = req.body.name

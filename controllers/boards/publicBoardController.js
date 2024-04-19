@@ -212,7 +212,8 @@ async function seeAbsents(req) {
         
         return ({
             status: "success",
-            message: "Gestión de manos completada"
+            message: "Gestión de manos completada",
+            playersToDelete: playersToDelete
         })
 
     } catch (e) {
