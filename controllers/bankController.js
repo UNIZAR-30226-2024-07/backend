@@ -585,13 +585,123 @@ async function initBoard(req) {
     }
 }
 
+// Calcular premio para public y private
+function calcularEarnedCoins(totalesJugador, blackJacksJugador, 
+                         totalesAll, 
+                         totalBanca, blackJackBanca, bet) {
+    const premioIgualBanca = bet;
+    const premioMejorQueBanca = bet * 1.5;
+    const premioMejorQueJugadores = bet * 2;
+    const premioBlackjack = bet * 3;
+
+    const coinsGanadasPorJugador = [];
+    
+    // Para cada jugada del jugador
+    for (let i = 0; i < totalesJugador.length; i++) {
+
+        // Puntuacion una mano del jugador
+        const totalJugador = totalesJugador[i]
+        // Booleano si es blackJack del jugador
+        const blackJackJugador = blackJacksJugador[i]
+
+        // Si es mayor que 21 ha perdido
+        if (totalJugador > 21) {
+            coinsGanadasPorJugador.push(0);
+        }
+        // Haces blackJack y la banca no
+        else if (blackJackJugador && !blackJackBanca) {
+            coinsGanadasPorJugador.push(premioBlackjack);
+        }
+        // Igual que la banca
+        else if (totalJugador === totalBanca) {
+            coinsGanadasPorJugador.push(premioIgualBanca);
+        } 
+        // Mayor que la banca
+        else if (totalJugador > totalBanca) {
+            const totalesAllCopy = totalesAll
+            // Encuentra el índice del resultado actual
+            const index = totalesAllCopy.indexOf(totalJugador); 
+            if (index !== -1) { // Verifica si se encontró
+                totalesAllCopy.splice(index, 1); // Elimina el totalJugador actual
+            }
+            // Además, mayor que todos los jugadores
+            if (totalesAllCopy.every(puntuacion => puntuacion < totalJugador)) {
+                coinsGanadasPorJugador.push(premioMejorQueJugadores);
+            } 
+            // Algún jugador igual o mejor que tú
+            else {
+                coinsGanadasPorJugador.push(premioMejorQueBanca);
+            }
+        } else {
+            coinsGanadasPorJugador.push(0);
+        }
+    }
+    return coinsGanadasPorJugador;
+}
+
+// Calcular premio para tournament
+function calcularLoseLife(totalesJugador, blackJacksJugador, 
+                          totalesAll, 
+                          totalBanca, blackJackBanca, bet) {
+    const loseLife = 1
+    const loseHalfLife = 0.5
+    const noLoseLife = 0
+    
+    // Puntuacion una mano del jugador
+    const totalJugador = totalesJugador[0]
+    // Booleano si es blackJack del jugador
+    const blackJackJugador = blackJacksJugador[0]
+
+    // Encuentra el índice del resultado actual
+    const index = totalesAll.indexOf(totalJugador); 
+    if (index !== -1) { // Verifica si se encontró
+        totalesAll.splice(index, 1); // Elimina el totalJugador actual
+    }
+    // Puntuacion una mano del jugador oponente
+    const totalOponente = totalesAll[0]
+
+    // Si es mayor que 21, pierde vida
+    if (totalJugador > 21) {
+        return loseLife
+    }
+    // Haces blackJack y la banca no. Has superado a la banca. No pierdes vida
+    else if (blackJackJugador && !blackJackBanca) {
+        return noLoseLife
+    }
+    // Igual que la banca. Pierde vida
+    else if (totalJugador === totalBanca) {
+        return loseLife
+    } 
+    // Mayor que la banca. Pierde media vida si el otro jugador tiene más
+    else if (totalJugador > totalBanca) {
+        // Tiene mejor que banca y mejor que jugador oponente
+        if (totalJugador > totalOponente) {
+            return noLoseLife
+        } 
+        // Tiene mejor que banca y peor que jugador oponente
+        else if (totalJugador > totalOponente) {
+            return loseHalfLife
+        } 
+        // Tiene mejor que banca e igual que jugador oponente
+        else {
+            return noLoseLife
+        }
+    } // Jugador menor que la banca
+    else {
+        return loseLife
+    }
+}
+
 // Genera los resultados
+// Pre: Tiene que haber una respuesta de todos los jugadores que estén en players
 async function results(req) {
-    // Parámetros: bankId, players
+    // Parámetros: bankId, players, typeBoardName, bet
     try {
         const bankId = req.body.bankId
         const players = req.body.players
         const bankIndex = players.length
+        const typeBoardName = req.body.typeBoardName
+        const bet = req.body.bet
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
@@ -601,8 +711,20 @@ async function results(req) {
                 message: "No se ha encontrado una banca con dicho id"
             })
         }
+
+        // Generar un vector con el total de las cartas de todos los jugadores y si han sido blackJack
+        let totalCardsAllPlayers = []
+        for (let i = 0; i < players.length; i++) {
+            // Ingresar total cartas por jugador
+            for (let j = 0; j < bank.playersHands[i].hands.length; i++) {
+                // Ingresar el total por mano jugada
+                totalCardsAllPlayers.push(valueCards(bank.playersHands[i].hands[j]))
+            }
+        }
+
         // Banca realiza su jugada
-        let cardsBank = bank.playersHands[bankIndex].hands[0]
+        // let cardsBank = bank.playersHands[bankIndex].hands[0]    //////////////////////////////////////////////////////////////////
+        let cardsBank = []   ////////////////////////////////////////////////////////////////////////////////////////////////////
         let totalBank = 0
         let bankMaze = bank.maze[bankIndex]
         if (bankMaze.length === 0) {
@@ -631,15 +753,17 @@ async function results(req) {
                 }
                 break;
             case 'expert':
-                // // Si la banca tiene 17 suave, se planta si el jugador muestra un total de 9, 10 u 11
-                // if (totalBanca === 17 && (totalJugador === 9 || totalJugador === 10 || totalJugador === 11)) {
-                //     return totalBanca;
-                // }
-                // // La banca pide carta si su total es menor que 17 o igual a 17 pero no es suave y el total del jugador no está entre 9 y 11
-                // while (totalBanca < 17 || (totalBanca === 17 && totalJugador !== 9 && totalJugador !== 10 && totalJugador !== 11)) {
-                //     cartasBanca.push(obtenerCarta());
-                //     totalBanca = calcularTotal(cartasBanca);
-                // }
+                // Si la banca tiene 17 suave, se planta si alguno de los jugadores muestra un total de 9, 10 u 11
+                if (!(totalBank === 17 && (totalCardsAllPlayers.includes(9) || totalCardsAllPlayers.includes(10) || totalCardsAllPlayers.includes(11)))) {
+                    // La banca pide carta si su total es menor que 17 o igual a 17 pero no es suave y ningún total del jugador está entre 9 y 11
+                    while ((totalBank < 17) || (totalBank === 17 && !totalCardsAllPlayers.some(total => total >= 9 && total <= 11))) {
+                        // Tomar la primera carta del mazo de la banca
+                        const drawCard = bankMaze.shift()
+                        cardsBank.push(drawCard)
+                        // Obtener el total de las cartas
+                        totalBank = valueCards(cardsBank)
+                    }
+                }
                 break;
             default:
                 return {
@@ -648,10 +772,12 @@ async function results(req) {
                 }
         }
 
-        const results = []
-        let index = 0
+        const results = []    // Vector de resultados
+        let index = 0         // Indice de resultados
+        
+        // Crear una respuesta por jugador 
+        // Iterar todos los jugadores de la partida
         for (const player of players) {
-            const playerCards = bank.playersHands[index].hands
             const user = await User.findById(player.player);
             if (!user) {
                 return {
@@ -659,92 +785,82 @@ async function results(req) {
                     message: "No existe un usuario que está en players del board. Error en Bank.results."
                 }
             }
-            const playerObject = {
-                userId: player.player,
-                userName: user.name,    // nick
-                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                // Obtener el name o nick
-                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                cards: playerCards,
-                /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                // Devolver también el total cards??  [totalCards]
-                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                coinsEarned: "a"
+            // Manos del jugador que se quiere generar respuesta
+            const playerHands = bank.playersHands[index].hands
+
+            // Si ha sido blackJack la banca
+            let blackJackBank = (totalBank === 21 && cardsBank.length === 2)
+            // Variable para guardar total cartas jugador respuesta
+            let totalCardsPlayer = []  
+            for (let i = 0; i < playerHands.length; i++) {
+                totalCardsPlayer.push(valueCards(playerHands[i]))
             }
-            results.push(playerObject);
+            // Guardar booleano si las cartas del jugador respuesta ha sido blackJack
+            let blackJacksPlayer = []     
+            for (let i = 0; i < totalCardsPlayer.length; i++) {
+                blackJacksPlayer.push(totalCardsPlayer[i] === 21 && playerHands[i].length === 2)
+            }
+
+            if (typeBoardName === "tournament") {
+                // Calcular loseLife
+                const loseLife = calcularLoseLife(playerHands, blackJacksPlayer,
+                                                        totalCardsAllPlayers, 
+                                                        totalBank, blackJackBank, bet)
+                const playerObject = {
+                    userId: player.player,   // Id del usuario
+                    userNick: user.nick,     // Nick del usuario
+                    // En torneo solo hay una mano
+                    cards: playerHands[0],   // [ cards ]  
+                    total: totalCardsPlayer[0], // totalCards
+                    loseLife: loseLife       // loseLife
+                }
+                results.push(playerObject)
+
+            } else if (typeBoardName === "public" || "private") {
+                // Calcular coinsEarned
+                const coinsEarned = calcularEarnedCoins(playerHands, blackJacksPlayer,
+                                                        totalCardsAllPlayers, 
+                                                        totalBank, blackJackBank, bet)
+
+                const playerObject = {
+                    userId: player.player,   // Id del usuario
+                    userNick: user.nick,     // Nick del usuario
+                    // En public / private puede haber 1 o 2 manos
+                    cards: playerHands,      // [[ cards ]]
+                    total: totalCardsPlayer,    // [ totalCards ]
+                    coinsEarned: coinsEarned   // [ coinsEarned ]
+                }
+                results.push(playerObject)
+            }  
             index = index + 1
         }
 
-        // [
-            // user: {
-                // [[ cards ]]
-                // [ coinsEarned ]
-                // userId,
-                // userName
-            // },
-        // ]
-
+        // Introducir en resultados respuesta banca
+        const bankObject = {
+            userId: "Bank",   // Id banca
+            userNick: "Bank",     // Nick banca
+            cards: cardsBank,   // [ cards ]
+            total: totalBank,    // totalCards
+        }
+        results.push(bankObject)
         return({
             status: "success",
-            message: "Banca reseteada correctamente"
+            message: "Banca reseteada correctamente",
+            results
         })
     } catch (error) {
         return {
             status: "error",
-            message: "Error al obtener los resultados" + error.message
+            message: "Error al obtener los resultados. " + error.message
         };
     }
-}
-
-// Calcular premio
-function calcularPremios(puntuacionesJugadores, puntuacionBanca, coinsIniciales) {
-    const premioIgualBanca = coinsIniciales;
-    const premioMejorQueBanca = coinsIniciales * 1.5;
-    const premioMejorQueJugadores = coinsIniciales * 2;
-    const premioBlackjack = coinsIniciales * 3;
-
-    const coinsGanadasPorJugador = [];
-
-    for (let i = 0; i < puntuacionesJugadores.length; i++) {
-        const puntuacionJugador = puntuacionesJugadores[i];
-
-        // Si es mayor que 21 ha perdido
-        if (puntuacionJugador > 21) {
-            coinsGanadasPorJugador.push(0);
-        }
-        // Es blackJack -> pasar parámetro lo compruebe
-        // Banca no ha hecho BlackJack - /////////////////////////////////////////////////////////////////////////////////////
-        // O simplemente no ha hecho 21
-        else if (puntuacionJugador === 21 && puntuacionBanca < 21) {
-            coinsGanadasPorJugador.push(premioBlackjack);
-        }
-        // Igual que la banca
-        else if (puntuacionJugador === puntuacionBanca) {
-            coinsGanadasPorJugador.push(premioIgualBanca);
-        } 
-        // Mayor que la banca
-        else if (puntuacionJugador > puntuacionBanca) {
-            // Además, mayor que todos los jugadores
-            if (puntuacionesJugadores.every(puntuacion => puntuacion < puntuacionJugador)) {
-                coinsGanadasPorJugador.push(premioMejorQueJugadores);
-            } 
-            // Algún jugador igual o mejor que tú
-            else {
-                coinsGanadasPorJugador.push(premioMejorQueBanca);
-            }
-        } else {
-            coinsGanadasPorJugador.push(0);
-        }
-    }
-
-    return coinsGanadasPorJugador;
 }
 
 const prueba = async(req, res) => {
     let resP
     try {
-        resP = await initBoard(req)
-        if (resP.message === "error") return res.status(404).json(resP)
+        resP = await results(req)
+        if (resP.status === "error") return res.status(404).json(resP)
 
         return res.status(200).json(resP)
 
@@ -883,6 +999,14 @@ const double = async (req, res) => {
         // Id del usuario peticion
         const userId = req.user.id
 
+        // Error. No se puede hacer double en un tournament
+        if (req.body.typeBoardName = "tournament") {
+            return res.status(404).json({
+                status: "error",
+                message: "No se puede  doblar en una partida de torneo"
+            })
+        }
+
         // Cartas que tiene de momento
         const cardsOnTable = req.body.cardsOnTable
         if (cardsOnTable.length !== numCardsDouble) {
@@ -979,6 +1103,14 @@ const split = async(req, res) => {
 
         // Id del usuario peticion
         const userId = req.user.id
+
+        // Error. No se puede hacer split en un tournament
+        if (req.body.typeBoardName = "tournament") {
+            return res.status(404).json({
+                status: "error",
+                message: "No se puede dividir en una partida de torneo"
+            })
+        }
 
         // Cartas del jugador
         const cardsOnTable = req.body.cardsOnTable

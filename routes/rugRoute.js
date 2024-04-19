@@ -7,6 +7,7 @@ const { uploadFile } = require('../upload/upload')
 
 router.get("/rugById/:id", authRequired, RugController.rugById)
 router.get("/getAllRugs", authRequired, RugController.getAllRugs)
+router.get("/getRugStore", authRequired, RugController.getRugStore)
 router.get("/getAllMyRugs", authRequired, RugController.getAllMyRugs)
 router.get("/currentRug", authRequired, RugController.currentRug)
 router.get("/currentRugById/:id", authRequired, RugController.currentRugById)

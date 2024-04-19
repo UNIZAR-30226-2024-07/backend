@@ -7,6 +7,7 @@ const { uploadFile } = require('../upload/upload')
 
 router.get("/cardById/:id", authRequired, CardController.cardById)
 router.get("/getAllCards", authRequired, CardController.getAllCards)
+router.get("/getCardStore", authRequired, CardController.getCardStore)
 router.get("/getAllMyCards", authRequired, CardController.getAllMyCards)
 router.get("/currentCard", authRequired, CardController.currentCard)
 router.get("/currentCardById/:id", authRequired, CardController.currentCardById)
