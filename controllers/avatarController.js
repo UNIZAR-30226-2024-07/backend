@@ -60,6 +60,48 @@ const getAllAvatars = async (req, res) => {
     }
 }
 
+// Función que devuelve todos los avatars, los cuales no posee el usuario
+// Se utilizará para la tienda
+const getAvatarStore = async (req, res) => {
+    try {
+        // Id del usuario peticion
+        const userId = req.user.id
+
+        // Obtener todos los avatars de la base de datos
+        const avatars = await Avatar.find();
+
+        // Obtener los avatars del usuario
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            });
+        }
+
+        // Avatars del usuario
+        const avatarsUsuario = user.avatars.map(avatar => avatar.avatar);
+
+        // Filtrar los avatars para eliminar los que ya tiene el usuario
+        const avatarsDisponibles = avatars.filter(avatar => {
+            // Comprobamos si el ID del avatar actual está en los avatars del usuario
+            return !avatarsUsuario.some(avatarUsuarioId => avatarUsuarioId.equals(avatar._id));
+        });
+
+        return res.status(200).json({
+            status: "success",
+            message: "Avatars obtenidos correctamente",
+            avatar: avatarsDisponibles
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los avatars en getAvatarStore: " + error.message
+        });
+    }
+}
+
 // Obtener el avatar que el usuario que realiza la petición tiene seleccionado
 const getAllMyAvatars = async (req, res) => {
     // Id del usuario peticion
@@ -375,6 +417,7 @@ const eliminate = async (req, res) => {
 module.exports = {
     avatarById,
     getAllAvatars,
+    getAvatarStore,
     getAllMyAvatars,
     currentAvatar,
     currentAvatarById,

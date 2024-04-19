@@ -60,6 +60,48 @@ const  getAllRugs = async (req, res) => {
     }
 }
 
+// Función que devuelve todos los rugs, los cuales no posee el usuario
+// Se utilizará para la tienda
+const getRugStore = async (req, res) => {
+    try {
+        // Id del usuario peticion
+        const userId = req.user.id
+
+        // Obtener todos los rugs de la base de datos
+        const rugs = await Rug.find();
+
+        // Obtener los rugs del usuario
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            });
+        }
+
+        // Rugs del usuario
+        const rugsUsuario = user.rugs.map(rug => rug.rug);
+
+        // Filtrar los rugs para eliminar los que ya tiene el usuario
+        const rugsDisponibles = rugs.filter(rug => {
+            // Comprobamos si el ID del rug actual está en los rugs del usuario
+            return !rugsUsuario.some(rugUsuarioId => rugUsuarioId.equals(rug._id));
+        });
+
+        return res.status(200).json({
+            status: "success",
+            message: "Rugs obtenidos correctamente",
+            rug: rugsDisponibles
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los rugs en getRugStore: " + error.message
+        });
+    }
+}
+
 // Obtener el rug que el usuario que realiza la petición tiene seleccionado
 const getAllMyRugs = async (req, res) => {
     // Id del usuario peticion
@@ -381,6 +423,7 @@ module.exports = {
     rugById,
     currentRugById,
     getAllRugs,
+    getRugStore,
     getAllMyRugs,
     currentRug
 }
