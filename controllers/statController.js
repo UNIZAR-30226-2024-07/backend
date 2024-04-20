@@ -140,6 +140,41 @@ async function decrementStatByName(req) {
     }
 }
 
+async function eliminateAllUserStats(req) {
+    // Parámetros en req.body: userId
+    const userId = req.body.userId
+
+    try {
+        // Se verifica que exista el usuario
+        const user = await User.findById(userId)
+        if (!user) {
+            return ({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Se eliminan todas aquellas estadísticas que pertenezcan al usuario
+        const deleteResult = await Stat.deleteMany({ user: userId })
+        if (deleteResult.deletedCount !== statNames.length) {
+            return ({
+                status: "error",
+                message: "No se encontraron todas las estadísticas del usuario"
+            })
+        }
+
+        return ({
+            status: "error",
+            message: "Estadísticas eliminadas correctamente"
+        })        
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al eliminar estadísticas. " + e.message
+        })
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones públicas
@@ -326,6 +361,8 @@ module.exports = {
     initUserStats,
     incrementStatByName,
     decrementStatByName,
+    eliminateAllUserStats,
+    
     add,
     update,
     eliminate,

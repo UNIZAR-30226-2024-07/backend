@@ -5,6 +5,7 @@ const Rug = require('../models/rugSchema')
 const Card = require('../models/cardSchema')
 const Reward = require('../models/rewardSchema')
 const StatController = require("../controllers/statController")
+const FriendController = require("./friendController")
 const bcrypt = require('bcrypt')
 const { createAccessToken } = require('../jwt/jwt')
 const e = require('express')
@@ -966,6 +967,13 @@ const getReward = async (req, res) => {
 // Elimina un usuario ya existente del sistema
 const eliminate = async (req, res) => {
     const userId = req.params.id
+
+    // Se eliminan todos los amigos del usuario
+    var resAux = await FriendController.eliminateAllUserFriends({ body: { userId: userId }})
+    if (resAux.status === "error") return res.status(400).json(resAux)
+
+    resAux = await StatController.eliminateAllUserStats({ body: { userId: userId }})
+    if (resAux.status === "error") return res.status(400).json(resAux)
 
     const deletedUser = await User.findOneAndRemove({ _id: userId })
 

@@ -638,7 +638,7 @@ const boardById = async (req, res) => {
 const leaveBoard = async (req, res) => {
     // Parámetros necesarios en req.body: boardId
     const boardId = req.params.id
-    const userId = req.user._id
+    const userId = req.user.id
 
     try {
         // Se verifica que la mesa exista

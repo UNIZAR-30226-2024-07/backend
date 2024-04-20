@@ -131,10 +131,14 @@ const Sockets = async (io) => {
                     }
                 }
 
-                // TODO: o se mete aquí otra función con la lógica, o se mete en
-                // res = TournamentBoardController.manageHand()
-                // results = res.results
-                // io.to("tournament:" + boardId).emit("results turn", results)
+                // Se realizan las acciones correspondientes al fin de mano
+                res = TournamentBoardController.manageHand({ body: {boardId: boardId }})
+                if (res.status === "error") return console.error(res)
+                
+                // En las partidas de torneo no es necesario verificar si se han
+                // eliminado usuarios por falta de vidas ya que eso se hace en
+                // TournamentBoardController.isEndOfGame
+                io.to("tournament:" + boardId).emit("hand results", res.results)
 
                 resEndBoard = await TournamentBoardController.isEndOfGame(req)
             }
@@ -238,11 +242,17 @@ const Sockets = async (io) => {
                     }
                 }
 
-                // TODO: o se mete aquí otra función con la lógica, o se mete en
-                res = await PublicBoardController.manageHand()
+                // Se realizan las acciones correspondientes al fin de mano
+                res = await PublicBoardController.manageHand({ body: { boardId: boardId }})
                 if (res.status === "error") return res
 
-                io.to("public:" + boardId).emit("results turn", res.results)
+                // Se verifica si algún usuario fue expulsado, y en caso afirmativo
+                // se notifica
+                if (res.playersToDelete.length > 0) {
+                    io.to("public:" + boardId).emit("players deleted", res.playersToDelete)
+                }
+
+                io.to("public:" + boardId).emit("hand results", res.results)
 
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
             }
@@ -256,8 +266,7 @@ const Sockets = async (io) => {
             // la ronda y se dan monedas si se tienen que dar
             await PublicBoardController.finishBoard({ body: { boardId: boardId }})
 
-            // io.to("public:" + boardId).emit("finish board")
-
+            io.to("public:" + boardId).emit("finish board")
 
         } catch (e) {
             return ({
@@ -370,8 +379,17 @@ const Sockets = async (io) => {
                     }
                 }
 
-                // TODO: o se mete aquí otra función con la lógica, o se mete en
-                // TournamentBoardController.manageHand
+                // Se realizan las acciones correspondientes al fin de mano
+                res = await PrivateBoardController.manageHand({ body: { boardId: boardId }})
+                if (res.status === "error") return res
+
+                // Se verifica si algún usuario fue expulsado, y en caso afirmativo
+                // se notifica
+                if (res.playersToDelete.length > 0) {
+                    io.to("private:" + boardId).emit("players deleted", res.playersToDelete)
+                }
+
+                io.to("private:" + boardId).emit("hand results", res.results)
 
                 resEndBoard = await PrivateBoardController.isEndOfGame(req)
             }
@@ -385,7 +403,7 @@ const Sockets = async (io) => {
             // la ronda y se dan monedas si se tienen que dar
             await PrivateBoardController.finishBoard({ body: { boardId: boardId }})
 
-            // io.to("private:" + boardId).emit("finish board")
+            io.to("private:" + boardId).emit("finish board") // COMPLETAR: resultados de finishBoard
 
         } catch (e) {
             return console.error(e.message)

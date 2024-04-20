@@ -547,6 +547,8 @@ async function manageHand(req) {
         if (res.status === "error") return res
         const results = res.results
 
+        const playersToDelete = []
+
         // Se apuntan en el board las monedas ganadas por cada jugador
         for (const result of results) {
             const userId = result.userId
@@ -567,6 +569,13 @@ async function manageHand(req) {
         
             // Se actualizan las monedas actuales del jugador en la mesa
             board.players[playerIndex].currentCoins += coinsEarned
+
+            if (board.players[playerIndex].currentCoins < bet) {
+                res = await leaveBoardPriv({ body: { userId: userId, boardId: boardId }})
+                if (res.status === "error") return res
+
+                playersToDelete.push(userId)
+            }
         }
 
         // La mano ha terminado, luego se eliminan los jugadores que mandaron la
@@ -581,7 +590,8 @@ async function manageHand(req) {
         return ({
             status: "success",
             message: "Resultados del turno recuperados y acciones realizadas correctamente",
-            results: results
+            results: results,
+            playersToDelete: playersToDelete
         })
 
     } catch (e) {
@@ -590,6 +600,75 @@ async function manageHand(req) {
             message: "Error al manejar los datos de la jugada. " + e.message
         })
     }
+}
+
+async function leaveBoardPriv(req) {
+    // Parámetros necesarios en body: userId, boardId
+    const boardId = req.body.boardId
+    const userId = req.body.userId
+    var res
+
+    try {
+        // Se verifica que la mesa exista
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return res.status(404).json({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        // Se verifica que el usuario esté en la partida
+        const playerIndex = board.players.findIndex(player => player.player.equals(userId))
+        if (playerIndex === -1) {
+            return ({
+                status: "error",
+                message: "El usuario no está en la partida"
+            })
+        }
+
+        // Eliminamos los jugadores de la banca de la partida
+        var res = await BankController.eliminatePlayersHands({ body: 
+            { bankId: board.bank, usersIndex: [playerIndex] }})
+        if (res.status === "error") return res
+
+        // Se elimina el usuario de la lista de jugadores en espera para que
+        // pueda solicitar jugar otra partida
+        res = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        if (res.status === "error") return res
+
+        // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
+        // las monedas ganadas
+        var inCoins
+        if (board.players[playerIndex].earnedCoins > 0) {
+            inCoins = Math.floor(board.players[playerIndex].earnedCoins / 2)
+            res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
+            if (res.status === "error") return res
+        } 
+        else if (board.players[playerIndex].earnedCoins < 0) {
+            inCoins = board.players[playerIndex].earnedCoins
+            res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
+            if (res.status === "error") return res
+        }
+
+        // Eliminar al usuario de la lista de jugadores en la partida
+        board.players.splice(playerIndex, 1);
+
+        // Guardar los cambios en la base de datos
+        await board.save();
+
+        return ({
+            status: "success",
+            message: "El usuario abandonó la partida correctamente"
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al abandonar la partida. " + e.message
+        })
+    }
+
 }
 
 
@@ -626,65 +705,15 @@ const boardById = async (req, res) => {
 // Abandona la partida si el usuario estaba dentro de ella. Si el usuario 
 // llevaba monedas ganadas, se le proporciona la mitad de las monedas ganadas.
 const leaveBoard = async (req, res) => {
-    // Parámetros necesarios en URL: id
+    // Parámetros necesarios en URL: id (board)
     const boardId = req.params.id
-    const userId = req.user._id
-    var res
+    const userId = req.user.id
+    var resAux
 
     try {
-        // Se verifica que la mesa exista
-        const board = await PrivateBoard.findById(boardId)
-        if (!board) {
-            return res.status(404).json({
-                status: "error",
-                message: "Mesa no encontrada"
-            })
-        }
-
-        // Se verifica que el usuario esté en la partida
-        const playerIndex = board.players.findIndex(player => player.player.equals(userId))
-        if (playerIndex === -1) {
-            return res.status(404).json({
-                status: "error",
-                message: "El usuario no está en la partida"
-            })
-        }
-
-        // Eliminamos los jugadores de la banca de la partida
-        var resAux = await BankController.eliminatePlayersHands({ body: 
-            { bankId: board.bank, usersIndex: [playerIndex] }})
+        resAux = await leaveBoardPriv({ body: { userId: userId, boardId: boardId }})
         if (resAux.status === "error") return res.status(400).json(resAux)
-
-        // Se elimina el usuario de la lista de jugadores en espera para que
-        // pueda solicitar jugar otra partida
-        res = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
-        if (res.status === "error") return res
-
-        // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
-        // las monedas ganadas
-        var inCoins
-        if (board.players[playerIndex].earnedCoins > 0) {
-            inCoins = Math.floor(board.players[playerIndex].earnedCoins / 2)
-            res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
-            if (res.status === "error") return res
-        } 
-        else if (board.players[playerIndex].earnedCoins < 0) {
-            inCoins = board.players[playerIndex].earnedCoins
-            res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
-            if (res.status === "error") return res
-        }
-
-        // Eliminar al usuario de la lista de jugadores en la partida
-        board.players.splice(playerIndex, 1);
-
-        // Guardar los cambios en la base de datos
-        await board.save();
-
-        return res.status(200).json({
-            status: "success",
-            message: "El usuario abandonó la partida correctamente"
-        })
-
+        else return res.status(200).json(resAux)
     } catch (e) {
         return res.status(500).json({
             status: "error",

@@ -3,6 +3,57 @@ const Friend = require("../models/friendSchema")
 const User = require('../models/userSchema')
 const StatController = require("./statController")
 
+////////////////////////////////////////////////////////////////////////////////
+// Funciones de administrador
+////////////////////////////////////////////////////////////////////////////////
+
+async function eliminateAllUserFriends(req) {
+    const userId = req.body.userId
+
+    try {
+        // Se verifica que el usuario existe
+        const user = await User.findById(userId)
+        if (!user) {
+            return ({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Se eliminan todas las relaciones de amistad en las que el usuario esté
+        // involucrado
+        const deleteResult = await Friend.deleteMany({
+            $or: [
+                { user1: userId },
+                { user2: userId }
+            ]
+        })
+        
+        // Se verifica si se han eliminado relaciones de amistad
+        if (deleteResult.deletedCount === 0) {
+            return ({
+                status: "success",
+                message: "El usuario no tiene amigos para eliminar"
+            })
+        }
+        
+        // Se devuelve un mensaje de éxito
+        return ({
+            status: "success",
+            message: "Todas las relaciones de amistad del usuario han sido eliminadas correctamente"
+        })        
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al eliminar todos los amigos del usuario. " + e.message
+        })
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Funciones públicas
+////////////////////////////////////////////////////////////////////////////////
+
 // Enviar solicitud de amistad a una persona
 const add = async (req, res) => {
     try {
@@ -348,6 +399,8 @@ const eliminateFriend = async (req, res) => {
 
 // Funciones que se exportan
 module.exports = {
+    eliminateAllUserFriends,
+    
     add,
     getAllFriends,
     getAllPendingFriends,
