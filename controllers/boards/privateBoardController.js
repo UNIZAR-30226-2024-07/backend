@@ -543,7 +543,10 @@ async function manageHand(req) {
         }
 
         // Se piden los resultados de la mano actual a la banca
-        var res = await BankController.results({ body: {bankId: board.bank}})
+        var res = await BankController.results({ body: {bankId: board.bank, 
+                                                 players: board.players,
+                                                 typeBoardName: 'private', 
+                                                 bet: board.bet}})
         if (res.status === "error") return res
         const results = res.results
 

@@ -554,14 +554,17 @@ async function manageHand(req) {
         }
 
         // Se piden los resultados de la mano actual a la banca
-        var res = await BankController.results({ body: {bankId: board.bank}})
+        var res = await BankController.results({ body: {bankId: board.bank, 
+                                                 players: board.players,
+                                                 typeBoardName: 'tournament', 
+                                                 bet: 0}})
         if (res.status === "error") return res
         const results = res.results
 
         // Se apuntan en el board las monedas ganadas por cada jugador
         for (const result of results) {
             const userId = result.userId
-            const lifes = result.lifes
+            const lifes = result.loseLife
 
             // Se busca al jugadore en la lista de jugadores de la mesa
             const playerIndex = board.players.findIndex(player => 
@@ -576,8 +579,8 @@ async function manageHand(req) {
                 })
             }
         
-            // Se actualizan las monedas actuales del jugador en la mesa
-            board.players[playerIndex].lifes += lifes
+            // Se actualizan las vidas actuales del jugador en la mesa
+            board.players[playerIndex].lifes -= lifes
         }
 
         // La mano ha terminado, luego se eliminan los jugadores que mandaron la
