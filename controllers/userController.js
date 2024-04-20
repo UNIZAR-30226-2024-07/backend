@@ -505,12 +505,12 @@ const add = async (req, res) => {
     let u = req.body
 
     // Nos aseguramos de que se hayan enviado todos los parámetros
-    if (!u.nick || !u.name || !u.surname || !u.email || !u.password ||
+    if (!u.nick || !u.name || !u.surname || !u.email || !u.password || !u.rol ||
         u.nick.trim() === '' || u.name.trim() === '' || u.surname.trim() === '' || 
-        u.email.trim() === '' || u.password.trim() === '') {
+        u.email.trim() === '' || u.password.trim() === '' || u.rol.trim() === '') {
         return res.status(400).json({
             status: "error",
-            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: nick, name, surname, email, password"
+            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: nick, name, surname, email, password y rol"
         })
     }
 
@@ -525,6 +525,14 @@ const add = async (req, res) => {
             })
         }
 
+        // Si el rol no es admin ni user, Error
+        if (u.rol !== 'user' && u.rol !== 'admin') {
+            return res.status(400).json({
+                status: "error",
+                message: "El rol debe ser user o admin"
+            })
+        }
+
         // Si no lo hay, se crea el nuevo usuario
         const hPasswd = await bcrypt.hash(u.password, 10)
         const newUser = await  User.create({ nick: u.nick, 
@@ -532,6 +540,7 @@ const add = async (req, res) => {
                                    surname: u.surname, 
                                    email: u.email, 
                                    password: hPasswd,
+                                   rol: u.rol,
                                    coins: 0 })
 
         // Se inicializan todas las estadísticas del usuario
@@ -770,17 +779,25 @@ const login = async (req, res) => {
     const u = req.body
 
     // Nos aseguramos de que los campos requeridos hayan sido enviados
-    if (!u.nick || !u.password || u.nick.trim() === '' || u.password.trim() === '') {
+    if (!u.nick || !u.password || !u.rol || 
+        u.nick.trim() === '' || u.password.trim() === '' || u.rol.trim() === '') {
         return res.status(400).json({
             status: "error",
-            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: nick, password"
+            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: nick, password, rol"
         })
     }
 
     try {
-        // Se busca al usuario por su nick
-        const user = await User.findOne({ nick: u.nick })
 
+        // Si el rol es user, solo busca usuarios user. Login Movil
+        let user
+        if (u.rol === 'user') {
+            user = await User.findOne({ nick: u.nick, rol: u.rol})
+
+        } else {
+            // Se busca al usuario por su nick. Login Web
+            user = await User.findOne({ nick: u.nick })
+        }
         // Si el usuario no existe, error
         if (!user) {
             return res.status(404).json({
