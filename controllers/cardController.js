@@ -60,6 +60,48 @@ const getAllCards = async (req, res) => {
     }
 }
 
+// Función que devuelve todos los cards, los cuales no posee el usuario
+// Se utilizará para la tienda
+const getCardStore = async (req, res) => {
+    try {
+        // Id del usuario peticion
+        const userId = req.user.id
+
+        // Obtener todos los cards de la base de datos
+        const cards = await Card.find();
+
+        // Obtener los cards del usuario
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            });
+        }
+
+        // Cards del usuario
+        const cardsUsuario = user.cards.map(card => card.card);
+
+        // Filtrar los cards para eliminar los que ya tiene el usuario
+        const cardsDisponibles = cards.filter(card => {
+            // Comprobamos si el ID del card actual está en los cards del usuario
+            return !cardsUsuario.some(cardUsuarioId => cardUsuarioId.equals(card._id));
+        });
+
+        return res.status(200).json({
+            status: "success",
+            message: "Cards obtenidos correctamente",
+            card: cardsDisponibles
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al obtener los cards en getCardStore: " + error.message
+        });
+    }
+}
+
 // Obtener el card que el usuario que realiza la petición tiene seleccionado
 const getAllMyCards = async (req, res) => {
     // Id del usuario peticion
@@ -380,6 +422,7 @@ module.exports = {
     cardById,
     currentCardById,
     getAllCards,
+    getCardStore,
     getAllMyCards,
     currentCard
 }
