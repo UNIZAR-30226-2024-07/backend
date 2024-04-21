@@ -1296,6 +1296,8 @@ module.exports = {
     correctName,
     eliminate,
     eliminatePlayersHands,
+    initBoard,
+    resetBank,
     drawCard,
     double,
     split,

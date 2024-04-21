@@ -465,6 +465,31 @@ async function finishBoard(req) {
     }
 }
 
+async function boardByIdFunction(req) {
+    const boardId = req.body.boardId
+
+    try {
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "No existe una mesa privada con el ID proporcionado"
+            })
+        }
+
+        return ({
+            status: "success",
+            message: "Se ha obtenido la mesa privada correctamente. Se encuentra en el campo board de esta respuesta",
+            board: board
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al recuperar la mesa dado su ID"
+        })
+    }
+}
+
 // Añade al chat de la partida el mensaje 'message' del usuario con el ID
 // proporcionado si este se encontraba jugando la partida
 async function newMessage(req) {
@@ -734,6 +759,7 @@ module.exports = {
     isEndOfGame,
     seeAbsents,
     finishBoard,
+    boardByIdFunction,
     newMessage,
     manageHand,
     boardById,

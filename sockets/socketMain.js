@@ -3,6 +3,7 @@ const MatcherController = require("../controllers/matcherContoller")
 const TournamentBoardController = require("../controllers/boards/tournamentBoardController")
 const PublicBoardController = require("../controllers/boards/publicBoardController")
 const PrivateBoardController = require("../controllers/boards/privateBoardController")
+const BankController = require("../controllers/bankController")
 
 var mutex = true
 var mutexPublic = true
@@ -94,8 +95,18 @@ const Sockets = async (io) => {
             // signal(TournamentMutex)
             ////////////////////////////////////////////////////////////////////
 
+            // Generar primeras cartas del board para enviarlas
+            res = await TournamentBoardController.boardByIdFunction({ body: { boardId: boardId }})
+            if (res.status === "error") return res
+            const bankId = res.board.bank
+            const players = res.board.players
+
+            res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
+            if (res.status === "error") return res
+            const initialCards = res.initBoard
+
             // Si está lista, se notifica a los jugadores de la mesa
-            io.to("tournament:" + boardId).emit("starting tournament board", boardId)
+            io.to("tournament:" + boardId).emit("starting tournament board", boardId, initialCards)
                         
         } catch (e) {
             return console.error(e.message)
@@ -205,8 +216,18 @@ const Sockets = async (io) => {
             // signal(PublicMutex)
             ////////////////////////////////////////////////////////////////////
 
+            // Generar primeras cartas del board para enviarlas
+            res = await PublicBoardController.boardByIdFunction({ body: { boardId: boardId }})
+            if (res.status === "error") return res
+            const bankId = res.board.bank
+            const players = res.board.players
+            
+            res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
+            if (res.status === "error") return res
+            const initialCards = res.initBoard
+
             // Si está lista, se notifica a los jugadores de la mesa
-            io.to("public:" + boardId).emit("starting public board", boardId)
+            io.to("public:" + boardId).emit("starting public board", boardId, initialCards)
             
         } catch (e) {
             return console.error(e.message)
@@ -342,8 +363,18 @@ const Sockets = async (io) => {
             // signal(PrivateMutex)
             ////////////////////////////////////////////////////////////////////
 
+            // Generar primeras cartas del board para enviarlas
+            res = await PrivateBoardController.boardByIdFunction({ body: { boardId: boardId }})
+            if (res.status === "error") return res
+            const bankId = res.board.bank
+            const players = res.board.players
+            
+            res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
+            if (res.status === "error") return res
+            const initialCards = res.initBoard
+
             // Si está lista, se notifica a los jugadores de la mesa
-            io.to("private:" + boardId).emit("starting private board", boardId)
+            io.to("private:" + boardId).emit("starting private board", boardId, initialCards)
             
         } catch (e) {
             return console.error(e.message)
