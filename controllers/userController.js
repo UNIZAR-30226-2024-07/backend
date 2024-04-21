@@ -510,7 +510,7 @@ const add = async (req, res) => {
         u.email.trim() === '' || u.password.trim() === '' || u.rol.trim() === '') {
         return res.status(400).json({
             status: "error",
-            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: nick, name, surname, email, password y rol"
+            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: nick, name, surname, email, password"
         })
     }
 
@@ -783,7 +783,7 @@ const login = async (req, res) => {
         u.nick.trim() === '' || u.password.trim() === '' || u.rol.trim() === '') {
         return res.status(400).json({
             status: "error",
-            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: nick, password, rol"
+            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: nick, password"
         })
     }
 
