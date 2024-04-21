@@ -856,53 +856,29 @@ async function results(req) {
     }
 }
 
-const prueba = async(req, res) => {
-    let resP
-    try {
-        resP = await results(req)
-        if (resP.status === "error") return res.status(404).json(resP)
-
-        return res.status(200).json(resP)
-
-    } catch (error) {
-        return res.status(404).json({
-            status: "error",
-            message: error.message + resP.message
-        })
-    }
-}
-
-/*************************** Funciones route *****************************/
+/*************************** Funciones logica *****************************/
 
 // Función para pedir una carta
-const drawCard = async (req, res) => {
-    // Parámetros requeridos: boardId, typeBoardName, cardsOnTable
+async function drawCard(req) {
+    // Parámetros requeridos: bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
         const userId = req.user.id
 
-        // Obtener el board dado el id del board
-        const resBoard = await boardByIdGeneral(req)
-        if (resBoard.status === "error") {
-            return res.status(404).json(resBoard)
-        }
-        // Obtener board
-        const board = resBoard.board
-
         // Obtener id de la banca
-        const bankId = board.bank
+        const bankId = req.body.bankId
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
         if (!bank) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "No se ha encontrado una banca con dicho id"
             })
         }
         if (bank.maze.length === 0) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El mazo de la banca está vacío"
             })
@@ -911,14 +887,14 @@ const drawCard = async (req, res) => {
         // Obtener el mazo correspondiente al jugador
         const playerIndex = board.players.findIndex(player => player.player == userId);
         if (playerIndex === -1) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El jugador no está en el vector de jugadores de la partida"
             })
         }
         const playerMaze = bank.maze[playerIndex];
         if (playerMaze.length === 0) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El mazo del jugador está vacío"
             })
@@ -938,7 +914,7 @@ const drawCard = async (req, res) => {
         const totalCards = valueCards(cardsOnTable)
 
         if (totalCards < numBlackJack) {   // Devolver las cartas
-            return res.status(200).json({
+            return ({
                 status: "success",
                 message: "Carta obtenida correctamente. Sigue jugando",
                 cardsOnTable,
@@ -955,7 +931,7 @@ const drawCard = async (req, res) => {
                                          bankId: bankId } }
             const resConfirm = await confirmPriv(reqConfirm)
             if (resConfirm.status === "error") return res.status(404).json(resConfirm)
-            return res.status(200).json({
+            return ({
                 status: "success",
                 message: "Carta obtenida correctamente. Se ha pasado de " + numBlackJack + ". Para de jugar. Ha perdido",
                 cardsOnTable,
@@ -971,8 +947,8 @@ const drawCard = async (req, res) => {
                                          cardsOnTable: cardsOnTable,
                                          bankId: bankId } }
             const resConfirm = await confirmPriv(reqConfirm)
-            if (resConfirm.status === "error") return res.status(404).json(resConfirm)
-            return res.status(200).json({
+            if (resConfirm.status === "error") return (resConfirm)
+            return ({
                 status: "success",
                 message: "Carta obtenida correctamente. Ha obtenido justo " + numBlackJack + ". Para de jugar",
                 cardsOnTable,
@@ -983,7 +959,7 @@ const drawCard = async (req, res) => {
         }
 
     } catch (error) {
-        return res.status(404).json({
+        return ({
             status: "error",
             message: error.message + ". En drawCards."
         })
@@ -992,16 +968,16 @@ const drawCard = async (req, res) => {
 
 // Función para doblar
 // Pedirá una carta extra
-const double = async (req, res) => {
-    // Parámetros requeridos: boardId, typeBoardName, cardsOnTable
+async function double(req) {
+    // Parámetros requeridos: bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
         const userId = req.user.id
 
         // Error. No se puede hacer double en un tournament
-        if (req.body.typeBoardName = "tournament") {
-            return res.status(404).json({
+        if (req.body.typeBoardName === "tournament") {
+            return ({
                 status: "error",
                 message: "No se puede  doblar en una partida de torneo"
             })
@@ -1010,33 +986,25 @@ const double = async (req, res) => {
         // Cartas que tiene de momento
         const cardsOnTable = req.body.cardsOnTable
         if (cardsOnTable.length !== numCardsDouble) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Para doblar debe haber " + numCardsDouble + " cartas"
             })
         }
 
-        // Obtener el board dado el id del board
-        const resBoard = await boardByIdGeneral(req)
-        if (resBoard.status === "error") {
-            return res.status(404).json(resBoard)
-        }
-        // Obtener board
-        const board = resBoard.board
-
         // Obtener id de la banca
-        const bankId = board.bank
+        const bankId = req.body.bankId
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
         if (!bank) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "No se ha encontrado una banca con dicho id"
             })
         }
         if (bank.maze.length === 0) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El mazo de la banca está vacío"
             })
@@ -1045,14 +1013,14 @@ const double = async (req, res) => {
         // Obtener el mazo correspondiente al jugador
         const playerIndex = board.players.findIndex(player => player.player == userId);
         if (playerIndex === -1) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El jugador no está en el vector de jugadores de la partida"
             })
         }
         const playerMaze = bank.maze[playerIndex];
         if (playerMaze.length === 0) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El mazo del jugador está vacío"
             })
@@ -1079,8 +1047,8 @@ const double = async (req, res) => {
                              cardsOnTable: cardsOnTable,
                              bankId: bankId } }
         const resConfirm = await confirmPriv(reqConfirm)
-        if (resConfirm.status === "error") return res.status(404).json(resConfirm)
-        return res.status(200).json({
+        if (resConfirm.status === "error") return (resConfirm)
+        return ({
             status: "success",
             message: "Carta obtenida correctamente. Ha hecho un double",
             cardsOnTable,
@@ -1089,7 +1057,7 @@ const double = async (req, res) => {
             blackJack: totalCards == numBlackJack
         })
     } catch (error) {
-        return res.status(404).json({
+        return ({
             status: "error",
             message: error.message + ". En double."
         })
@@ -1097,57 +1065,41 @@ const double = async (req, res) => {
 }
 
 // Función para dividir
-const split = async(req, res) => {
-    // Parámetros requeridos: boardId, typeBoardName, cardsOnTable
+async function split(req) {
+    // Parámetros requeridos: bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
         const userId = req.user.id
 
-        // Error. No se puede hacer split en un tournament
-        if (req.body.typeBoardName = "tournament") {
-            return res.status(404).json({
-                status: "error",
-                message: "No se puede dividir en una partida de torneo"
-            })
-        }
-
         // Cartas del jugador
         const cardsOnTable = req.body.cardsOnTable
         if (cardsOnTable.length !== numCardsSplit) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Para dividir debe haber " + numCardsSplit + " cartas"
             })
         }
         if (cardsOnTable[0].value !== cardsOnTable[1].value) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Para dividir las dos cartas deben de ser iguales"
             })
         }
 
-        // Obtener el board dado el id del board
-        const resBoard = await boardByIdGeneral(req)
-        if (resBoard.status === "error") {
-            return res.status(404).json(resBoard)
-        }
-        // Obtener board
-        const board = resBoard.board
-
         // Obtener id de la banca
-        const bankId = board.bank
+        const bankId = req.body.bankId
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
         if (!bank) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "No se ha encontrado una banca con dicho id"
             })
         }
         if (bank.maze.length === 0) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El mazo de la banca está vacío"
             })
@@ -1156,14 +1108,14 @@ const split = async(req, res) => {
         // Obtener el mazo correspondiente al jugador
         const playerIndex = board.players.findIndex(player => player.player == userId);
         if (playerIndex === -1) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El jugador no está en el vector de jugadores de la partida"
             })
         }
         const playerMaze = bank.maze[playerIndex];
         if (playerMaze.length === 0) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El mazo del jugador está vacío"
             })
@@ -1194,7 +1146,7 @@ const split = async(req, res) => {
                                          cardsOnTable: cardsOnTableFirst,
                                          bankId: bankId } }
             const resConfirm = await confirmPriv(reqConfirm)
-            if (resConfirm.status === "error") return res.status(404).json(resConfirm)
+            if (resConfirm.status === "error") return (resConfirm)
         }
         if (totalCardsSecond >= numBlackJack) {  // Mirar cartas primer mazo
             const reqConfirm = { body: { userId: userId,
@@ -1204,10 +1156,10 @@ const split = async(req, res) => {
                                          cardsOnTable: cardsOnTableSecond,
                                          bankId: bankId } }
             const resConfirm = await confirmPriv(reqConfirm)
-            if (resConfirm.status === "error") return res.status(404).json(resConfirm)
+            if (resConfirm.status === "error") return (resConfirm)
         }
         
-        return res.status(200).json({
+        return ({
             status: "success",
             message: "Split hecho correctamente",
             cardsOnTableFirst,
@@ -1221,7 +1173,7 @@ const split = async(req, res) => {
         })
     
     } catch (error) {
-        return res.status(404).json({
+        return ({
             status: "error",
             message: error.message + ". En split."
         })
@@ -1229,28 +1181,20 @@ const split = async(req, res) => {
 }
 
 // Función para plantarse
-const stick = async(req, res) => {
-    // Parámetros requeridos: boardId, typeBoardName, cardsOnTable
+async function stick(req) {
+    // Parámetros requeridos: bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
         const userId = req.user.id
 
-        // Obtener el board dado el id del board
-        const resBoard = await boardByIdGeneral(req)
-        if (resBoard.status === "error") {
-            return res.status(404).json(resBoard)
-        }
-        // Obtener board
-        const board = resBoard.board
-
         // Obtener id de la banca
-        const bankId = board.bank
+        const bankId = req.body.bankId
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
         if (!bank) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "No se ha encontrado una banca con dicho id"
             })
@@ -1259,7 +1203,7 @@ const stick = async(req, res) => {
         // Obtener el indice del jugador
         const playerIndex = board.players.findIndex(player => player.player == userId);
         if (playerIndex === -1) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El jugador no está en el vector de jugadores de la partida"
             })
@@ -1273,16 +1217,16 @@ const stick = async(req, res) => {
                              cardsOnTable: req.body.cardsOnTable,
                              bankId: bankId } }
         const resConfirm = await confirmPriv(reqConfirm)
-        if (resConfirm.status === "error") return res.status(404).json(resConfirm)
+        if (resConfirm.status === "error") return (resConfirm)
     
-        return res.status(200).json({
+        return ({
             status: "success",
             message: "Confirmación de las cartas realizado con éxito",
             cardsOnTable: req.body.cardsOnTable
         })
     
     } catch (error) {
-        return res.status(404).json({
+        return ({
             status: "error",
             message: error.message + ". En stick"
         })
@@ -1301,9 +1245,5 @@ module.exports = {
     drawCard,
     double,
     split,
-    stick,
-
-
-
-    prueba
+    stick
 }
