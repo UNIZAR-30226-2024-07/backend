@@ -726,8 +726,7 @@ async function results(req) {
         }
 
         // Banca realiza su jugada
-        // let cardsBank = bank.playersHands[bankIndex].hands[0]    //////////////////////////////////////////////////////////////////
-        let cardsBank = []   ////////////////////////////////////////////////////////////////////////////////////////////////////
+        let cardsBank = bank.playersHands[bankIndex].hands[0]
         let totalBank = 0
         let bankMaze = bank.maze[bankIndex]
         if (bankMaze.length === 0) {
@@ -863,11 +862,11 @@ async function results(req) {
 
 // Función para pedir una carta
 async function drawCard(req) {
-    // Parámetros requeridos: bankId, cardsOnTable
+    // Parámetros requeridos: userId, bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
-        const userId = req.user.id
+        const userId = req.body.userId
 
         // Obtener id de la banca
         const bankId = req.body.bankId
@@ -972,11 +971,11 @@ async function drawCard(req) {
 // Función para doblar
 // Pedirá una carta extra
 async function double(req) {
-    // Parámetros requeridos: bankId, cardsOnTable
+    // Parámetros requeridos: userId, bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
-        const userId = req.user.id
+        const userId = req.body.userId
 
         // Error. No se puede hacer double en un tournament
         if (req.body.typeBoardName === "tournament") {
@@ -1069,11 +1068,11 @@ async function double(req) {
 
 // Función para dividir
 async function split(req) {
-    // Parámetros requeridos: bankId, cardsOnTable
+    // Parámetros requeridos: userId, bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
-        const userId = req.user.id
+        const userId = req.body.userId
 
         // Cartas del jugador
         const cardsOnTable = req.body.cardsOnTable
@@ -1185,11 +1184,11 @@ async function split(req) {
 
 // Función para plantarse
 async function stick(req) {
-    // Parámetros requeridos: bankId, cardsOnTable
+    // Parámetros requeridos: userId, bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
-        const userId = req.user.id
+        const userId = req.body.userId
 
         // Obtener id de la banca
         const bankId = req.body.bankId
