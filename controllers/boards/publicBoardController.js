@@ -541,7 +541,6 @@ async function manageHand(req) {
         
             // Se actualizan las monedas actuales del jugador en la mesa
             board.players[playerIndex].currentCoins += coinsEarned[0]
-
             if (coinsEarned[1]) board.players[playerIndex].currentCoins += coinsEarned[1]
 
             if (board.players[playerIndex].currentCoins < bet) {
@@ -745,6 +744,143 @@ const leaveBoard = async (req, res) => {
     }
 }
 
+async function plays(req) {
+    // Parámetos en req.body: boardId, cardsOnTable, playName
+    const boardId = req.body.boardId
+    const cardsOnTable = req.body.cardsOnTable
+    const playName = req.body.playName
+
+    var resAux
+
+    try {
+        // Se verifica que exista la mesa
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return res.status(404).json({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        // Se llama a la función del bank
+        if (playName === "double") {
+            resAux = await BankController.double({body: {bankId: board.bank, cardsOnTable: cardsOnTable}})
+        } else if (playName === "drawCard") {
+            resAux = await BankController.drawCard({body: {bankId: board.bank, cardsOnTable: cardsOnTable}})
+        } else if (playName === "split") {
+            resAux = await BankController.split({body: {bankId: board.bank, cardsOnTable: cardsOnTable}})
+        } else if (playName === "stick") {
+            resAux = await BankController.stick({body: {bankId: board.bank, cardsOnTable: cardsOnTable}})
+        } else {
+            return res.status(400).json({
+                status: "error",
+                message: "Nombre de jugada no válido"
+            })
+        }
+        
+        if (resAux.status === "error") return res.status(400).json(resAux)
+        else return res.status(200).json(resAux)
+
+    } catch (e) {
+        return res.status(404).json({
+            status: "error",
+            message: "Error al hacer la jugada " + playName + ". " + e.message
+        })
+    }
+}
+
+// Función para pedir una carta
+const drawCard = async (req, res) => {
+    // Parámetros en req.body: boardId, cardsOnTable
+    const boardId = req.body.boardId
+    const cardsOnTable = req.body.cardsOnTable
+    var resAux
+
+    try {
+        // Se llama a la función del bank
+        resAux = await plays({body: {boardId: boardId, cardsOnTable: cardsOnTable, playName: "drawCard"}})
+        
+        if (resAux.status === "error") return res.status(400).json(resAux)
+        else return res.status(200).json(resAux)
+
+    } catch (e) {
+        return res.status(404).json({
+            status: "error",
+            message: "Error al pedir carta. " + e.message
+        })
+    }
+}
+
+// Función para doblar
+// Pedirá una carta extra
+const double = async (req, res) => {
+    // Parámetros en req.body: boardId, cardsOnTable
+    const boardId = req.body.boardId
+    const cardsOnTable = req.body.cardsOnTable
+    var resAux
+
+    try {
+        // Se llama a la función del bank
+        resAux = await plays({body: {boardId: boardId, cardsOnTable: cardsOnTable, playName: "double"}})
+        
+        if (resAux.status === "error") return res.status(400).json(resAux)
+        else return res.status(200).json(resAux)
+
+    } catch (e) {
+        return res.status(404).json({
+            status: "error",
+            message: "Error al pedir carta. " + e.message
+        })
+    }
+}
+
+// Función para doblar
+// Pedirá una carta extra
+const split = async (req, res) => {
+    // Parámetros en req.body: boardId, cardsOnTable
+    const boardId = req.body.boardId
+    const cardsOnTable = req.body.cardsOnTable
+    var resAux
+
+    try {
+        // Se llama a la función del bank
+        resAux = await plays({body: {boardId: boardId, cardsOnTable: cardsOnTable, playName: "split"}})
+        
+        if (resAux.status === "error") return res.status(400).json(resAux)
+        else return res.status(200).json(resAux)
+
+    } catch (e) {
+        return res.status(404).json({
+            status: "error",
+            message: "Error al pedir carta. " + e.message
+        })
+    }
+}
+
+// Función para plantarse
+const stick = async(req, res) => {
+    // Parámetros en req.body: boardId, cardsOnTable
+    const boardId = req.body.boardId
+    const cardsOnTable = req.body.cardsOnTable
+    var resAux
+
+    try {
+        // Se llama a la función del bank
+        resAux = await plays({body: {boardId: boardId, cardsOnTable: cardsOnTable, playName: "stick"}})
+        
+        if (resAux.status === "error") return res.status(400).json(resAux)
+        else return res.status(200).json(resAux)
+
+    } catch (e) {
+        return res.status(404).json({
+            status: "error",
+            message: "Error al pedir carta. " + e.message
+        })
+    }
+}
+
+
+
 module.exports = {
     allPlayersPlayed,
     isFull,
@@ -758,5 +894,9 @@ module.exports = {
     newMessage,
     manageHand,
     boardById,
-    leaveBoard
+    leaveBoard,
+    drawCard,
+    double,
+    split,
+    stick
 }
