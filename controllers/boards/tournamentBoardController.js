@@ -712,9 +712,13 @@ async function plays(req) {
 
         // Se llama a la función del bank
         if (playName === "drawCard") {
-            resAux = await BankController.drawCard({body: {userId: userId, bankId: board.bank, cardsOnTable: cardsOnTable}})
+            resAux = await BankController.drawCard({body: {userId: userId, boardId: boardId,
+                                                    players: board.players, typeBoardName: 'tournament', 
+                                                    bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else if (playName === "stick") {
-            resAux = await BankController.stick({body: {userId: userId, bankId: board.bank, cardsOnTable: cardsOnTable}})
+            resAux = await BankController.stick({body: {userId: userId, boardId: boardId,
+                                                players: board.players, typeBoardName: 'tournament', 
+                                                bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else {
             return {
                 status: "error",

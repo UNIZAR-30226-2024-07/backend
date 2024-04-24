@@ -862,7 +862,7 @@ async function results(req) {
 
 // Función para pedir una carta
 async function drawCard(req) {
-    // Parámetros requeridos: userId, bankId, cardsOnTable
+    // Parámetros requeridos: userId, boardId, players, typeBoardName, bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
@@ -870,6 +870,10 @@ async function drawCard(req) {
 
         // Obtener id de la banca
         const bankId = req.body.bankId
+
+        // Info board
+        const boardId = req.body.boardId
+        const players = req.body.players
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
@@ -887,7 +891,7 @@ async function drawCard(req) {
         }
 
         // Obtener el mazo correspondiente al jugador
-        const playerIndex = board.players.findIndex(player => player.player == userId);
+        const playerIndex = players.findIndex(player => player.player == userId);
         if (playerIndex === -1) {
             return ({
                 status: "error",
@@ -927,12 +931,12 @@ async function drawCard(req) {
         } else if (totalCards > numBlackJack) {   // Confirmar hand, ha perdido
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
-                                         boardId: board._id,
+                                         boardId: boardId,
                                          playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTable,
                                          bankId: bankId } }
             const resConfirm = await confirmPriv(reqConfirm)
-            if (resConfirm.status === "error") return res.status(404).json(resConfirm)
+            if (resConfirm.status === "error") return (resConfirm)
             return ({
                 status: "success",
                 message: "Carta obtenida correctamente. Se ha pasado de " + numBlackJack + ". Para de jugar. Ha perdido",
@@ -944,7 +948,7 @@ async function drawCard(req) {
         } else if (totalCards == numBlackJack) {  // Confirmar hand, ha hecho BlackJack
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
-                                         boardId: board._id,
+                                         boardId: boardId,
                                          playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTable,
                                          bankId: bankId } }
@@ -971,11 +975,15 @@ async function drawCard(req) {
 // Función para doblar
 // Pedirá una carta extra
 async function double(req) {
-    // Parámetros requeridos: userId, bankId, cardsOnTable
+    // Parámetros requeridos: userId, boardId, players, typeBoardName, bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
         const userId = req.body.userId
+
+        // Info board
+        const boardId = req.body.boardId
+        const players = req.body.players
 
         // Error. No se puede hacer double en un tournament
         if (req.body.typeBoardName === "tournament") {
@@ -1013,7 +1021,7 @@ async function double(req) {
         }
 
         // Obtener el mazo correspondiente al jugador
-        const playerIndex = board.players.findIndex(player => player.player == userId);
+        const playerIndex = players.findIndex(player => player.player == userId);
         if (playerIndex === -1) {
             return ({
                 status: "error",
@@ -1044,7 +1052,7 @@ async function double(req) {
         // Responder
         const reqConfirm = { body: { userId: userId,
                              typeBoardName: req.body.typeBoardName,
-                             boardId: board._id,
+                             boardId: boardId,
                              playerIndex: playerIndex,
                              cardsOnTable: cardsOnTable,
                              bankId: bankId } }
@@ -1068,11 +1076,15 @@ async function double(req) {
 
 // Función para dividir
 async function split(req) {
-    // Parámetros requeridos: userId, bankId, cardsOnTable
+    // Parámetros requeridos: userId, boardId, typeBoardName, bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
         const userId = req.body.userId
+
+        // Info board
+        const boardId = req.body.boardId
+        const players = req.body.players
 
         // Cartas del jugador
         const cardsOnTable = req.body.cardsOnTable
@@ -1108,7 +1120,7 @@ async function split(req) {
         }
 
         // Obtener el mazo correspondiente al jugador
-        const playerIndex = board.players.findIndex(player => player.player == userId);
+        const playerIndex = players.findIndex(player => player.player == userId);
         if (playerIndex === -1) {
             return ({
                 status: "error",
@@ -1143,7 +1155,7 @@ async function split(req) {
         if (totalCardsFirst >= numBlackJack) {  // Mirar cartas primer mazo
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
-                                         boardId: board._id,
+                                         boardId: boardId,
                                          playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTableFirst,
                                          bankId: bankId } }
@@ -1153,7 +1165,7 @@ async function split(req) {
         if (totalCardsSecond >= numBlackJack) {  // Mirar cartas primer mazo
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
-                                         boardId: board._id,
+                                         boardId: boardId,
                                          playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTableSecond,
                                          bankId: bankId } }
@@ -1184,11 +1196,15 @@ async function split(req) {
 
 // Función para plantarse
 async function stick(req) {
-    // Parámetros requeridos: userId, bankId, cardsOnTable
+    // Parámetros requeridos: userId, boardId, typeBoardName, bankId, cardsOnTable
     try {
 
         // Id del usuario peticion
         const userId = req.body.userId
+
+        // Info board
+        const boardId = req.body.boardId
+        const players = req.body.players
 
         // Obtener id de la banca
         const bankId = req.body.bankId
@@ -1203,7 +1219,7 @@ async function stick(req) {
         }
 
         // Obtener el indice del jugador
-        const playerIndex = board.players.findIndex(player => player.player == userId);
+        const playerIndex = players.findIndex(player => player.player == userId);
         if (playerIndex === -1) {
             return ({
                 status: "error",
@@ -1214,7 +1230,7 @@ async function stick(req) {
         // Realizar confirmación de las cartas
         const reqConfirm = { body: { userId: userId,
                              typeBoardName: req.body.typeBoardName,
-                             boardId: board._id,
+                             boardId: boardId,
                              playerIndex: playerIndex,
                              cardsOnTable: req.body.cardsOnTable,
                              bankId: bankId } }
@@ -1244,6 +1260,7 @@ module.exports = {
     eliminatePlayersHands,
     initBoard,
     resetBank,
+    results,
     drawCard,
     double,
     split,

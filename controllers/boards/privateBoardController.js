@@ -772,13 +772,21 @@ async function plays(req) {
 
         // Se llama a la función del bank
         if (playName === "double") {
-            resAux = await BankController.double({body: {userId: userId, bankId: board.bank, cardsOnTable: cardsOnTable}})
+            resAux = await BankController.double({body: {userId: userId, boardId: boardId,
+                                                        players: board.players, typeBoardName: 'private', 
+                                                        bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else if (playName === "drawCard") {
-            resAux = await BankController.drawCard({body: {userId: userId, bankId: board.bank, cardsOnTable: cardsOnTable}})
+            resAux = await BankController.drawCard({body: {userId: userId, boardId: boardId,
+                                                    players: board.players, typeBoardName: 'private', 
+                                                    bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else if (playName === "split") {
-            resAux = await BankController.split({body: {userId: userId, bankId: board.bank, cardsOnTable: cardsOnTable}})
+            resAux = await BankController.split({body: {userId: userId, boardId: boardId,
+                                                players: board.players, typeBoardName: 'private', 
+                                                bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else if (playName === "stick") {
-            resAux = await BankController.stick({body: {userId: userId, bankId: board.bank, cardsOnTable: cardsOnTable}})
+            resAux = await BankController.stick({body: {userId: userId, boardId: boardId,
+                                                players: board.players, typeBoardName: 'private', 
+                                                bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else {
             return ({
                 status: "error",
