@@ -537,11 +537,13 @@ async function initBoard(req) {
                 cards.push(drawCard)
             }
             const totalPlayerCards = valueCards(cards)
-            bank.maze[index] = playerMaze;
+            bank.maze[index] = playerMaze;  // Guardar cambios en baraja
+
             const playerObject = {
                 userId: player.player,
                 cards: cards,
-                totalCards: totalPlayerCards
+                totalCards: totalPlayerCards,
+                blackJack: totalPlayerCards === 21
             }
             initBoard.push(playerObject);
             index = index + 1
@@ -564,7 +566,8 @@ async function initBoard(req) {
         const bankObject = {
             userId: "Board",
             cards: cards,
-            totalCards: totalBankCards
+            totalCards: totalBankCards,
+            blackJack: totalBankCards === 21
         }
         initBoard.push(bankObject);
 
