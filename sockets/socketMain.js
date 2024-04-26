@@ -68,6 +68,7 @@ async function turnTimeout(boardId, typeBoardName) {
 
 const Sockets = async (io) => {
     io.on("connection", async (socket) => {
+        console.log("Alguien se ha conectado con Socket.io al backend")
 
     ////////////////////////////////////////////////////////////////////////////
     // Partidas de torneo
