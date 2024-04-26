@@ -201,7 +201,7 @@ const Sockets = async (io) => {
     // Para los usuarios que quieren jugar en un torneo
     socket.on("enter public board", async (req) => {
         // Parámetros que debe haber en req.body: typeId, userId
-
+        console.log(req)
         try {
             ////////////////////////////////////////////////////////////////////
             // wait(PublicMutex)
