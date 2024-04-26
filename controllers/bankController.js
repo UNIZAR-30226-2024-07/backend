@@ -183,12 +183,13 @@ function valueCards(cardsOnTable) {
 // de jugadores confirmados (al menos que sea la seguna mano)
 async function confirmPriv(req) {
 
-    // Parámetros: userId, typeBoardName, boardId, playerIndex, cardsOnTable, bankId
+    // Parámetros: userId, typeBoardName, boardId, playerIndex, cardsOnTable, bankId, handIndex
     try {
         const userId = req.body.userId
         const playerIndex = req.body.playerIndex
         const cardsOnTable = req.body.cardsOnTable // Cartas que quiere confirmar
         const bankId = req.body.bankId
+        const handIndex = req.body.handIndex
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
@@ -208,7 +209,7 @@ async function confirmPriv(req) {
         }
         // Obtener las jugadas del jugador y agregar hand
         const playerHands = bank.playersHands[playerIndex]
-        playerHands.hands.push(cardsOnTable)
+        playerHands.hands[handIndex] = cardsOnTable
         bank.playersHands[playerIndex] = playerHands
         await bank.save(bank.playerHands)
         
@@ -356,13 +357,19 @@ async function add(req) {
         //    double: si el jugador ha hecho double
         //    cards: un vector de "jugadas" que ha hecho el jugador
         const playersHands = []
-        for (let i = 0; i <= numPlayers; i++) {
+        for (let i = 0; i < numPlayers; i++) {
             playersHands.push({
                 split: false,
                 double: false,
-                hands: []
+                hands: [[],[]]
             })
         }
+        // Banca
+        playersHands.push({
+            split: false,
+            double: false,
+            hands: []
+        })
 
         // Crear banca
         const newBank = await Bank.create({ level: level, playersHands: playersHands })
@@ -639,6 +646,10 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
             coinsGanadasPorJugador.push(0);
         }
     }
+    // Si el jugador no ha hecho jugadas
+    if (coinsGanadasPorJugador.length === 0) {
+        coinsGanadasPorJugador.push(0)
+    }
     return coinsGanadasPorJugador;
 }
 
@@ -719,7 +730,7 @@ async function results(req) {
         let totalCardsAllPlayers = []
         for (let i = 0; i < players.length; i++) {
             // Ingresar total cartas por jugador
-            for (let j = 0; j < bank.playersHands[i].hands.length; i++) {
+            for (let j = 0; j < bank.playersHands[i].hands.length; j++) {
                 // Ingresar el total por mano jugada
                 totalCardsAllPlayers.push(valueCards(bank.playersHands[i].hands[j]))
             }
@@ -862,7 +873,7 @@ async function results(req) {
 
 // Función para pedir una carta
 async function drawCard(req) {
-    // Parámetros requeridos: userId, boardId, players, typeBoardName, bankId, cardsOnTable
+    // Parámetros requeridos: userId, boardId, players, typeBoardName, bankId, cardsOnTable, handIndex
     try {
 
         // Id del usuario peticion
@@ -934,7 +945,8 @@ async function drawCard(req) {
                                          boardId: boardId,
                                          playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTable,
-                                         bankId: bankId } }
+                                         bankId: bankId,
+                                         handIndex: req.body.handIndex } }
             const resConfirm = await confirmPriv(reqConfirm)
             if (resConfirm.status === "error") return (resConfirm)
             return ({
@@ -951,7 +963,8 @@ async function drawCard(req) {
                                          boardId: boardId,
                                          playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTable,
-                                         bankId: bankId } }
+                                         bankId: bankId,
+                                         handIndex: req.body.handIndex } }
             const resConfirm = await confirmPriv(reqConfirm)
             if (resConfirm.status === "error") return (resConfirm)
             return ({
@@ -975,7 +988,7 @@ async function drawCard(req) {
 // Función para doblar
 // Pedirá una carta extra
 async function double(req) {
-    // Parámetros requeridos: userId, boardId, players, typeBoardName, bankId, cardsOnTable
+    // Parámetros requeridos: userId, boardId, players, typeBoardName, bankId, cardsOnTable, handIndex
     try {
 
         // Id del usuario peticion
@@ -1055,7 +1068,8 @@ async function double(req) {
                              boardId: boardId,
                              playerIndex: playerIndex,
                              cardsOnTable: cardsOnTable,
-                             bankId: bankId } }
+                             bankId: bankId,
+                             handIndex: req.body.handIndex } }
         const resConfirm = await confirmPriv(reqConfirm)
         if (resConfirm.status === "error") return (resConfirm)
         return ({
@@ -1158,17 +1172,19 @@ async function split(req) {
                                          boardId: boardId,
                                          playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTableFirst,
-                                         bankId: bankId } }
+                                         bankId: bankId,
+                                         handIndex: 0 } }
             const resConfirm = await confirmPriv(reqConfirm)
             if (resConfirm.status === "error") return (resConfirm)
         }
-        if (totalCardsSecond >= numBlackJack) {  // Mirar cartas primer mazo
+        if (totalCardsSecond >= numBlackJack) {  // Mirar cartas segundo mazo
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
                                          boardId: boardId,
                                          playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTableSecond,
-                                         bankId: bankId } }
+                                         bankId: bankId,
+                                         handIndex: 1 } }
             const resConfirm = await confirmPriv(reqConfirm)
             if (resConfirm.status === "error") return (resConfirm)
         }
@@ -1196,7 +1212,7 @@ async function split(req) {
 
 // Función para plantarse
 async function stick(req) {
-    // Parámetros requeridos: userId, boardId, typeBoardName, bankId, cardsOnTable
+    // Parámetros requeridos: userId, boardId, typeBoardName, bankId, cardsOnTable, handIndex
     try {
 
         // Id del usuario peticion
@@ -1233,7 +1249,8 @@ async function stick(req) {
                              boardId: boardId,
                              playerIndex: playerIndex,
                              cardsOnTable: req.body.cardsOnTable,
-                             bankId: bankId } }
+                             bankId: bankId,
+                             handIndex: req.body.handIndex } }
         const resConfirm = await confirmPriv(reqConfirm)
         if (resConfirm.status === "error") return (resConfirm)
     

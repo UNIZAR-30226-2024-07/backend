@@ -752,7 +752,7 @@ const leaveBoard = async (req, res) => {
 }
 
 async function plays(req) {
-    // Parámetos en req.body: userId, boardId, cardsOnTable, playName
+    // Parámetos en req.body: userId, boardId, cardsOnTable, playName, handIndex (menos split)
     const userId = req.body.userId
     const boardId = req.body.boardId
     const cardsOnTable = req.body.cardsOnTable
@@ -774,11 +774,13 @@ async function plays(req) {
         if (playName === "double") {
             resAux = await BankController.double({body: {userId: userId, boardId: boardId,
                                                         players: board.players, typeBoardName: 'private', 
-                                                        bankId: board.bank, cardsOnTable: cardsOnTable}})
+                                                        bankId: board.bank, cardsOnTable: cardsOnTable, 
+                                                        handIndex: req.body.handIndex}})
         } else if (playName === "drawCard") {
             resAux = await BankController.drawCard({body: {userId: userId, boardId: boardId,
                                                     players: board.players, typeBoardName: 'private', 
-                                                    bankId: board.bank, cardsOnTable: cardsOnTable}})
+                                                    bankId: board.bank, cardsOnTable: cardsOnTable,
+                                                    handIndex: req.body.handIndex}})
         } else if (playName === "split") {
             resAux = await BankController.split({body: {userId: userId, boardId: boardId,
                                                 players: board.players, typeBoardName: 'private', 
@@ -786,7 +788,8 @@ async function plays(req) {
         } else if (playName === "stick") {
             resAux = await BankController.stick({body: {userId: userId, boardId: boardId,
                                                 players: board.players, typeBoardName: 'private', 
-                                                bankId: board.bank, cardsOnTable: cardsOnTable}})
+                                                bankId: board.bank, cardsOnTable: cardsOnTable,
+                                                handIndex: req.body.handIndex}})
         } else {
             return ({
                 status: "error",
@@ -805,7 +808,7 @@ async function plays(req) {
 
 // Función para pedir una carta
 const drawCard = async (req, res) => {
-    // Parámetros en req.body: boardId, cardsOnTable
+    // Parámetros en req.body: boardId, cardsOnTable, handIndex
     const userId = req.user.id   // Id del usuario peticion
     const boardId = req.body.boardId
     const cardsOnTable = req.body.cardsOnTable
@@ -813,7 +816,9 @@ const drawCard = async (req, res) => {
 
     try {
         // Se llama a la función del bank
-        resAux = await plays({body: {userId: userId, boardId: boardId, cardsOnTable: cardsOnTable, playName: "drawCard"}})
+        resAux = await plays({body: {userId: userId, boardId: boardId, 
+                                     cardsOnTable: cardsOnTable, playName: "drawCard", 
+                                     handIndex: req.body.handIndex }})
         
         if (resAux.status === "error") return res.status(400).json(resAux)
         else return res.status(200).json(resAux)
@@ -829,7 +834,7 @@ const drawCard = async (req, res) => {
 // Función para doblar
 // Pedirá una carta extra
 const double = async (req, res) => {
-    // Parámetros en req.body: userId, boardId, cardsOnTable
+    // Parámetros en req.body: userId, boardId, cardsOnTable, handIndex
     const userId = req.user.id   // Id del usuario peticion
     const boardId = req.body.boardId
     const cardsOnTable = req.body.cardsOnTable
@@ -837,7 +842,9 @@ const double = async (req, res) => {
 
     try {
         // Se llama a la función del bank
-        resAux = await plays({body: {userId: userId, boardId: boardId, cardsOnTable: cardsOnTable, playName: "double"}})
+        resAux = await plays({body: {userId: userId, boardId: boardId, 
+                                     cardsOnTable: cardsOnTable, playName: "double", 
+                                     handIndex: req.body.handIndex}})
         
         if (resAux.status === "error") return res.status(400).json(resAux)
         else return res.status(200).json(resAux)
@@ -876,7 +883,7 @@ const split = async (req, res) => {
 
 // Función para plantarse
 const stick = async(req, res) => {
-    // Parámetros en req.body: userId, boardId, cardsOnTable
+    // Parámetros en req.body: userId, boardId, cardsOnTable, handIndex
     const userId = req.user.id   // Id del usuario peticion
     const boardId = req.body.boardId
     const cardsOnTable = req.body.cardsOnTable
@@ -884,7 +891,9 @@ const stick = async(req, res) => {
 
     try {
         // Se llama a la función del bank
-        resAux = await plays({body: {userId: userId, boardId: boardId, cardsOnTable: cardsOnTable, playName: "stick"}})
+        resAux = await plays({body: {userId: userId, boardId: boardId, 
+                                     cardsOnTable: cardsOnTable, playName: "stick", 
+                                     handIndex: req.body.handIndex}})
         
         if (resAux.status === "error") return res.status(400).json(resAux)
         else return res.status(200).json(resAux)

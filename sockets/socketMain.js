@@ -23,7 +23,7 @@ function signalPublic() {
     mutexPublic = true
 }
 
-const segundos = 5
+const segundos = 20
 const periodo = 2
 
 // Espera hasta que todos los jugadores hayan enviado sus jugadas un máximo de
@@ -288,10 +288,13 @@ const Sockets = async (io) => {
                 io.to("public:" + boardId).emit("hand results", res.results)
 
                 // Se da tiempo a que visualicen los resultados de la mano
+                console.log('Damos tiempo ver resultados')//////////////////////////////////////////////////////////////////////
                 sleep(6000)
+                console.log('Sigue')////////////////////////////////////////////////////////////////////////////////////////////
+
 
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
-                console.log("resEndBoard: ", resEndBoard)
+                console.log("resEndBoard: ", resEndBoard)/////////////////////////////////////////////////////////////////////////
             }
 
             // Se elimina a los jugadores de la lista de jugadores esperando mesa
