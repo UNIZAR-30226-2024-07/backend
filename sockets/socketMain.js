@@ -229,10 +229,6 @@ const Sockets = async (io) => {
 
             // Si está lista, se notifica a los jugadores de la mesa
             io.to("public:" + boardId).emit("starting public board", boardId, initialCards)
-
-            // Se eliminan todos los sockets del room de la partida
-            // ELIMINAR
-            io.of("/").in("public:" + boardId).socketsLeave("public:" + boardId)
             
         } catch (e) {
             return console.error(e.message)
