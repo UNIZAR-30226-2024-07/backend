@@ -200,6 +200,7 @@ const Sockets = async (io) => {
     // Para los usuarios que quieren jugar en un torneo
     socket.on("enter public board", async (req) => {
         // Parámetros que debe haber en req.body: typeId, userId
+        console.log("El usuario " + req.body.userId + " ha mandado un evento 'enter public board")
 
         try {
             ////////////////////////////////////////////////////////////////////
