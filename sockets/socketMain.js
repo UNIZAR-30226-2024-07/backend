@@ -26,7 +26,7 @@ function signalPublic() {
 // Espera hasta que todos los jugadores hayan enviado sus jugadas un máximo de
 // 30 segundos. Devuelve 'success' si y solo si todos los jugadores han enviado
 // sus jugadas antes de los 30 segundos y 'error' en caso contrario
-async function turnTimeout(boardId, typeBoardName) {    
+async function turnTimeout(boardId, typeBoardName) {
     try {
         var res = { status: "error" }
         var iter = 30 / 5
@@ -68,7 +68,6 @@ async function turnTimeout(boardId, typeBoardName) {
 
 const Sockets = async (io) => {
     io.on("connection", async (socket) => {
-        console.log("Alguien se ha conectado con Socket.io al backend")
 
     ////////////////////////////////////////////////////////////////////////////
     // Partidas de torneo
@@ -201,7 +200,7 @@ const Sockets = async (io) => {
     // Para los usuarios que quieren jugar en un torneo
     socket.on("enter public board", async (req) => {
         // Parámetros que debe haber en req.body: typeId, userId
-        console.log(req)
+
         try {
             ////////////////////////////////////////////////////////////////////
             // wait(PublicMutex)
@@ -229,6 +228,10 @@ const Sockets = async (io) => {
 
             // Si está lista, se notifica a los jugadores de la mesa
             io.to("public:" + boardId).emit("starting public board", boardId, initialCards)
+
+            // Se eliminan todos los sockets del room de la partida
+            // ELIMINAR
+            io.of("/").in("public:" + boardId).socketsLeave("public:" + boardId)
             
         } catch (e) {
             return console.error(e.message)
@@ -289,6 +292,9 @@ const Sockets = async (io) => {
             await PublicBoardController.finishBoard({ body: { boardId: boardId }})
 
             io.to("public:" + boardId).emit("finish board")
+
+            // Se eliminan todos los sockets del room de la partida
+            io.of("/").in("public:" + boardId).socketsLeave("public:" + boardId);
 
         } catch (e) {
             return ({
