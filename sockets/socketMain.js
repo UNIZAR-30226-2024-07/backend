@@ -95,18 +95,8 @@ const Sockets = async (io) => {
             // signal(TournamentMutex)
             ////////////////////////////////////////////////////////////////////
 
-            // Generar primeras cartas del board para enviarlas
-            res = await TournamentBoardController.boardByIdFunction({ body: { boardId: boardId }})
-            if (res.status === "error") return res
-            const bankId = res.board.bank
-            const players = res.board.players
-
-            res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
-            if (res.status === "error") return res
-            const initialCards = res.initBoard
-
             // Si está lista, se notifica a los jugadores de la mesa
-            io.to("tournament:" + boardId).emit("starting tournament board", boardId, initialCards)
+            io.to("tournament:" + boardId).emit("starting tournament board", boardId)
                         
         } catch (e) {
             return console.error(e.message)
@@ -124,9 +114,19 @@ const Sockets = async (io) => {
             var resEndBoard = { status: "error" }
 
             while (resEndBoard.status === "error") {
+                // Generar primeras cartas del board para enviarlas
+                res = await TournamentBoardController.boardByIdFunction({ body: { boardId: boardId }})
+                if (res.status === "error") return res
+                const bankId = res.board.bank
+                const players = res.board.players
+
+                res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
+                if (res.status === "error") return res
+                const initialCards = res.initBoard
+
                 // Primero se envía un evento para que todos los jugadores hagan
                 // una jugada
-                io.to("tournament:" + boardId).emit("play hand")
+                io.to("tournament:" + boardId).emit("play hand", initialCards)
                 
                 // Se espera a que lleguen las jugadas
                 res = await turnTimeout(boardId)
@@ -150,6 +150,9 @@ const Sockets = async (io) => {
                 // eliminado usuarios por falta de vidas ya que eso se hace en
                 // TournamentBoardController.isEndOfGame
                 io.to("tournament:" + boardId).emit("hand results", res.results)
+
+                // Se da tiempo a que visualicen los resultados de la mano
+                sleep(6000)
 
                 resEndBoard = await TournamentBoardController.isEndOfGame(req)
             }
@@ -217,18 +220,9 @@ const Sockets = async (io) => {
             // signal(PublicMutex)
             ////////////////////////////////////////////////////////////////////
 
-            // Generar primeras cartas del board para enviarlas
-            res = await PublicBoardController.boardByIdFunction({ body: { boardId: boardId }})
-            if (res.status === "error") return res
-            const bankId = res.board.bank
-            const players = res.board.players
             
-            res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
-            if (res.status === "error") return res
-            const initialCards = res.initBoard
-
             // Si está lista, se notifica a los jugadores de la mesa
-            io.to("public:" + boardId).emit("starting public board", boardId, initialCards)
+            io.to("public:" + boardId).emit("starting public board", boardId)
             
         } catch (e) {
             return console.error(e.message)
@@ -246,9 +240,19 @@ const Sockets = async (io) => {
             var resEndBoard = { status: "error" }
 
             while (resEndBoard.status === "error") {
+                // Generar primeras cartas del board para enviarlas
+                res = await PublicBoardController.boardByIdFunction({ body: { boardId: boardId }})
+                if (res.status === "error") return res
+                const bankId = res.board.bank
+                const players = res.board.players
+
+                res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
+                if (res.status === "error") return res
+                const initialCards = res.initBoard
+    
                 // Primero se envía un evento para que todos los jugadores hagan
                 // una jugada
-                io.to("public:" + boardId).emit("play hand")
+                io.to("public:" + boardId).emit("play hand", initialCards)
                 
                 // Se espera a que lleguen las jugadas
                 res = await turnTimeout(boardId)
@@ -275,6 +279,9 @@ const Sockets = async (io) => {
                 }
 
                 io.to("public:" + boardId).emit("hand results", res.results)
+
+                // Se da tiempo a que visualicen los resultados de la mano
+                sleep(6000)
 
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
             }
@@ -367,16 +374,6 @@ const Sockets = async (io) => {
             // signal(PrivateMutex)
             ////////////////////////////////////////////////////////////////////
 
-            // Generar primeras cartas del board para enviarlas
-            res = await PrivateBoardController.boardByIdFunction({ body: { boardId: boardId }})
-            if (res.status === "error") return res
-            const bankId = res.board.bank
-            const players = res.board.players
-            
-            res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
-            if (res.status === "error") return res
-            const initialCards = res.initBoard
-
             // Si está lista, se notifica a los jugadores de la mesa
             io.to("private:" + boardId).emit("starting private board", boardId, initialCards)
             
@@ -396,9 +393,19 @@ const Sockets = async (io) => {
             var resEndBoard = { status: "error" }
 
             while (resEndBoard.status === "error") {
+                // Generar primeras cartas del board para enviarlas
+                res = await PrivateBoardController.boardByIdFunction({ body: { boardId: boardId }})
+                if (res.status === "error") return res
+                const bankId = res.board.bank
+                const players = res.board.players
+                
+                res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
+                if (res.status === "error") return res
+                const initialCards = res.initBoard
+
                 // Primero se envía un evento para que todos los jugadores hagan
                 // una jugada
-                io.to("private:" + boardId).emit("play hand")
+                io.to("private:" + boardId).emit("play hand", initialCards)
                 
                 // Se espera a que lleguen las jugadas
                 res = await turnTimeout(boardId)
@@ -425,6 +432,9 @@ const Sockets = async (io) => {
                 }
 
                 io.to("private:" + boardId).emit("hand results", res.results)
+
+                // Se da tiempo a que visualicen los resultados de la mano
+                sleep(6000)
 
                 resEndBoard = await PrivateBoardController.isEndOfGame(req)
             }
