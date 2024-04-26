@@ -692,7 +692,8 @@ const leaveBoard = async (req, res) => {
 }
 
 async function plays(req) {
-    // Parámetos en req.body: boardId, cardsOnTable, playName
+    // Parámetos en req.body: userId, boardId, cardsOnTable, playName
+    const userId = req.body.userId
     const boardId = req.body.boardId
     const cardsOnTable = req.body.cardsOnTable
     const playName = req.body.playName
@@ -701,9 +702,9 @@ async function plays(req) {
 
     try {
         // Se verifica que exista la mesa
-        const board = await PrivateBoard.findById(boardId)
+        const board = await TournamentBoard.findById(boardId)
         if (!board) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Mesa no encontrada"
             })
@@ -711,21 +712,23 @@ async function plays(req) {
 
         // Se llama a la función del bank
         if (playName === "drawCard") {
-            resAux = await BankController.drawCard({body: {bankId: board.bank, cardsOnTable: cardsOnTable}})
+            resAux = await BankController.drawCard({body: {userId: userId, boardId: boardId,
+                                                    players: board.players, typeBoardName: 'tournament', 
+                                                    bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else if (playName === "stick") {
-            resAux = await BankController.stick({body: {bankId: board.bank, cardsOnTable: cardsOnTable}})
+            resAux = await BankController.stick({body: {userId: userId, boardId: boardId,
+                                                players: board.players, typeBoardName: 'tournament', 
+                                                bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else {
-            return res.status(400).json({
+            return {
                 status: "error",
                 message: "Nombre de jugada no válido"
-            })
-        }
-        
-        if (resAux.status === "error") return res.status(400).json(resAux)
-        else return res.status(200).json(resAux)
+            }
+        } 
+        return (resAux)
 
     } catch (e) {
-        return res.status(404).json({
+        return ({
             status: "error",
             message: "Error al hacer la jugada " + playName + ". " + e.message
         })
@@ -734,14 +737,15 @@ async function plays(req) {
 
 // Función para pedir una carta
 const drawCard = async (req, res) => {
-    // Parámetros en req.body: boardId, cardsOnTable
+    // Parámetros en req.body: userId, boardId, cardsOnTable
+    const userId = req.user.id   // Id del usuario peticion
     const boardId = req.body.boardId
     const cardsOnTable = req.body.cardsOnTable
     var resAux
 
     try {
         // Se llama a la función del bank
-        resAux = await plays({body: {boardId: boardId, cardsOnTable: cardsOnTable, playName: "drawCard"}})
+        resAux = await plays({body: {userId: userId, boardId: boardId, cardsOnTable: cardsOnTable, playName: "drawCard"}})
         
         if (resAux.status === "error") return res.status(400).json(resAux)
         else return res.status(200).json(resAux)
@@ -756,14 +760,15 @@ const drawCard = async (req, res) => {
 
 // Función para plantarse
 const stick = async(req, res) => {
-    // Parámetros en req.body: boardId, cardsOnTable
+    // Parámetros en req.body: userId, boardId, cardsOnTable
+    const userId = req.user.id   // Id del usuario peticion
     const boardId = req.body.boardId
     const cardsOnTable = req.body.cardsOnTable
     var resAux
 
     try {
         // Se llama a la función del bank
-        resAux = await plays({body: {boardId: boardId, cardsOnTable: cardsOnTable, playName: "stick"}})
+        resAux = await plays({body: {userId: userId, boardId: boardId, cardsOnTable: cardsOnTable, playName: "stick"}})
         
         if (resAux.status === "error") return res.status(400).json(resAux)
         else return res.status(200).json(resAux)
