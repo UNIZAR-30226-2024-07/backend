@@ -23,17 +23,20 @@ function signalPublic() {
     mutexPublic = true
 }
 
+const segundos = 5
+const periodo = 2
+
 // Espera hasta que todos los jugadores hayan enviado sus jugadas un máximo de
 // 30 segundos. Devuelve 'success' si y solo si todos los jugadores han enviado
 // sus jugadas antes de los 30 segundos y 'error' en caso contrario
 async function turnTimeout(boardId, typeBoardName) {
     try {
         var res = { status: "error" }
-        var iter = 30 / 5
+        var iter = segundos / periodo
         var i = 0
 
         while (res.status === "error" && i < iter) {
-            await sleep(5000) // 5 segundos
+            await sleep(periodo * 1000) // 5 segundos
             if (typeBoardName === "tournament") {
                 res = await TournamentBoardController.allPlayersPlayed({ body: { boardId: boardId }})
             } else if (typeBoardName === "public") {
@@ -107,6 +110,7 @@ const Sockets = async (io) => {
     // eventos que permitan jugar la partida
     socket.on("players tournament ready", async (req) => {
         // Parámetros en body: boardId
+        if (!req.body.boardId) return console.log("Se requiere de body.boardId")
         const boardId = req.body.boardId
 
         try {
@@ -203,7 +207,7 @@ const Sockets = async (io) => {
     // Para los usuarios que quieren jugar en un torneo
     socket.on("enter public board", async (req) => {
         // Parámetros que debe haber en req.body: typeId, userId
-        console.log("El usuario " + req.body.userId + " ha mandado un evento 'enter public board")
+        console.log("El usuario " + req.body.userId + " ha mandado un evento 'enter public board'")
 
         try {
             ////////////////////////////////////////////////////////////////////
@@ -233,6 +237,7 @@ const Sockets = async (io) => {
     // eventos que permitan jugar la partida
     socket.on("players public ready", async (req) => {
         // Parámetros en body: boardId
+        if (!req.body.boardId) return console.log("Se requiere de body.boardId")
         const boardId = req.body.boardId
 
         try {
@@ -255,13 +260,15 @@ const Sockets = async (io) => {
                 io.to("public:" + boardId).emit("play hand", initialCards)
                 
                 // Se espera a que lleguen las jugadas
+                console.log("Entro al timeout de 30 segundos")
                 res = await turnTimeout(boardId)
+                console.log("Salgo del timeout de 30 segundos")
 
                 if (res.status === "error") {
                     // Si se agotó el tiempo y no todos mandaron su jugada, se
                     // apunta
-                    res = await PublicBoardController.seeAbsents({ body: { board: res.board }})
-                    if (res.status === "error") return res
+                    res = await PublicBoardController.seeAbsents({ body: { boardId: boardId }})
+                    if (res.status === "error") return console.error(res)
 
                     if (res.playersToDelete.length > 0) {
                         io.to("public:" + boardId).emit("players deleted", res.playersToDelete)
@@ -270,7 +277,7 @@ const Sockets = async (io) => {
 
                 // Se realizan las acciones correspondientes al fin de mano
                 res = await PublicBoardController.manageHand({ body: { boardId: boardId }})
-                if (res.status === "error") return res
+                if (res.status === "error") return console.error(res)
 
                 // Se verifica si algún usuario fue expulsado, y en caso afirmativo
                 // se notifica
@@ -284,6 +291,7 @@ const Sockets = async (io) => {
                 sleep(6000)
 
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
+                console.log("resEndBoard: ", resEndBoard)
             }
 
             // Se elimina a los jugadores de la lista de jugadores esperando mesa
@@ -386,6 +394,7 @@ const Sockets = async (io) => {
     // eventos que permitan jugar la partida
     socket.on("players private ready", async (req) => {
         // Parámetros en body: boardId
+        if (!req.body.boardId) return console.log("Se requiere de body.boardId")
         const boardId = req.body.boardId
 
         try {
