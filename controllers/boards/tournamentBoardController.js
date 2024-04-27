@@ -173,8 +173,7 @@ async function add (req) {
         }
 
         // Se crea la banca
-        const req = { body: { level: tournament.bankLevel,
-                              numPlayers: numPlayers } }
+        const req = { body: { level: tournament.bankLevel } }
         var res = await BankController.add(req)
 
         if (res.status === "error") return res
@@ -555,7 +554,6 @@ async function manageHand(req) {
 
         // Se piden los resultados de la mano actual a la banca
         var res = await BankController.results({ body: {bankId: board.bank, 
-                                                 players: board.players,
                                                  typeBoardName: 'tournament', 
                                                  bet: 0}})
         if (res.status === "error") return res
@@ -713,12 +711,12 @@ async function plays(req) {
         // Se llama a la función del bank
         if (playName === "drawCard") {
             resAux = await BankController.drawCard({body: {userId: userId, boardId: boardId,
-                                                    players: board.players, typeBoardName: 'tournament', 
+                                                    typeBoardName: 'tournament', 
                                                     bankId: board.bank, cardsOnTable: cardsOnTable,
                                                     handIndex: req.body.handIndex}})
         } else if (playName === "stick") {
             resAux = await BankController.stick({body: {userId: userId, boardId: boardId,
-                                                players: board.players, typeBoardName: 'tournament', 
+                                                typeBoardName: 'tournament', 
                                                 bankId: board.bank, cardsOnTable: cardsOnTable,
                                                 handIndex: req.body.handIndex}})
         } else {

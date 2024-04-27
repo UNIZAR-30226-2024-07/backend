@@ -11,14 +11,23 @@ const bankSchema = Schema({
         type: String,
         required: true,
     },
-    // Mazo de cartas de la banca
-    // Cada subgrupo en maze es un montón de cartas. Uno por jugador, y el último la banca.
-    maze: [[{
-        value: String,
-        suit: String
-    }]],
+    // Mazo de cartas. Uno por jugador
+    maze: [{
+        playerId: {
+            type: Schema.ObjectId,
+            ref: "User"
+        },
+        cards: [{
+            value: String,
+            suit: String
+        }]
+    }],
     // Jugadas de cada jugador
     playersHands: [{
+        playerId: {
+            type: Schema.ObjectId,
+            ref: "User"
+        },
         split: {   // Cada jugador si ha hecho split o no
             type: Boolean,
             default: false
@@ -33,6 +42,14 @@ const bankSchema = Schema({
             value: String,
             suit: String
         }]]
+    }],
+    bankMaze: [{  // Baraja de la banca
+        value: String,
+        suit: String
+    }],
+    bankHand: [{   // Mano de la banca
+        value: String,
+        suit: String
     }]
 }, {timestamps: true})
 

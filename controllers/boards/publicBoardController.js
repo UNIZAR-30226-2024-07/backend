@@ -59,8 +59,7 @@ async function add (req) {
 
         // Se crea la banca
         let resAddBank
-        const req = { body: { level: publicBoardType.bankLevel,
-                              numPlayers: publicBoardType.numPlayers } }
+        const req = { body: { level: publicBoardType.bankLevel } }
         resAddBank = await BankController.add(req)
 
         if (resAddBank.status !== "success") {
@@ -521,7 +520,6 @@ async function manageHand(req) {
 
         // Se piden los resultados de la mano actual a la banca
         var res = await BankController.results({ body: {bankId: board.bank, 
-                                                 players: board.players,
                                                  typeBoardName: 'public', 
                                                  bet: board.bet}})
         if (res.status === "error") return res
@@ -571,9 +569,6 @@ async function manageHand(req) {
 
         // Se guarda la mesa con las monedas ganadas de cada jugador
         await board.save()
-
-        await BankController.resetBank({body: {bankId: board.bank, 
-            numPlayers: board.players.length}})
 
         // Se devuelven los resultados de la banca en el campo results
         return ({
@@ -779,21 +774,21 @@ async function plays(req) {
         // Se llama a la función del bank
         if (playName === "double") {
             resAux = await BankController.double({body: {userId: userId, boardId: boardId,
-                                                players: board.players, typeBoardName: 'public', 
+                                                typeBoardName: 'public', 
                                                 bankId: board.bank, cardsOnTable: cardsOnTable,
                                                 handIndex: req.body.handIndex}})
         } else if (playName === "drawCard") {
             resAux = await BankController.drawCard({body: {userId: userId, boardId: boardId,
-                                                    players: board.players, typeBoardName: 'public', 
+                                                    typeBoardName: 'public', 
                                                     bankId: board.bank, cardsOnTable: cardsOnTable,
                                                     handIndex: req.body.handIndex}})
         } else if (playName === "split") {
             resAux = await BankController.split({body: {userId: userId, boardId: boardId,
-                                                players: board.players, typeBoardName: 'public', 
+                                                typeBoardName: 'public', 
                                                 bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else if (playName === "stick") {
             resAux = await BankController.stick({body: {userId: userId, boardId: boardId,
-                                                players: board.players, typeBoardName: 'public', 
+                                                typeBoardName: 'public', 
                                                 bankId: board.bank, cardsOnTable: cardsOnTable,
                                                 handIndex: req.body.handIndex}})
         } else {

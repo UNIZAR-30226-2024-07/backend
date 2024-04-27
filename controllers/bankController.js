@@ -99,10 +99,11 @@ function shuffle(array) {
 
 // Barajea las cartas y pone en el bank tantos mazos como personas haya jugando
 async function collectCards(req) {
-    // Parámetros body: bankId, numPlayers
+    // Parámetros body: bankId, players
     try {
         const bankId = req.body.bankId
-        const numPlayers = req.body.numPlayers
+        const players = req.body.players
+        const numPlayers = players.length + 1
 
         const totalMaze = [...cards, ...cards]
 
@@ -110,29 +111,54 @@ async function collectCards(req) {
         const shuffledCards = shuffle(totalMaze);
 
         const cartasPorJugador = Math.floor(shuffledCards.length / numPlayers);
-        const maze = [];
-        // Dividir las cartas en mazos según el número de jugadores
+        const maze = [{
+            playerId: {
+                type: Schema.ObjectId,
+                ref: "User"
+            },
+            cards: [{
+                value: String,
+                suit: String
+            }]
+        }];
+        const bankMaze = []
+        // Dividir las cartas en mazos según el número de jugadores (numJugadores + banca)
         for (let i = 0; i < numPlayers; i++) {
             // Obtener las cartas para el mazo actual
             const inicio = i * cartasPorJugador;
             const fin = (i + 1) * cartasPorJugador;
-            const mazo = shuffledCards.slice(inicio, fin);
             
             // Agregar el mazo al arreglo de mazos
-            maze.push(mazo);
-        }
+            // Si no es el último jugador (banca)
+            if (i !== numPlayers - 1) {
+                // Agregar mazo jugador
+                const mazo = {
+                    playerId: players[i].player,
+                    cards: shuffledCards.slice(inicio, fin)
+                }
+                maze.push(mazo);
 
-        // Si hay cartas restantes, distribúyelas entre los mazos existentes
-        if (shuffledCards.length % numPlayers !== 0) {
-            let cartaRestanteIndex = cartasPorJugador * numPlayers;
-            for (let i = 0; i < shuffledCards.length % numPlayers; i++) {
-                maze[i].push(shuffledCards[cartaRestanteIndex]);
-                cartaRestanteIndex++;
+                // Si es la banca, agregar a banca
+            } else {
+                bankMaze.push(shuffledCards.slice(inicio, fin))
             }
         }
 
-        // Actualizar la banca. Poner los mazos
-        const newBank = await Bank.findByIdAndUpdate(bankId, { maze: maze }, { new: true });
+        // Resetear los playersHands
+        const playersHands = []
+        for (const player of players) {
+            const playerHand =  {
+                playerId: player.player,
+                split: false,
+                double: false,
+                hands: [[],[]],
+            }
+            playersHands.push(playerHand)
+        }
+
+        // Actualizar la banca. Poner mazos y resetear manos
+        const newBank = await Bank.findByIdAndUpdate(bankId, { maze: maze }, {bankMaze: bankMaze},
+                                                   {playersHands: playersHands}, {bankHand: []}, { new: true });
         if (!newBank) {
             return {
                 status: "error",
@@ -147,7 +173,7 @@ async function collectCards(req) {
     } catch (error) {
         return {
             status: "error",
-            message: error.message
+            message: "Error en collectCards: " + error.message
         }
     }
 }
@@ -183,10 +209,9 @@ function valueCards(cardsOnTable) {
 // de jugadores confirmados (al menos que sea la seguna mano)
 async function confirmPriv(req) {
 
-    // Parámetros: userId, typeBoardName, boardId, playerIndex, cardsOnTable, bankId, handIndex
+    // Parámetros: userId, typeBoardName, boardId, cardsOnTable, bankId, handIndex
     try {
         const userId = req.body.userId
-        const playerIndex = req.body.playerIndex
         const cardsOnTable = req.body.cardsOnTable // Cartas que quiere confirmar
         const bankId = req.body.bankId
         const handIndex = req.body.handIndex
@@ -200,6 +225,9 @@ async function confirmPriv(req) {
             })
         }
 
+        // Obtener indice de playersHands
+        const playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
+
         if (bank.playersHands[playerIndex].split && bank.playersHands[playerIndex].hands.length === numCardsSplit ||
             !bank.playersHands[playerIndex].split && bank.playersHands[playerIndex].hands.length === numCardsSplit - 1) {
             return ({
@@ -211,7 +239,7 @@ async function confirmPriv(req) {
         const playerHands = bank.playersHands[playerIndex]
         playerHands.hands[handIndex] = cardsOnTable
         bank.playersHands[playerIndex] = playerHands
-        await bank.save(bank.playerHands)
+        await bank.save()
         
         // Si no ha hecho split, jugador confirmado
         // Si ha hecho split y es la segunda jugada, jugador confirmado
@@ -340,7 +368,6 @@ async function correctName(req) {
 // Añadir banca
 async function add(req) {
     const level = req.body.level
-    const numPlayers = req.body.numPlayers
     
     try {
         if (level !== 'beginner' && level !== 'medium' && level !== 'expert') {
@@ -350,29 +377,8 @@ async function add(req) {
             })
         }
 
-        // Inicializar vector de "jugadas"
-        // Última componente la banca
-        // Cada componenete contiene:
-        //    split: si el jugador ha hecho split
-        //    double: si el jugador ha hecho double
-        //    cards: un vector de "jugadas" que ha hecho el jugador
-        const playersHands = []
-        for (let i = 0; i < numPlayers; i++) {
-            playersHands.push({
-                split: false,
-                double: false,
-                hands: [[],[]]
-            })
-        }
-        // Banca
-        playersHands.push({
-            split: false,
-            double: false,
-            hands: []
-        })
-
         // Crear banca
-        const newBank = await Bank.create({ level: level, playersHands: playersHands })
+        const newBank = await Bank.create({ level: level })
         if (!newBank) {
             return ({
                 status: "error",
@@ -380,15 +386,10 @@ async function add(req) {
             })
         }
 
-        // Crear mazos. Numero de mazos: numJugadores + 1 (el último para la banca)
-        const reqCollectCards = { body: { bankId: newBank._id, numPlayers: numPlayers + 1 } }
-        var resCollectCards = await collectCards(reqCollectCards)
-        if (resCollectCards.status !== "success") return resCollectCards
-
         return ({
             status: "success",
             message: "Banca creada correctamente",
-            bank: resCollectCards.bank
+            bank: newBank
         })
     
     } catch (e) {
@@ -463,75 +464,30 @@ async function eliminatePlayersHands(req) {
     }
 }
 
-// Resetea los valores de la banca
-// Resetea los valores de playersHands
-// Hace un collectCards
-async function resetBank(req) {
-    // Parámetros: bankId, numPlayers
-    try {
-        const bankId = req.body.bankId
-        const numPlayers = req.body.numPlayers
-
-        // Obtener la banca
-        const bank = await Bank.findById(bankId)
-        if (!bank) {
-            return ({
-                status: "error",
-                message: "No se ha encontrado una banca con dicho id"
-            })
-        }
-        // Resetear los playersHands
-        bank.playersHands.forEach(player => {
-            player.split = false;
-            player.double = false;
-            player.hands = [];
-        });
-        await bank.save()
-
-        // Collect cards (numplayers + 1 porque el último mazo es de la banca)
-        const reqCollectCards = { body: { bankId: bankId, numPlayers: numPlayers + 1 } }
-        var resCollectCards = await collectCards(reqCollectCards)
-        if (resCollectCards.status !== "success") return resCollectCards
-
-        return({
-            status: "success",
-            message: "Banca reseteada correctamente",
-            bank: resCollectCards.bank
-        })
-    } catch (error) {
-        return {
-            status: "error",
-            message: "Error al resetear la banca"
-        };
-    }
-
-}
-
 // Inicializar la partida
 async function initBoard(req) {
     // Parámetros: bankId, players
     try {
         const bankId = req.body.bankId
         const players = req.body.players
-        const bankIndex = players.length
+
+        // Iniciar mazos y manos de jugadores y banca
+        const reqCollectCards = { body: { bankId: bankId, players: players } }
+        var resCollectCards = await collectCards(reqCollectCards)
+        if (resCollectCards.status !== "success") return resCollectCards
 
         // Obtener la banca
-        const bank = await Bank.findById(bankId)
-        if (!bank) {
-            return ({
-                status: "error",
-                message: "No se ha encontrado una banca con dicho id"
-            })
-        }
+        const bank = resCollectCards.bank
 
         const initBoard = [];
-        let index = 0
         let drawCard
         let cards
         // Sacar dos cartas por cada jugador del board
         for (const player of players) {
+            // Obtener indice jugador en maze
+            const index = bank.maze.findIndex(m => m.playerId.equals(player.player));
             cards = []
-            const playerMaze = bank.maze[index];
+            const playerMaze = bank.maze[index].cards;
             if (playerMaze.length === 0) {
                 return ({
                     status: "error",
@@ -544,7 +500,7 @@ async function initBoard(req) {
                 cards.push(drawCard)
             }
             const totalPlayerCards = valueCards(cards)
-            bank.maze[index] = playerMaze;  // Guardar cambios en baraja
+            bank.maze[index].cards = playerMaze;  // Guardar cambios en baraja
 
             const playerObject = {
                 userId: player.player,
@@ -553,12 +509,11 @@ async function initBoard(req) {
                 blackJack: totalPlayerCards === 21
             }
             initBoard.push(playerObject);
-            index = index + 1
         }
 
         // Sacar una carta de la banca
         cards = []
-        const bankMaze = bank.maze[bankIndex];
+        const bankMaze = bank.bankMaze
         if (bankMaze.length === 0) {
             return ({
                 status: "error",
@@ -568,7 +523,7 @@ async function initBoard(req) {
         // Obtener una carta de la banca
         drawCard = bankMaze.shift();
         cards.push(drawCard)
-        bank.maze[bankIndex] = bankMaze;
+        bank.bankMaze = bankMaze;
         const totalBankCards = valueCards(cards)
         const bankObject = {
             userId: "Board",
@@ -578,8 +533,8 @@ async function initBoard(req) {
         }
         initBoard.push(bankObject);
 
-        // Guardarlo en playersHands de la banca
-        bank.playersHands[bankIndex].hands.push(cards)
+        // Guardar bankHand
+        bank.bankHand = cards
         await bank.save();
         
         return({
@@ -590,7 +545,7 @@ async function initBoard(req) {
     } catch (error) {
         return {
             status: "error",
-            message: "Error al obtener los resultados. " + error.message
+            message: "Error al hacer initBoard. " + error.message
         };
     }
 }
@@ -709,11 +664,9 @@ function calcularLoseLife(totalesJugador, blackJacksJugador,
 // Genera los resultados
 // Pre: Tiene que haber una respuesta de todos los jugadores que estén en players
 async function results(req) {
-    // Parámetros: bankId, players, typeBoardName, bet
+    // Parámetros: bankId, typeBoardName, bet
     try {
         const bankId = req.body.bankId
-        const players = req.body.players
-        const bankIndex = players.length
         const typeBoardName = req.body.typeBoardName
         const bet = req.body.bet
 
@@ -728,7 +681,7 @@ async function results(req) {
 
         // Generar un vector con el total de las cartas de todos los jugadores y si han sido blackJack
         let totalCardsAllPlayers = []
-        for (let i = 0; i < players.length; i++) {
+        for (let i = 0; i < bank.playersHands.length; i++) {
             // Ingresar total cartas por jugador
             for (let j = 0; j < bank.playersHands[i].hands.length; j++) {
                 // Ingresar el total por mano jugada
@@ -737,9 +690,9 @@ async function results(req) {
         }
 
         // Banca realiza su jugada
-        let cardsBank = bank.playersHands[bankIndex].hands[0]
+        let cardsBank = bank.bankHand
         let totalBank = 0
-        let bankMaze = bank.maze[bankIndex]
+        let bankMaze = bank.bankMaze
         if (bankMaze.length === 0) {
             return ({
                 status: "error",
@@ -785,13 +738,11 @@ async function results(req) {
                 }
         }
 
-        const results = []    // Vector de resultados
-        let index = 0         // Indice de resultados
-        
+        const results = []    // Vector de resultados        
         // Crear una respuesta por jugador 
         // Iterar todos los jugadores de la partida
-        for (const player of players) {
-            const user = await User.findById(player.player);
+        for (const player of bank.playersHands) {
+            const user = await User.findById(player.playerId);
             if (!user) {
                 return {
                     status: "error",
@@ -799,7 +750,7 @@ async function results(req) {
                 }
             }
             // Manos del jugador que se quiere generar respuesta
-            const playerHands = bank.playersHands[index].hands
+            const playerHands = player.hands
 
             // Si ha sido blackJack la banca
             let blackJackBank = (totalBank === 21 && cardsBank.length === 2)
@@ -820,7 +771,7 @@ async function results(req) {
                                                         totalCardsAllPlayers, 
                                                         totalBank, blackJackBank, bet)
                 const playerObject = {
-                    userId: player.player,   // Id del usuario
+                    userId: player.playerId,   // Id del usuario
                     userNick: user.nick,     // Nick del usuario
                     // En torneo solo hay una mano
                     cards: playerHands[0],   // [ cards ]  
@@ -836,7 +787,7 @@ async function results(req) {
                                                         totalBank, blackJackBank, bet)
 
                 const playerObject = {
-                    userId: player.player,   // Id del usuario
+                    userId: player.playerId,   // Id del usuario
                     userNick: user.nick,     // Nick del usuario
                     // En public / private puede haber 1 o 2 manos
                     cards: playerHands,      // [[ cards ]]
@@ -845,7 +796,6 @@ async function results(req) {
                 }
                 results.push(playerObject)
             }  
-            index = index + 1
         }
 
         // Introducir en resultados respuesta banca
@@ -858,7 +808,7 @@ async function results(req) {
         results.push(bankObject)
         return({
             status: "success",
-            message: "Banca reseteada correctamente",
+            message: "Resultados obtenidos correctamente",
             results
         })
     } catch (error) {
@@ -873,9 +823,8 @@ async function results(req) {
 
 // Función para pedir una carta
 async function drawCard(req) {
-    // Parámetros requeridos: userId, boardId, players, typeBoardName, bankId, cardsOnTable, handIndex
+    // Parámetros requeridos: userId, boardId, typeBoardName, bankId, cardsOnTable, handIndex
     try {
-
         // Id del usuario peticion
         const userId = req.body.userId
 
@@ -884,7 +833,6 @@ async function drawCard(req) {
 
         // Info board
         const boardId = req.body.boardId
-        const players = req.body.players
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
@@ -902,14 +850,14 @@ async function drawCard(req) {
         }
 
         // Obtener el mazo correspondiente al jugador
-        const playerIndex = players.findIndex(player => player.player == userId);
+        const playerIndex = bank.maze.findIndex(m => m.playerId == userId);
         if (playerIndex === -1) {
             return ({
                 status: "error",
                 message: "El jugador no está en el vector de jugadores de la partida"
             })
         }
-        const playerMaze = bank.maze[playerIndex];
+        const playerMaze = bank.maze[playerIndex].cards;
         if (playerMaze.length === 0) {
             return ({
                 status: "error",
@@ -920,7 +868,7 @@ async function drawCard(req) {
         // Tomar la primera carta del mazo del jugador
         const drawCard = playerMaze.shift();
         // Actualizar el mazo del jugador en el tablero
-        bank.maze[playerIndex] = playerMaze;
+        bank.maze[playerIndex].cards = playerMaze;
         // Guardar el tablero actualizado en la base de datos
         await bank.save();
 
@@ -943,7 +891,6 @@ async function drawCard(req) {
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
                                          boardId: boardId,
-                                         playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTable,
                                          bankId: bankId,
                                          handIndex: req.body.handIndex } }
@@ -961,7 +908,6 @@ async function drawCard(req) {
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
                                          boardId: boardId,
-                                         playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTable,
                                          bankId: bankId,
                                          handIndex: req.body.handIndex } }
@@ -988,7 +934,7 @@ async function drawCard(req) {
 // Función para doblar
 // Pedirá una carta extra
 async function double(req) {
-    // Parámetros requeridos: userId, boardId, players, typeBoardName, bankId, cardsOnTable, handIndex
+    // Parámetros requeridos: userId, boardId, typeBoardName, bankId, cardsOnTable, handIndex
     try {
 
         // Id del usuario peticion
@@ -996,7 +942,6 @@ async function double(req) {
 
         // Info board
         const boardId = req.body.boardId
-        const players = req.body.players
 
         // Error. No se puede hacer double en un tournament
         if (req.body.typeBoardName === "tournament") {
@@ -1034,14 +979,14 @@ async function double(req) {
         }
 
         // Obtener el mazo correspondiente al jugador
-        const playerIndex = players.findIndex(player => player.player == userId);
+        const playerIndex = bank.maze.findIndex(m => m.playerId == userId);
         if (playerIndex === -1) {
             return ({
                 status: "error",
                 message: "El jugador no está en el vector de jugadores de la partida"
             })
         }
-        const playerMaze = bank.maze[playerIndex];
+        const playerMaze = bank.maze[playerIndex].cards;
         if (playerMaze.length === 0) {
             return ({
                 status: "error",
@@ -1052,9 +997,11 @@ async function double(req) {
         // Tomar la primera carta del mazo del jugador
         const drawCard = playerMaze.shift();
         // Actualizar el mazo del jugador en el tablero
-        bank.maze[playerIndex] = playerMaze
+        bank.maze[playerIndex].cards = playerMaze
+
         // Indica que ha hecho double
-        bank.playersHands[playerIndex].double = true
+        const playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
+        bank.playersHands[playerIndexHand].double = true
         // Guardar el tablero actualizado en la base de datos
         await bank.save();
 
@@ -1066,7 +1013,6 @@ async function double(req) {
         const reqConfirm = { body: { userId: userId,
                              typeBoardName: req.body.typeBoardName,
                              boardId: boardId,
-                             playerIndex: playerIndex,
                              cardsOnTable: cardsOnTable,
                              bankId: bankId,
                              handIndex: req.body.handIndex } }
@@ -1098,7 +1044,6 @@ async function split(req) {
 
         // Info board
         const boardId = req.body.boardId
-        const players = req.body.players
 
         // Cartas del jugador
         const cardsOnTable = req.body.cardsOnTable
@@ -1134,14 +1079,14 @@ async function split(req) {
         }
 
         // Obtener el mazo correspondiente al jugador
-        const playerIndex = players.findIndex(player => player.player == userId);
+        const playerIndex = bank.maze.findIndex(m => m.playerId == userId);
         if (playerIndex === -1) {
             return ({
                 status: "error",
                 message: "El jugador no está en el vector de jugadores de la partida"
             })
         }
-        const playerMaze = bank.maze[playerIndex];
+        const playerMaze = bank.maze[playerIndex].cards;
         if (playerMaze.length === 0) {
             return ({
                 status: "error",
@@ -1153,9 +1098,11 @@ async function split(req) {
         const drawCardFirst = playerMaze.shift();
         const drawCardSecond = playerMaze.shift();
         // Actualizar el mazo del jugador en el tablero
-        bank.maze[playerIndex] = playerMaze;
+        bank.maze[playerIndex].cards = playerMaze;
+
         // Indica que ha hecho split
-        bank.playersHands[playerIndex].split = true
+        const playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
+        bank.playersHands[playerIndexHand].split = true
         // Guardar el tablero actualizado en la base de datos
         await bank.save();
 
@@ -1170,7 +1117,6 @@ async function split(req) {
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
                                          boardId: boardId,
-                                         playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTableFirst,
                                          bankId: bankId,
                                          handIndex: 0 } }
@@ -1181,7 +1127,6 @@ async function split(req) {
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
                                          boardId: boardId,
-                                         playerIndex: playerIndex,
                                          cardsOnTable: cardsOnTableSecond,
                                          bankId: bankId,
                                          handIndex: 1 } }
@@ -1220,34 +1165,14 @@ async function stick(req) {
 
         // Info board
         const boardId = req.body.boardId
-        const players = req.body.players
 
         // Obtener id de la banca
         const bankId = req.body.bankId
-
-        // Obtener la banca
-        const bank = await Bank.findById(bankId)
-        if (!bank) {
-            return ({
-                status: "error",
-                message: "No se ha encontrado una banca con dicho id"
-            })
-        }
-
-        // Obtener el indice del jugador
-        const playerIndex = players.findIndex(player => player.player == userId);
-        if (playerIndex === -1) {
-            return ({
-                status: "error",
-                message: "El jugador no está en el vector de jugadores de la partida"
-            })
-        }
 
         // Realizar confirmación de las cartas
         const reqConfirm = { body: { userId: userId,
                              typeBoardName: req.body.typeBoardName,
                              boardId: boardId,
-                             playerIndex: playerIndex,
                              cardsOnTable: req.body.cardsOnTable,
                              bankId: bankId,
                              handIndex: req.body.handIndex } }
@@ -1276,7 +1201,6 @@ module.exports = {
     eliminate,
     eliminatePlayersHands,
     initBoard,
-    resetBank,
     results,
     drawCard,
     double,

@@ -323,8 +323,7 @@ async function addTournamentBoardFunction(req) {
         }
 
         // Se crea la banca
-        const req = { body: { level: tournament.bankLevel,
-                              numPlayers: numPlayers } }
+        const req = { body: { level: tournament.bankLevel } }
         var res = await BankController.add(req)
 
         if (res.status === "error") return res
@@ -371,8 +370,7 @@ async function addPublicBoardFunction(req) {
 
         // Se crea la banca
         let resAddBank
-        const req = { body: { level: publicBoardType.bankLevel,
-                              numPlayers: publicBoardType.numPlayers } }
+        const req = { body: { level: publicBoardType.bankLevel } }
         resAddBank = await BankController.add(req)
 
         if (resAddBank.status !== "success") {
@@ -458,8 +456,7 @@ async function addPrivateBoardFunction(req) {
 
         // Se crea la banca
         var resAddBank
-        const reqAddBank = { body: { level: bankLevel,
-                             numPlayers: numPlayers } }
+        const reqAddBank = { body: { level: bankLevel } }
         resAddBank = await BankController.add(reqAddBank)
         if (resAddBank.status !== "success") {
             return ({
