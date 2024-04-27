@@ -156,11 +156,6 @@ async function eliminatePlayers(req) {
             { $pull: { 'players': { 'player': { $in: playersToDelete } } } }
         )
 
-        // Eliminamos los jugadores de la banca de la partida
-        var res = await BankController.eliminatePlayersHands({ body: 
-            { bankId: board.bank, usersIndex: playerIndicesToDelete }})
-        if (res.status === "error") return res
-
         // Se elimina el usuario de la lista de jugadores en espera para que
         // pueda solicitar jugar otra partida
         res = await MatcherController.eliminateWaitingUsers({ body: {playersToDelete: playersToDelete}})
@@ -607,12 +602,7 @@ async function leaveBoardPriv(req) {
                 status: "error",
                 message: "El usuario no está en la partida"
             })
-        }
-
-        // Eliminamos los jugadores de la banca de la partida
-        var resAux = await BankController.eliminatePlayersHands({ body: 
-            { bankId: board.bank, usersIndex: [playerIndex] }})
-        if (resAux.status === "error") return res.status(400).json(resAux)        
+        }      
 
         // Se elimina el usuario de la lista de jugadores en espera para que
         // pueda solicitar jugar otra partida
@@ -706,12 +696,7 @@ const leaveBoard = async (req, res) => {
                 status: "error",
                 message: "El usuario no está en la partida"
             })
-        }
-
-        // Eliminamos los jugadores de la banca de la partida
-        var resAux = await BankController.eliminatePlayersHands({ body: 
-            { bankId: board.bank, usersIndex: [playerIndex] }})
-        if (resAux.status === "error") return res.status(400).json(resAux)        
+        }    
 
         // Se elimina el usuario de la lista de jugadores en espera para que
         // pueda solicitar jugar otra partida

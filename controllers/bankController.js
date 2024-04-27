@@ -431,39 +431,6 @@ async function eliminate(req) {
     }
 }
 
-// Elimina las hands de los jugadores
-// usersIndex es un vector de indices
-async function eliminatePlayersHands(req) {
-    // Parámetros: bankId, usersIndex
-    try {
-        const bankId = req.body.bankId
-        const usersIndex = req.body.usersIndex
-
-        // Obtener la banca
-        const bank = await Bank.findById(bankId)
-        if (!bank) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se ha encontrado una banca con dicho id"
-            })
-        }
-        // Eliminar las manos de los jugadores cuyos indices están en usersIndex
-        const newPlayersHands = bank.playersHands.filter((_, indice) => !usersIndex.includes(indice))
-        bank.playersHands = newPlayersHands
-        await bank.save()
-
-        return {
-            status: "success",
-            message: "Manos de los jugadores eliminadas correctamente del banco"
-        };
-    } catch (error) {
-        return {
-            status: "error",
-            message: "Error al eliminar manos de los jugadores del banco. " + error.message 
-        };
-    }
-}
-
 // Inicializar la partida
 async function initBoard(req) {
     // Parámetros: bankId, players
@@ -1199,7 +1166,6 @@ module.exports = {
     add,
     correctName,
     eliminate,
-    eliminatePlayersHands,
     initBoard,
     results,
     drawCard,
