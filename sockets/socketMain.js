@@ -156,7 +156,7 @@ const Sockets = async (io) => {
                 io.to("tournament:" + boardId).emit("hand results", res.results)
 
                 // Se da tiempo a que visualicen los resultados de la mano
-                sleep(6000)
+                await sleep(6000)
 
                 resEndBoard = await TournamentBoardController.isEndOfGame(req)
             }
@@ -289,7 +289,7 @@ const Sockets = async (io) => {
 
                 // Se da tiempo a que visualicen los resultados de la mano
                 console.log('Damos tiempo ver resultados')//////////////////////////////////////////////////////////////////////
-                sleep(6000)
+                await sleep(6000)
                 console.log('Sigue')////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -446,7 +446,7 @@ const Sockets = async (io) => {
                 io.to("private:" + boardId).emit("hand results", res.results)
 
                 // Se da tiempo a que visualicen los resultados de la mano
-                sleep(6000)
+                await sleep(6000)
 
                 resEndBoard = await PrivateBoardController.isEndOfGame(req)
             }
