@@ -107,21 +107,14 @@ async function collectCards(req) {
 
         const totalMaze = [...cards, ...cards]
 
+        console.log("collectCards: Inicio")///////////////////////////////////////////////////////////////////////////////
+
         // Mezclar las cartas
         const shuffledCards = shuffle(totalMaze);
 
         const cartasPorJugador = Math.floor(shuffledCards.length / numPlayers);
-        const maze = [{
-            playerId: {
-                type: Schema.ObjectId,
-                ref: "User"
-            },
-            cards: [{
-                value: String,
-                suit: String
-            }]
-        }];
-        const bankMaze = []
+        const maze = []
+        let bankMaze
         // Dividir las cartas en mazos según el número de jugadores (numJugadores + banca)
         for (let i = 0; i < numPlayers; i++) {
             // Obtener las cartas para el mazo actual
@@ -140,9 +133,12 @@ async function collectCards(req) {
 
                 // Si es la banca, agregar a banca
             } else {
-                bankMaze.push(shuffledCards.slice(inicio, fin))
+                console.log("collectCards: Crea mazo banca")///////////////////////////////////////////////////////////////////////////////
+                bankMaze = shuffledCards.slice(inicio, fin)
             }
         }
+
+        console.log("collectCards: Después crear mazos")///////////////////////////////////////////////////////////////////////////////
 
         // Resetear los playersHands
         const playersHands = []
@@ -156,15 +152,32 @@ async function collectCards(req) {
             playersHands.push(playerHand)
         }
 
+        console.log("collectCards: Después resetear playersHands")///////////////////////////////////////////////////////////////////////////////
+
+
         // Actualizar la banca. Poner mazos y resetear manos
-        const newBank = await Bank.findByIdAndUpdate(bankId, { maze: maze }, {bankMaze: bankMaze},
-                                                   {playersHands: playersHands}, {bankHand: []}, { new: true });
+        const newBank = await Bank.findById(bankId)
+        if (!newBank) {
+            return {
+                status: "error",
+                message: "No se ha podido encontrar banca"
+            }
+        }
+        newBank.maze = maze
+        newBank.bankMaze = bankMaze
+        newBank.playersHands = playersHands
+        newBank.bankHand = []
+        await newBank.save()
+        
         if (!newBank) {
             return {
                 status: "error",
                 message: "No se han podido hacer un collect de las cartas"
             }
         }
+
+        console.log("collectCards: Final: ", newBank)///////////////////////////////////////////////////////////////////////////////
+
         return {
             status: "success",
             message: "Collect de las cartas realizado correctamente",
@@ -227,6 +240,12 @@ async function confirmPriv(req) {
 
         // Obtener indice de playersHands
         const playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
+        if (playerHands === -1) {
+            return ({
+                status: "error",
+                message: "Este jugador no tiene componente de jugadas confirmadas"
+            })
+        }
 
         if (bank.playersHands[playerIndex].split && bank.playersHands[playerIndex].hands.length === numCardsSplit ||
             !bank.playersHands[playerIndex].split && bank.playersHands[playerIndex].hands.length === numCardsSplit - 1) {
@@ -438,24 +457,41 @@ async function initBoard(req) {
         const bankId = req.body.bankId
         const players = req.body.players
 
+        console.log("initBoard: Inicio")///////////////////////////////////////////////////////////////////////////////
+
         // Iniciar mazos y manos de jugadores y banca
         const reqCollectCards = { body: { bankId: bankId, players: players } }
         var resCollectCards = await collectCards(reqCollectCards)
         if (resCollectCards.status !== "success") return resCollectCards
 
         // Obtener la banca
-        const bank = resCollectCards.bank
+        const bank = await Bank.findById(bankId)
+
+        console.log("initBoard: Después collectCards: ", bank)///////////////////////////////////////////////////////////////////////////////
 
         const initBoard = [];
         let drawCard
         let cards
         // Sacar dos cartas por cada jugador del board
         for (const player of players) {
+
+            // console.log("initBoard: En bucle con player: ", player)///////////////////////////////////////////////////////////////////////////////
+            // console.log("initBoard: En bucle con maze: ", bank.maze)///////////////////////////////////////////////////////////////////////////////
+
             // Obtener indice jugador en maze
             const index = bank.maze.findIndex(m => m.playerId.equals(player.player));
+            if (index === -1) {
+                // console.log("initBoard: Error index: ", player)///////////////////////////////////////////////////////////////////////////////
+
+                return ({
+                    status: "error",
+                    message: "Este jugador no tiene un mazo asignado"
+                })
+            }
             cards = []
             const playerMaze = bank.maze[index].cards;
             if (playerMaze.length === 0) {
+                // console.log("initBoard: Error index: ", player)///////////////////////////////////////////////////////////////////////////////
                 return ({
                     status: "error",
                     message: "El mazo del jugador está vacío"
@@ -476,6 +512,8 @@ async function initBoard(req) {
                 blackJack: totalPlayerCards === 21
             }
             initBoard.push(playerObject);
+
+            // console.log("initBoard: Fin bucle con playerId: ", player.player)///////////////////////////////////////////////////////////////////////////////
         }
 
         // Sacar una carta de la banca
@@ -484,7 +522,8 @@ async function initBoard(req) {
         if (bankMaze.length === 0) {
             return ({
                 status: "error",
-                message: "El mazo de la banca está vacío"
+                message: "El mazo de la banca está vacío",
+                bank
             })
         }
         // Obtener una carta de la banca
@@ -503,6 +542,8 @@ async function initBoard(req) {
         // Guardar bankHand
         bank.bankHand = cards
         await bank.save();
+
+        console.log("initBoard: Final: ", bank)///////////////////////////////////////////////////////////////////////////////
         
         return({
             status: "success",
@@ -663,7 +704,8 @@ async function results(req) {
         if (bankMaze.length === 0) {
             return ({
                 status: "error",
-                message: "El mazo de la banca está vacío"
+                message: "El mazo de la banca está vacío",
+                bank
             })
         }
         switch (bank.level) {
@@ -812,7 +854,7 @@ async function drawCard(req) {
         if (bank.maze.length === 0) {
             return ({
                 status: "error",
-                message: "El mazo de la banca está vacío"
+                message: "La banca no tiene mazos"
             })
         }
 
@@ -821,7 +863,7 @@ async function drawCard(req) {
         if (playerIndex === -1) {
             return ({
                 status: "error",
-                message: "El jugador no está en el vector de jugadores de la partida"
+                message: "El jugador no tiene un mazo asignado"
             })
         }
         const playerMaze = bank.maze[playerIndex].cards;
@@ -941,7 +983,7 @@ async function double(req) {
         if (bank.maze.length === 0) {
             return ({
                 status: "error",
-                message: "El mazo de la banca está vacío"
+                message: "La banca no tiene mazos"
             })
         }
 
@@ -950,7 +992,7 @@ async function double(req) {
         if (playerIndex === -1) {
             return ({
                 status: "error",
-                message: "El jugador no está en el vector de jugadores de la partida"
+                message: "El jugador no tiene un mazo asignado"
             })
         }
         const playerMaze = bank.maze[playerIndex].cards;
@@ -968,6 +1010,12 @@ async function double(req) {
 
         // Indica que ha hecho double
         const playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
+        if (playerIndexHand === -1) {
+            return ({
+                status: "error",
+                message: "Este jugador no tiene componente de jugadas confirmadas"
+            })
+        }
         bank.playersHands[playerIndexHand].double = true
         // Guardar el tablero actualizado en la base de datos
         await bank.save();
@@ -1041,7 +1089,7 @@ async function split(req) {
         if (bank.maze.length === 0) {
             return ({
                 status: "error",
-                message: "El mazo de la banca está vacío"
+                message: "La banca no tiene mazos"
             })
         }
 
@@ -1050,7 +1098,7 @@ async function split(req) {
         if (playerIndex === -1) {
             return ({
                 status: "error",
-                message: "El jugador no está en el vector de jugadores de la partida"
+                message: "El jugador no tiene un mazo asignado"
             })
         }
         const playerMaze = bank.maze[playerIndex].cards;
@@ -1069,6 +1117,12 @@ async function split(req) {
 
         // Indica que ha hecho split
         const playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
+        if (playerIndexHand === -1) {
+            return ({
+                status: "error",
+                message: "Este jugador no tiene componente de jugadas confirmadas"
+            })
+        }
         bank.playersHands[playerIndexHand].split = true
         // Guardar el tablero actualizado en la base de datos
         await bank.save();

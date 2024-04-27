@@ -530,15 +530,19 @@ async function manageHand(req) {
                 const coinsEarned = result.coinsEarned
 
                 // Se busca al jugador en la lista de jugadores de la mesa
-                const playerIndex = board.players.findIndex(player => 
-                    player.player == userId)
+                const players = board.players
+                const playerIndex = players.findIndex(player => 
+                    player.player === userId)
     
                 // Si el jugador no se encuentra en la lista, se emite un mensaje de
                 // error
                 if (playerIndex === -1) {
                     return ({
                         status: "error",
-                        message: "El jugador con ID " + userId + " no está en la mesa"
+                        message: "El jugador con ID " + userId + " no está en la mesa",
+                        result,
+                        userId,
+                        boardPlayers: board.players
                     })
                 }
             
