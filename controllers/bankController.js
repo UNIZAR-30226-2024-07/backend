@@ -493,7 +493,7 @@ async function initBoard(req) {
         bank.bankMaze = bankMaze;
         const totalBankCards = valueCards(cards)
         const bankObject = {
-            userId: "Board",
+            userId: "Bank",
             cards: cards,
             totalCards: totalBankCards,
             blackJack: totalBankCards === 21
