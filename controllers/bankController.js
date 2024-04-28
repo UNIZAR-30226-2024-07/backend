@@ -232,7 +232,7 @@ async function confirmPriv(req) {
 
         // Obtener indice de playersHands
         const playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
-        if (playerHands === -1) {
+        if (playerIndex === -1) {
             return ({
                 status: "error",
                 message: "Este jugador no tiene componente de jugadas confirmadas"
@@ -444,8 +444,9 @@ async function eliminate(req) {
 
 // Inicializar la partida
 async function initBoard(req) {
-    // Parámetros: bankId, players
+    // Parámetros: boardId, bankId, players, typeBoardName
     try {
+        const boardId = req.body.boardId
         const bankId = req.body.bankId
         const players = req.body.players
 
@@ -456,7 +457,6 @@ async function initBoard(req) {
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
-
 
         const initBoard = [];
         let drawCard
@@ -489,14 +489,25 @@ async function initBoard(req) {
             const totalPlayerCards = valueCards(cards)
             bank.maze[index].cards = playerMaze;  // Guardar cambios en baraja
 
+            // Si con esas dos cartas ha hecho blackJack, confirmar jugada
+            if(totalPlayerCards === numBlackJack) {
+                const reqConfirm = { body: { userId: player.player,
+                                    typeBoardName: req.body.typeBoardName,
+                                    boardId: boardId,
+                                    cardsOnTable: cards,
+                                    bankId: bankId,
+                                    handIndex: 0 } }
+                const resConfirm = await confirmPriv(reqConfirm)
+                if (resConfirm.status === "error") return (resConfirm)
+            }
+
             const playerObject = {
                 userId: player.player,
                 cards: cards,
                 totalCards: totalPlayerCards,
-                blackJack: totalPlayerCards === 21
+                blackJack: totalPlayerCards === numBlackJack
             }
             initBoard.push(playerObject);
-
         }
 
         // Sacar una carta de la banca
@@ -518,7 +529,7 @@ async function initBoard(req) {
             userId: "Bank",
             cards: cards,
             totalCards: totalBankCards,
-            blackJack: totalBankCards === 21
+            blackJack: totalBankCards === numBlackJack
         }
         initBoard.push(bankObject);
 
@@ -548,6 +559,16 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
     const premioMejorQueJugadores = bet * 2;
     const premioBlackjack = bet * 3;
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    console.log("Dentro de calcularEarnedCoins:")
+    console.log("               TotalesJugasor:", totalesJugador)
+    console.log("            blackJacksJugador:", blackJacksJugador)
+    console.log("                   totalesAll:", totalesAll)
+    console.log("                   totalBanca:", totalBanca)
+    console.log("               blackJackBanca:", blackJackBanca)
+    console.log("                          bet:", bet)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     const coinsGanadasPorJugador = [];
     
     // Para cada jugada del jugador
@@ -558,8 +579,17 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
         // Booleano si es blackJack del jugador
         const blackJackJugador = blackJacksJugador[i]
 
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        console.log("                               totalJugador : ", totalJugador)
+        console.log("                               blackJackJugador: ", blackJackJugador)
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        // No ha hecho stick
+        if (totalJugador === 0) {
+            coinsGanadasPorJugador.push(0);
+        }
         // Si es mayor que 21 ha perdido
-        if (totalJugador > 21) {
+        else if (totalJugador > numBlackJack) {
             coinsGanadasPorJugador.push(0);
         }
         // Haces blackJack y la banca no
@@ -571,15 +601,19 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
             coinsGanadasPorJugador.push(premioIgualBanca);
         } 
         // Mayor que la banca
-        else if (totalJugador > totalBanca) {
-            const totalesAllCopy = totalesAll
-            // Encuentra el índice del resultado actual
+        else if (totalJugador > totalBanca || totalBanca > numBlackJack) {
+            const totalesAllCopy = [...totalesAll]            // Encuentra el índice del resultado actual
             const index = totalesAllCopy.indexOf(totalJugador); 
             if (index !== -1) { // Verifica si se encontró
                 totalesAllCopy.splice(index, 1); // Elimina el totalJugador actual
             }
+
+            console.log("                                          index: ", index)
+            console.log("                                 totalesAllCopy: ", totalesAllCopy)
+
             // Además, mayor que todos los jugadores
-            if (totalesAllCopy.every(puntuacion => puntuacion < totalJugador)) {
+            // Puntuación mayor jugador o si es menor, que el otro se haya pasado
+            if (totalesAllCopy.every(puntuacion => (puntuacion < totalJugador) || (puntuacion > numBlackJack))) {
                 coinsGanadasPorJugador.push(premioMejorQueJugadores);
             } 
             // Algún jugador igual o mejor que tú
@@ -590,10 +624,9 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
             coinsGanadasPorJugador.push(0);
         }
     }
-    // Si el jugador no ha hecho jugadas
-    if (coinsGanadasPorJugador.length === 0) {
-        coinsGanadasPorJugador.push(0)
-    }
+
+    console.log("Monedas ganadas por le jugador: ", coinsGanadasPorJugador)//////////////////////////////////////////////////////////////
+
     return coinsGanadasPorJugador;
 }
 
@@ -619,7 +652,7 @@ function calcularLoseLife(totalesJugador, blackJacksJugador,
     const totalOponente = totalesAll[0]
 
     // Si es mayor que 21, pierde vida
-    if (totalJugador > 21) {
+    if (totalJugador > numBlackJack) {
         return loseLife
     }
     // Haces blackJack y la banca no. Has superado a la banca. No pierdes vida
@@ -743,7 +776,7 @@ async function results(req) {
             const playerHands = player.hands
 
             // Si ha sido blackJack la banca
-            let blackJackBank = (totalBank === 21 && cardsBank.length === 2)
+            let blackJackBank = (totalBank === numBlackJack && cardsBank.length === 2)
             // Variable para guardar total cartas jugador respuesta
             let totalCardsPlayer = []  
             for (let i = 0; i < playerHands.length; i++) {
@@ -752,12 +785,12 @@ async function results(req) {
             // Guardar booleano si las cartas del jugador respuesta ha sido blackJack
             let blackJacksPlayer = []     
             for (let i = 0; i < totalCardsPlayer.length; i++) {
-                blackJacksPlayer.push(totalCardsPlayer[i] === 21 && playerHands[i].length === 2)
+                blackJacksPlayer.push(totalCardsPlayer[i] === numBlackJack && playerHands[i].length === 2)
             }
 
             if (typeBoardName === "tournament") {
                 // Calcular loseLife
-                const loseLife = calcularLoseLife(playerHands, blackJacksPlayer,
+                const loseLife = calcularLoseLife(totalCardsPlayer, blackJacksPlayer,
                                                         totalCardsAllPlayers, 
                                                         totalBank, blackJackBank, bet)
                 const playerObject = {
@@ -772,7 +805,7 @@ async function results(req) {
 
             } else if (typeBoardName === "public" || "private") {
                 // Calcular coinsEarned
-                const coinsEarned = calcularEarnedCoins(playerHands, blackJacksPlayer,
+                const coinsEarned = calcularEarnedCoins(totalCardsPlayer, blackJacksPlayer,
                                                         totalCardsAllPlayers, 
                                                         totalBank, blackJackBank, bet)
 
@@ -894,7 +927,7 @@ async function drawCard(req) {
                 defeat: true,
                 blackJack: false
             })
-        } else if (totalCards == numBlackJack) {  // Confirmar hand, ha hecho BlackJack
+        } else if (totalCards === numBlackJack) {  // Confirmar hand, ha hecho BlackJack
             const reqConfirm = { body: { userId: userId,
                                          typeBoardName: req.body.typeBoardName,
                                          boardId: boardId,

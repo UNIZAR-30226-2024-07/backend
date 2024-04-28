@@ -87,6 +87,11 @@ const publicBoardSchema = Schema({
             }]
         },
     },
+    // Apuesta fija en la sala
+    bet: {
+        type: Number,
+        required: true
+    },
 }, {timestamps: true})
 
 module.exports = model("PublicBoard", publicBoardSchema)

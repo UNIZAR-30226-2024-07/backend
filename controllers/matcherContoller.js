@@ -384,7 +384,8 @@ async function addPublicBoardFunction(req) {
         const newBoard = await PublicBoard.create({ publicBoardType: typeId,
                                                     bank: resAddBank.bank._id,
                                                     numPlayers: publicBoardType.numPlayers,
-                                                    hand: { numHand: 1, players: []} })
+                                                    hand: { numHand: 1, players: []},
+                                                    bet: publicBoardType.bet })
         if (!newBoard) {
             return ({
                 status: "error",

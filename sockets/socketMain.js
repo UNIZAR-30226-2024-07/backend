@@ -23,7 +23,7 @@ function signalPublic() {
     mutexPublic = true
 }
 
-const segundos = 20
+const segundos = 30
 const periodo = 2
 
 // Espera hasta que todos los jugadores hayan enviado sus jugadas un máximo de
@@ -124,7 +124,10 @@ const Sockets = async (io) => {
                 const bankId = res.board.bank
                 const players = res.board.players
 
-                res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
+                res = await BankController.initBoard({ body: { boardId: boardId,
+                                                               bankId: bankId, 
+                                                               players: players, 
+                                                               typeBoardName: 'tournament'}})
                 if (res.status === "error") return res
                 const initialCards = res.initBoard
 
@@ -223,10 +226,11 @@ const Sockets = async (io) => {
             if (res.status === "error") return console.error("Usuario añadido a partida con id " + boardId)
             // signal(PublicMutex)
             ////////////////////////////////////////////////////////////////////
-
             
             // Si está lista, se notifica a los jugadores de la mesa
             io.to("public:" + boardId).emit("starting public board", boardId)
+
+            console.log("Emitir: starting public board")/////////////////////////////////////////////////////////////////////////////////////////////////////////////
             
         } catch (e) {
             return console.error(e.message)
@@ -251,7 +255,10 @@ const Sockets = async (io) => {
                 const bankId = res.board.bank
                 const players = res.board.players
 
-                res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
+                res = await BankController.initBoard({ body: { boardId: boardId,
+                                                               bankId: bankId, 
+                                                               players: players, 
+                                                               typeBoardName: 'public'}})
                 if (res.status === "error") return res
                 const initialCards = res.initBoard
     
@@ -407,7 +414,10 @@ const Sockets = async (io) => {
                 const bankId = res.board.bank
                 const players = res.board.players
                 
-                res = await BankController.initBoard({ body: { bankId: bankId, players: players }})
+                res = await BankController.initBoard({ body: { boardId:boardId,
+                                                               bankId: bankId, 
+                                                               players: players,
+                                                               typeBoardName: 'private' }})
                 if (res.status === "error") return res
                 const initialCards = res.initBoard
 
