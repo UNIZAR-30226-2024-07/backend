@@ -418,16 +418,13 @@ async function eliminate(req) {
 
     try {
         // Buscar la banca por su ID
-        const bank = await Bank.findById(bankId)
+        const bank = await Bank.findByIdAndDelete(bankId)
         if (!bank) {
             return ({
                 status: "error",
                 message: "Banca no encontrada"
             })
         }
-
-        // Eliminar la banca
-        await bank.remove()
 
         return ({
             status: "success",

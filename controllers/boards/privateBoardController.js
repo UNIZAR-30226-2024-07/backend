@@ -27,7 +27,7 @@ async function allPlayersPlayed(req) {
             })
         }
         
-        if (board.hand.players.length !== board.players.length) {
+        if (board.hand.players.length < board.players.length) {
             return ({
                 status: "error",
                 message: "El número de jugadores que han realizado una jugada es menor al de jugadores en la partida"
@@ -751,19 +751,31 @@ async function plays(req) {
 
         // Se llama a la función del bank
         if (playName === "double") {
-            resAux = await BankController.double({body: {userId: userId, boardId: boardId,
-                                                        typeBoardName: 'private', 
-                                                        bankId: board.bank, cardsOnTable: cardsOnTable, 
-                                                        handIndex: req.body.handIndex}})
+            const playerIndex = board.players.findIndex(player => player.player == userId)
+            if (playerIndex !== -1) {
+                // Se busca al usuario y se le duplica la apuesta
+                board.players[playerIndex].currentCoins -= board.bet
+                board.save()
+                resAux = await BankController.double({body: {userId: userId, boardId: boardId,
+                                                            typeBoardName: 'private', 
+                                                            bankId: board.bank, cardsOnTable: cardsOnTable, 
+                                                            handIndex: req.body.handIndex}})
+            }
         } else if (playName === "drawCard") {
             resAux = await BankController.drawCard({body: {userId: userId, boardId: boardId,
                                                     typeBoardName: 'private', 
                                                     bankId: board.bank, cardsOnTable: cardsOnTable,
                                                     handIndex: req.body.handIndex}})
         } else if (playName === "split") {
-            resAux = await BankController.split({body: {userId: userId, boardId: boardId,
-                                                typeBoardName: 'private', 
-                                                bankId: board.bank, cardsOnTable: cardsOnTable}})
+            const playerIndex = board.players.findIndex(player => player.player == userId)
+            if (playerIndex !== -1) {
+                // Se busca al usuario y se le duplica la apuesta
+                board.players[playerIndex].currentCoins -= board.bet
+                board.save()
+                resAux = await BankController.split({body: {userId: userId, boardId: boardId,
+                                                    typeBoardName: 'private', 
+                                                    bankId: board.bank, cardsOnTable: cardsOnTable}})
+            }
         } else if (playName === "stick") {
             resAux = await BankController.stick({body: {userId: userId, boardId: boardId,
                                                 typeBoardName: 'private', 

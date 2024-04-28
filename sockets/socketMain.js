@@ -31,11 +31,12 @@ const periodo = 2
 // sus jugadas antes de los 30 segundos y 'error' en caso contrario
 async function turnTimeout(boardId, typeBoardName) {
     try {
-        var res = { status: "error" }
+        var res
         var iter = segundos / periodo
         var i = 0
+        let todosJugaron = false
 
-        while (res.status === "error" && i < iter) {
+        while (!todosJugaron && i < iter) {
             await sleep(periodo * 1000) // 5 segundos
             if (typeBoardName === "tournament") {
                 res = await TournamentBoardController.allPlayersPlayed({ body: { boardId: boardId }})
@@ -44,6 +45,7 @@ async function turnTimeout(boardId, typeBoardName) {
             } else if (typeBoardName === "private") {
                 res = await PrivateBoardController.allPlayersPlayed({ body: { boardId: boardId }})
             }
+            if (res.status === "success") todosJugaron = true
             i++
         }
 
@@ -62,6 +64,7 @@ async function turnTimeout(boardId, typeBoardName) {
         }
 
     } catch (e) {
+        console.error("Error mientras se esperaba la jugada de todos los jugadores. " + e.message)
         return ({
             status: "error",
             message: "Error mientras se esperaba la jugada de todos los jugadores. " + e.message
@@ -136,7 +139,7 @@ const Sockets = async (io) => {
                 io.to("tournament:" + boardId).emit("play hand", initialCards)
                 
                 // Se espera a que lleguen las jugadas
-                res = await turnTimeout(boardId)
+                res = await turnTimeout(boardId, "tournament")
 
                 if (res.status === "error") {
                     // Si se agotó el tiempo y no todos mandaron su jugada, se
@@ -255,6 +258,7 @@ const Sockets = async (io) => {
                 const bankId = res.board.bank
                 const players = res.board.players
 
+                // Se inicializa la banca para la ronda que se va a jugar
                 res = await BankController.initBoard({ body: { boardId: boardId,
                                                                bankId: bankId, 
                                                                players: players, 
@@ -268,7 +272,7 @@ const Sockets = async (io) => {
                 
                 // Se espera a que lleguen las jugadas
                 console.log("Entro al timeout de 30 segundos")
-                res = await turnTimeout(boardId)
+                res = await turnTimeout(boardId, "public")
                 console.log("Salgo del timeout de 30 segundos")
 
                 if (res.status === "error") {
@@ -296,7 +300,7 @@ const Sockets = async (io) => {
 
                 // Se da tiempo a que visualicen los resultados de la mano
                 await sleep(6000)
-
+                console.log("Miramos si ha terminado la partida")
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
             }
 
@@ -307,7 +311,10 @@ const Sockets = async (io) => {
             
             // Se mira quién ha sido el ganador de la partida, se le avanza en
             // la ronda y se dan monedas si se tienen que dar
-            await PublicBoardController.finishBoard({ body: { boardId: boardId }})
+            res = await PublicBoardController.finishBoard({ body: { boardId: boardId }})
+            if (res.status === "error") return console.error(res.message)
+
+            console.log("Partida finalizada")
 
             io.to("public:" + boardId).emit("finish board")
 
@@ -426,7 +433,7 @@ const Sockets = async (io) => {
                 io.to("private:" + boardId).emit("play hand", initialCards)
                 
                 // Se espera a que lleguen las jugadas
-                res = await turnTimeout(boardId)
+                res = await turnTimeout(boardId, "private")
 
                 if (res.status === "error") {
                     // Si se agotó el tiempo y no todos mandaron su jugada, se

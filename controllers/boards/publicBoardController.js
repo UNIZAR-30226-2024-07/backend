@@ -12,7 +12,7 @@ const maxRounds = 20
 async function allPlayersPlayed(req) {
     // Parámetros en req.body: req.body.boardId
     const boardId = req.body.boardId
-    
+
     try {
         // Se recupera la mesa
         const board = await PublicBoard.findById(boardId)
@@ -23,7 +23,7 @@ async function allPlayersPlayed(req) {
             })
         }
         
-        if (board.hand.players.length !== board.players.length) {
+        if (board.hand.players.length < board.players.length) {
             return ({
                 status: "error",
                 message: "El número de jugadores que han realizado una jugada es menor al de jugadores en la partida"
@@ -36,6 +36,7 @@ async function allPlayersPlayed(req) {
             })
         }
     } catch (e) {
+        console.error("Error al encontrar el número de manos jugadas. " + e.message)
         return ({
             status: "error",
             message: "Error al encontrar el número de manos jugadas. " + e.message
@@ -356,6 +357,7 @@ async function isEndOfGame(req) {
         })
 
     } catch (e) {
+        console.error("Error al determinar si la partida ha acabado. " + e.message)
         return ({
             status: "error",
             message: "Error al determinar si la partida ha acabado. " + e.message
@@ -372,24 +374,30 @@ async function finishBoard(req) {
     const boardId = req.body.boardId
 
     try {
-        var res = await boardByIdFunction({ body: { boardId: boardId }})
-        if (res.status === "error") return res
-        const board = res.board
+        const board = await PublicBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
 
-        for (playerObj of board.players) {
-            if (playerObj.initialCoins != playerObj.currentCoins) {
-                res = await UserController.insertCoinsFunction({ body: 
-                    { userId: playerObj.player, 
-                      coins: playerObj.currentCoins - playerObj.initialCoins }})
-                if (res.status === "error") return res
-            }
+        if (board.players.length > 0) {
+            for (const playerObj of board.players) {
+                if (playerObj.initialCoins != playerObj.currentCoins) {
+                    res = await UserController.insertCoinsFunction({ body: 
+                        { userId: playerObj.player, 
+                          coins: playerObj.currentCoins - playerObj.initialCoins }})
+                    if (res.status === "error") return res
+                }
+            }    
         }
 
         // Se elimina la banca del sistema
         await BankController.eliminate({ body: { bankId: board.bank }})
 
         // Se elimina ahora la partida
-        await board.remove()
+        await PublicBoard.findByIdAndDelete(boardId)
 
         return ({
             status: "success",
@@ -739,19 +747,31 @@ async function plays(req) {
 
         // Se llama a la función del bank
         if (playName === "double") {
-            resAux = await BankController.double({body: {userId: userId, boardId: boardId,
-                                                typeBoardName: 'public', 
-                                                bankId: board.bank, cardsOnTable: cardsOnTable,
-                                                handIndex: req.body.handIndex}})
+            const playerIndex = board.players.findIndex(player => player.player == userId)
+            if (playerIndex !== -1) {
+                // Se busca al usuario y se le duplica la apuesta
+                board.players[playerIndex].currentCoins -= board.bet
+                board.save()
+                resAux = await BankController.double({body: {userId: userId, boardId: boardId,
+                                                    typeBoardName: 'public', 
+                                                    bankId: board.bank, cardsOnTable: cardsOnTable,
+                                                    handIndex: req.body.handIndex}})
+            }
         } else if (playName === "drawCard") {
             resAux = await BankController.drawCard({body: {userId: userId, boardId: boardId,
                                                     typeBoardName: 'public', 
                                                     bankId: board.bank, cardsOnTable: cardsOnTable,
                                                     handIndex: req.body.handIndex}})
         } else if (playName === "split") {
-            resAux = await BankController.split({body: {userId: userId, boardId: boardId,
-                                                typeBoardName: 'public', 
-                                                bankId: board.bank, cardsOnTable: cardsOnTable}})
+            const playerIndex = board.players.findIndex(player => player.player == userId)
+            if (playerIndex !== -1) {
+                // Se busca al usuario y se le duplica la apuesta
+                board.players[playerIndex].currentCoins -= board.bet
+                board.save()
+                resAux = await BankController.split({body: {userId: userId, boardId: boardId,
+                                                    typeBoardName: 'public', 
+                                                    bankId: board.bank, cardsOnTable: cardsOnTable}})
+            }
         } else if (playName === "stick") {
             resAux = await BankController.stick({body: {userId: userId, boardId: boardId,
                                                 typeBoardName: 'public', 
