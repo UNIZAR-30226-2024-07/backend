@@ -107,7 +107,6 @@ async function collectCards(req) {
 
         const totalMaze = [...cards, ...cards]
 
-        console.log("collectCards: Inicio")///////////////////////////////////////////////////////////////////////////////
 
         // Mezclar las cartas
         const shuffledCards = shuffle(totalMaze);
@@ -133,12 +132,10 @@ async function collectCards(req) {
 
                 // Si es la banca, agregar a banca
             } else {
-                console.log("collectCards: Crea mazo banca")///////////////////////////////////////////////////////////////////////////////
                 bankMaze = shuffledCards.slice(inicio, fin)
             }
         }
 
-        console.log("collectCards: Después crear mazos")///////////////////////////////////////////////////////////////////////////////
 
         // Resetear los playersHands
         const playersHands = []
@@ -151,9 +148,6 @@ async function collectCards(req) {
             }
             playersHands.push(playerHand)
         }
-
-        console.log("collectCards: Después resetear playersHands")///////////////////////////////////////////////////////////////////////////////
-
 
         // Actualizar la banca. Poner mazos y resetear manos
         const newBank = await Bank.findById(bankId)
@@ -175,8 +169,6 @@ async function collectCards(req) {
                 message: "No se han podido hacer un collect de las cartas"
             }
         }
-
-        console.log("collectCards: Final: ", newBank)///////////////////////////////////////////////////////////////////////////////
 
         return {
             status: "success",
@@ -457,8 +449,6 @@ async function initBoard(req) {
         const bankId = req.body.bankId
         const players = req.body.players
 
-        console.log("initBoard: Inicio")///////////////////////////////////////////////////////////////////////////////
-
         // Iniciar mazos y manos de jugadores y banca
         const reqCollectCards = { body: { bankId: bankId, players: players } }
         var resCollectCards = await collectCards(reqCollectCards)
@@ -467,7 +457,6 @@ async function initBoard(req) {
         // Obtener la banca
         const bank = await Bank.findById(bankId)
 
-        console.log("initBoard: Después collectCards: ", bank)///////////////////////////////////////////////////////////////////////////////
 
         const initBoard = [];
         let drawCard
@@ -475,14 +464,10 @@ async function initBoard(req) {
         // Sacar dos cartas por cada jugador del board
         for (const player of players) {
 
-            // console.log("initBoard: En bucle con player: ", player)///////////////////////////////////////////////////////////////////////////////
-            // console.log("initBoard: En bucle con maze: ", bank.maze)///////////////////////////////////////////////////////////////////////////////
 
             // Obtener indice jugador en maze
             const index = bank.maze.findIndex(m => m.playerId.equals(player.player));
             if (index === -1) {
-                // console.log("initBoard: Error index: ", player)///////////////////////////////////////////////////////////////////////////////
-
                 return ({
                     status: "error",
                     message: "Este jugador no tiene un mazo asignado"
@@ -491,7 +476,6 @@ async function initBoard(req) {
             cards = []
             const playerMaze = bank.maze[index].cards;
             if (playerMaze.length === 0) {
-                // console.log("initBoard: Error index: ", player)///////////////////////////////////////////////////////////////////////////////
                 return ({
                     status: "error",
                     message: "El mazo del jugador está vacío"
@@ -513,7 +497,6 @@ async function initBoard(req) {
             }
             initBoard.push(playerObject);
 
-            // console.log("initBoard: Fin bucle con playerId: ", player.player)///////////////////////////////////////////////////////////////////////////////
         }
 
         // Sacar una carta de la banca
@@ -542,8 +525,6 @@ async function initBoard(req) {
         // Guardar bankHand
         bank.bankHand = cards
         await bank.save();
-
-        console.log("initBoard: Final: ", bank)///////////////////////////////////////////////////////////////////////////////
         
         return({
             status: "success",

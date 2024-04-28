@@ -245,8 +245,6 @@ const Sockets = async (io) => {
             var resEndBoard = { status: "error" }
 
             while (resEndBoard.status === "error") {
-                console.log("Vuelvo Bucle: Hasta resEndBoard.status !== error") ///////////////////////////////////////////////////////////////////////////////
-
                 // Generar primeras cartas del board para enviarlas
                 res = await PublicBoardController.boardByIdFunction({ body: { boardId: boardId }})
                 if (res.status === "error") return res
@@ -260,8 +258,6 @@ const Sockets = async (io) => {
                 // Primero se envía un evento para que todos los jugadores hagan
                 // una jugada
                 io.to("public:" + boardId).emit("play hand", initialCards)
-                console.log("Emitir: PLAY HAND") ///////////////////////////////////////////////////////////////////////////////
-
                 
                 // Se espera a que lleguen las jugadas
                 console.log("Entro al timeout de 30 segundos")
@@ -292,13 +288,9 @@ const Sockets = async (io) => {
                 io.to("public:" + boardId).emit("hand results", res.results)
 
                 // Se da tiempo a que visualicen los resultados de la mano
-                console.log('Damos tiempo ver resultados')//////////////////////////////////////////////////////////////////////
                 await sleep(6000)
-                console.log('Sigue')////////////////////////////////////////////////////////////////////////////////////////////
-
 
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
-                console.log("resEndBoard: ", resEndBoard)/////////////////////////////////////////////////////////////////////////
             }
 
             // Se elimina a los jugadores de la lista de jugadores esperando mesa

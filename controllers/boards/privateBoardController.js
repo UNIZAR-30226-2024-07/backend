@@ -351,7 +351,7 @@ async function isEndOfGame(req) {
         }
 
         // Verificar si solo queda un jugador en la partida
-        if (board.players.length === 1) {
+        if (board.players.length <= 1) {
             return ({
                 status: "success",
                 message: "La partida ha terminado porque solo queda un jugador en la partida"
@@ -387,14 +387,10 @@ async function seeAbsents(req) {
         // Iterar sobre los jugadores en la mesa del torneo
         for (const playerObj of board.players) {
             // Incrementar el contador de manos ausentes si el jugador no ha jugado
-            if (!board.hand.players.includes(playerObj.player)) {
-                playerObj.handsAbsent++
-            }
+            if (!board.hand.players.includes(playerObj.player)) playerObj.handsAbsent++
 
             // Eliminar al jugador si ha dejado de jugar dos manos consecutivas
-            if (playerObj.handsAbsent >= 2) {
-                playersToDelete.push(playerObj.player)
-            }
+            if (playerObj.handsAbsent >= 2) playersToDelete.push(playerObj.player)
         }
 
         await board.save()
@@ -579,24 +575,19 @@ async function manageHand(req) {
             const playerIndex = board.players.findIndex(player => 
                 player.player.equals(userId))
 
-            // Si el jugador no se encuentra en la lista, se emite un mensaje de
-            // error
-            if (playerIndex === -1) {
-                return ({
-                    status: "error",
-                    message: "El jugador con ID " + playerId + " no está en la mesa"
-                })
-            }
-        
-            // Se actualizan las monedas actuales del jugador en la mesa
-            board.players[playerIndex].currentCoins += coinsEarned
-            if (coinsEarned[1]) board.players[playerIndex].currentCoins += coinsEarned[1]
-
-            if (board.players[playerIndex].currentCoins < bet) {
-                res = await leaveBoardPriv({ body: { userId: userId, boardId: boardId }})
-                if (res.status === "error") return res
-
-                playersToDelete.push(userId)
+            // Si el jugador se encuentra en la lista
+            if (playerIndex !== -1) {
+                
+                // Se actualizan las monedas actuales del jugador en la mesa
+                board.players[playerIndex].currentCoins += coinsEarned
+                if (coinsEarned[1]) board.players[playerIndex].currentCoins += coinsEarned[1]
+    
+                if (board.players[playerIndex].currentCoins < bet) {
+                    res = await leaveBoardPriv({ body: { userId: userId, boardId: boardId }})
+                    if (res.status === "error") return res
+    
+                    playersToDelete.push(userId)
+                }
             }
         }
 

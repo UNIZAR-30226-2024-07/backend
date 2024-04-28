@@ -354,7 +354,7 @@ async function isEndOfGame(req) {
         }
 
         // Verificar si solo queda un jugador en la partida
-        if (board.players.length === 1) {
+        if (board.players.length <= 1) {
             return ({
                 status: "success",
                 message: "La partida ha terminado porque solo queda un jugador en la partida"
@@ -563,17 +563,12 @@ async function manageHand(req) {
             const playerIndex = board.players.findIndex(player => 
                 player.player.equals(userId))
 
-            // Si el jugador no se encuentra en la lista, se emite un mensaje de
-            // error
-            if (playerIndex === -1) {
-                return ({
-                    status: "error",
-                    message: "El jugador con ID " + playerId + " no está en la mesa"
-                })
+            // Si el jugador se encuentra en la lista
+            if (playerIndex !== -1) {
+                
+                // Se actualizan las vidas actuales del jugador en la mesa
+                board.players[playerIndex].lifes -= lifes
             }
-        
-            // Se actualizan las vidas actuales del jugador en la mesa
-            board.players[playerIndex].lifes -= lifes
         }
 
         // La mano ha terminado, luego se eliminan los jugadores que mandaron la
