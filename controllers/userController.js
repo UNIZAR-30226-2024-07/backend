@@ -973,6 +973,41 @@ const changeRug = async (req, res) => {
     }
 }
 
+const getPausedBoard = async (req, res) => {
+    const userId = req.user.id
+
+    try {
+        // Se recupera el usuario
+        const user = await User.findById(userId)
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        } else if (user.paused_board.length > 0) {
+            return res.status(200).json({
+                status: "success",
+                message: "Campo de mesa pausada obtenida correctamente. Se encuentra en el campo paused_board de este mensaje",
+                exists: true,
+                pausedBoard: user.paused_board[0].board,
+                boardType: user.paused_board[0].boardType
+            })
+        } else {
+            return res.status(200).json({
+                status: "success",
+                message: "Campo de mesa pausada obtenida correctamente. Se encuentra en el campo paused_board de este mensaje",
+                exists: false,
+            })
+        }
+        
+    } catch (e) {
+        return res.status(400).json({
+            status: "error",
+            message: "Error al obtener la partida pausada. " + e.message
+        })
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones del administrador
 ////////////////////////////////////////////////////////////////////////////////
@@ -1220,5 +1255,6 @@ module.exports = {
     changeRug,
     insertCoinsFunction,
     getDailyReward,
-    coinsDailyReward
+    coinsDailyReward,
+    getPausedBoard
 }

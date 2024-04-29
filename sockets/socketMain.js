@@ -367,6 +367,7 @@ const Sockets = async (io) => {
             } 
 
             socket.join("public:" + boardId)
+            socket.emit("resume accepted")
 
         } catch (e) {
             return console.error("Error al reanudar la partida. " + e.message)
