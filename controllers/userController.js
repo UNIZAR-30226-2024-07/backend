@@ -16,7 +16,7 @@ const e = require('express')
 
 const limitDailyReward = 500   // Recompensa diaria máxima
 const plusDailyReward = 50     // Aumento recompensa diaria por día
-const startReward = 200        // Recompensa inicial
+const startReward = 150        // Recompensa inicial
 
 // Obtener las monedas de la siguiente recompensa diaria
 async function coinsDailyRewardFunction(req) {
@@ -26,12 +26,19 @@ async function coinsDailyRewardFunction(req) {
     // Último día se ha obtenido la recompensa
     const lastDayReward = req.body.lastDayReward
     
+    const today = new Date()
     let yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1);
     // Ver si la última vez que se obtuvo recompensa fue ayer
-    if (lastDayReward.getDate() === yesterday.getDate() &&
+    // U hoy aunque saldŕia error al intentar recogerlo 
+    //    (solo es para mostrar número monedas)
+    if ((lastDayReward.getDate() === yesterday.getDate() &&
         lastDayReward.getMonth() === yesterday.getMonth() &&
-        lastDayReward.getFullYear() === yesterday.getFullYear()) {
+        lastDayReward.getFullYear() === yesterday.getFullYear()
+        )||(
+        lastDayReward.getDate() === today.getDate() &&
+        lastDayReward.getMonth() === today.getMonth() &&
+        lastDayReward.getFullYear() === today.getFullYear())) {
         
         // Si ha sobrepasado el limite
         if (lastReward >= limitDailyReward) {
@@ -53,7 +60,7 @@ async function coinsDailyRewardFunction(req) {
         return {
             status: "success",
             message: "Coins de la recompensa diaria obtenidas",
-            coins: startReward
+            coins: startReward + plusDailyReward
         }
     }
 }
