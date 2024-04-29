@@ -105,7 +105,12 @@ const userSchema = Schema({
             type: Number,
             default: 200
         }
-    
+    },
+    paused_board: {
+        type: [{
+            board: Schema.ObjectId,
+            boardType: String // "public", "private", "tournament"
+        }]
     }
 }, {timestamps: true})
 

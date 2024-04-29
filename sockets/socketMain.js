@@ -23,6 +23,7 @@ function signalPublic() {
     mutexPublic = true
 }
 
+const segundosRespuesta = 6
 const segundos = 30
 const periodo = 2
 
@@ -35,6 +36,7 @@ async function turnTimeout(boardId, typeBoardName) {
         var iter = segundos / periodo
         var i = 0
         let todosJugaron = false
+        cuenta = segundos
 
         while (!todosJugaron && i < iter) {
             await sleep(periodo * 1000) // 5 segundos
@@ -162,7 +164,7 @@ const Sockets = async (io) => {
                 io.to("tournament:" + boardId).emit("hand results", res.results)
 
                 // Se da tiempo a que visualicen los resultados de la mano
-                await sleep(6000)
+                await sleep(segundosRespuesta * 1000)
 
                 resEndBoard = await TournamentBoardController.isEndOfGame(req)
             }
@@ -299,9 +301,10 @@ const Sockets = async (io) => {
                 io.to("public:" + boardId).emit("hand results", res.results)
 
                 // Se da tiempo a que visualicen los resultados de la mano
-                await sleep(6000)
+                await sleep(segundosRespuesta * 1000)
                 console.log("Miramos si ha terminado la partida")
                 resEndBoard = await PublicBoardController.isEndOfGame(req)
+                console.log(resEndBoard)
             }
 
             // Se elimina a los jugadores de la lista de jugadores esperando mesa
@@ -345,6 +348,28 @@ const Sockets = async (io) => {
             io.to("public:" + boardId).emit("new message", message, userId)
         } catch (e) {
             return console.error(e.message)
+        }
+    })
+
+    socket.on("resume public board", async (req) => {
+        // Parámetros en req.body: boardId, userId
+        if (!req.body.boardId || !req.body.userId) return console.error("La petición debe contener un req.body.boardId y un req.body.userId")
+
+        const boardId = req.body.boardId
+        var res
+
+        try {
+            // Se llama a la función de reanudar partida
+            res = await PublicBoardController.resume(req)
+            if (res.status === "error") {
+                socket.emit("error", (res.message))
+                return console.error(res.message)
+            } 
+
+            socket.join("public:" + boardId)
+
+        } catch (e) {
+            return console.error("Error al reanudar la partida. " + e.message)
         }
     })
 
@@ -459,7 +484,7 @@ const Sockets = async (io) => {
                 io.to("private:" + boardId).emit("hand results", res.results)
 
                 // Se da tiempo a que visualicen los resultados de la mano
-                await sleep(6000)
+                await sleep(segundosRespuesta * 1000)
 
                 resEndBoard = await PrivateBoardController.isEndOfGame(req)
             }
