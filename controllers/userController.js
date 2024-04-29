@@ -14,6 +14,50 @@ const e = require('express')
 // Funciones privadas
 ////////////////////////////////////////////////////////////////////////////////
 
+const limitDailyReward = 500   // Recompensa diaria máxima
+const plusDailyReward = 50     // Aumento recompensa diaria por día
+const startReward = 200        // Recompensa inicial
+
+// Obtener las monedas de la siguiente recompensa diaria
+async function coinsDailyRewardFunction(req) {
+
+    // Última recompensa obtenida
+    const lastReward = req.body.lastReward
+    // Último día se ha obtenido la recompensa
+    const lastDayReward = req.body.lastDayReward
+    
+    let yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1);
+    // Ver si la última vez que se obtuvo recompensa fue ayer
+    if (lastDayReward.getDate() === yesterday.getDate() &&
+        lastDayReward.getMonth() === yesterday.getMonth() &&
+        lastDayReward.getFullYear() === yesterday.getFullYear()) {
+        
+        // Si ha sobrepasado el limite
+        if (lastReward >= limitDailyReward) {
+            return {
+                status: "success",
+                message: "Coins de la recompensa diaria obtenidas",
+                coins: limitDailyReward
+            }
+        } else {
+            return {
+                status: "success",
+                message: "Coins de la recompensa diaria obtenidas",
+                coins: lastReward + plusDailyReward
+            }
+        }
+
+        // Su última recompensa recogida no fue ayer
+    } else {
+        return {
+            status: "success",
+            message: "Coins de la recompensa diaria obtenidas",
+            coins: startReward
+        }
+    }
+}
+
 // Dado un id de usuario y una cantidad de monedas, añade esa cantidad al usuario.
 async function insertCoinsFunction(req) {
     // Parámetros en req.body: userId, coins
@@ -929,54 +973,6 @@ const changeRug = async (req, res) => {
     }
 }
 
-// Dado un id de Usuario y un día de la semana ‘day’, suma al usuario con dicho id el 
-// número de monedas correspondiente a la recompensa del día de la semana ‘day’.
-// ‘day’ es un día de la semana en español, con la primera letra en mayúscula y con tildes
-const getReward = async (req, res) => {
-    const userId = req.user.id
-    const rewardDay = req.body.rewardDay
-
-    try {
-        // Buscamos la recompensa
-        const reward = await Reward.findOne({ day: rewardDay })
-        if (!reward) {
-            return res.status(404).json({
-                status: "error",
-                message: "La recompensa no ha sido encontrada"
-            })
-        }
-
-        // Se busca el usuario por su ID
-        const user = await User.findById(userId)
-        if (!user) {
-            return res.status(404).json({
-                status: "error",
-                message: "El usuario no ha sido encontrado"
-            })
-        }    
-        
-        // Se suman las monedas al saldo del usuario
-        user.coins += reward.value
-
-        // Se guarda y se responde al cliente
-        await user.save()
-        return res.status(200).json({
-            status: "success",
-            message: "Recompensa obtenida correctamnete",
-            coinsReward: reward.value,
-            user: user
-        })
-
-    } catch (e) {
-        console.error(error)
-        return res.status(500).json({
-            status: "error",
-            message: "Error al obtener la recompensa. Asegúrate de que el día de la recompensa posee la primera letra en mayúscula, está en español y lleva tildes además de que el ID del usuario sea correcto"
-        })
-    }
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones del administrador
 ////////////////////////////////////////////////////////////////////////////////
@@ -1104,6 +1100,104 @@ const insertCoins = async (req, res) => {
     }
 }
 
+// Obtener la recompensa diaria. Sumar al usuario las monedas de la recompensa diaria
+const getDailyReward = async (req, res) => {
+    try {
+        const userId = req.user.id
+        const today = new Date()
+
+        // Se busca el usuario por su ID
+        const user = await User.findById(userId)
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            })
+        }
+        // Última recompensa obtenida
+        const lastReward = user.dailyReward.lastReward
+        // Último día se ha obtenido la recompensa
+        const lastDayReward = user.dailyReward.lastDayReward
+
+        // Si petición es en el mismo día
+        if (lastDayReward >= today) {
+            return res.status(400).json({
+                status: "error",
+                message: "Solo se puede obtener una recompensa diaria al día"
+            })
+
+            // Sumar las monedas al usuario
+        } else {
+            const resAux = await coinsDailyRewardFunction({body: {lastReward: lastReward,
+                                                                  lastDayReward: lastDayReward}})
+            if (resAux.status === "error") return res.status(400).json(resAux)
+            
+            user.coins += resAux.coins
+            user.dailyReward.lastReward = resAux.coins
+            user.dailyReward.lastDayReward = today
+            await user.save()
+
+            return res.status(200).json({
+                status: "success",
+                message: "Recompensa diaria obtenida correctamente",
+                user,
+                coinsReward: resAux.coins
+            })
+        }
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: error.message
+        })
+    }
+}
+
+const coinsDailyReward = async(req, res) => {
+    try {
+        const userId = req.user.id
+        // Se busca el usuario por su ID
+        const user = await User.findById(userId)
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "El usuario no ha sido encontrado"
+            })
+        }    
+        // Última recompensa obtenida
+        const lastReward = user.dailyReward.lastReward
+        // Último día se ha obtenido la recompensa
+        const lastDayReward = user.dailyReward.lastDayReward
+
+        const resAux = await coinsDailyRewardFunction({body: {lastReward: lastReward,
+                                                              lastDayReward: lastDayReward}})
+        if (resAux.status !== "success") return res.status(400).json(resAux)
+
+        const coins = resAux.coins
+        let rewardDisponible = true
+        const today = new Date()
+        // Ver si la última vez que se obtuvo recompensa ha sido hoy
+        // LastDayReward nunca podría ser posterior a today
+        if (lastDayReward.getDate() === today.getDate() &&
+            lastDayReward.getMonth() === today.getMonth() &&
+            lastDayReward.getFullYear() === today.getFullYear()) {
+                
+            rewardDisponible = false
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Siguiente reward obtenido',
+            coins: coins,
+            rewardDisponible: rewardDisponible
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: error.message
+        })
+    }
+}
 
 // Funciones que se exportan
 module.exports = {
@@ -1124,6 +1218,7 @@ module.exports = {
     changeCard,
     buyRug,
     changeRug,
-    getReward,
-    insertCoinsFunction
+    insertCoinsFunction,
+    getDailyReward,
+    coinsDailyReward
 }

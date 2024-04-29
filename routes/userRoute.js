@@ -15,7 +15,8 @@ router.put('/buyCard', authRequired, UserController.buyCard)
 router.put('/changeCard', authRequired, UserController.changeCard)
 router.put('/buyRug', authRequired, UserController.buyRug)
 router.put('/changeRug', authRequired, UserController.changeRug)
-router.put('/getReward', authRequired, UserController.getReward)
+router.put('/getDailyReward', authRequired, UserController.getDailyReward)
+router.get('/coinsDailyReward', authRequired, UserController.coinsDailyReward)
 
 // Funciones exclusivas del administrador
 router.put('/extractCoins/:id', authRequired, UserController.isAdmin, UserController.extractCoins)

@@ -90,6 +90,22 @@ const userSchema = Schema({
             current: Boolean    
         }],
         default: []
+    },
+    // Información recompensa diaria
+    dailyReward: {
+        lastDayReward: {  // Último día la recompensa ha sido obtenida
+            type: Date,
+            default: () => {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                return yesterday;
+            }
+        },
+        lastReward: {   // Última recompensa obtenida
+            type: Number,
+            default: 200
+        }
+    
     }
 }, {timestamps: true})
 
