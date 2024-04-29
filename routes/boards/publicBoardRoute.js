@@ -11,6 +11,7 @@ router.get('/boardById/:id', authRequired, PublicBoardController.boardById)
 router.put('/leaveBoard/:id', authRequired, PublicBoardController.leaveBoard)
 
 // Jugadas posibles
+router.put('/pause/:id', authRequired, PublicBoardController.pause)
 router.put('/drawCard', authRequired, PublicBoardController.drawCard)
 router.put('/double', authRequired,PublicBoardController.double)
 router.put('/split', authRequired, PublicBoardController.split)

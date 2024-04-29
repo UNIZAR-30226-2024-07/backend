@@ -182,14 +182,14 @@ async function eliminatePlayers(req) {
             })
         }
 
-        // Se cogen los índices de los jugadores a eliminar
-        const playerIndicesToDelete = [];
-        playersToDelete.forEach(playerId => {
-            const index = board.players.findIndex(player => player.player.equals(playerId));
-            if (index !== -1) {
-                playerIndicesToDelete.push(index);
+        // En caso de que tuvieran la mesa pausada, se les elimina la mesa de mesas pausadas
+        for (const player of board.players) {
+            if (playersToDelete.includes(player.player) && player.paused) {
+                const user = await User.findById(player.player)
+                user.paused_board.splice(0, 1)
+                user.save()
             }
-        })        
+        }
 
         // Eliminar a los jugadores marcados para ser eliminados
         await PrivateBoard.updateOne(

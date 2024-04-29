@@ -90,6 +90,12 @@ const userSchema = Schema({
             current: Boolean    
         }],
         default: []
+    },
+    paused_board: {
+        type: [{
+            board: Schema.ObjectId,
+            boardType: String // "public", "private", "tournament"
+        }]
     }
 }, {timestamps: true})
 
