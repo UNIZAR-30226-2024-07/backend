@@ -992,6 +992,7 @@ const getPausedBoard = async (req, res) => {
                 message: "Usuario no encontrado"
             })
         } else if (user.paused_board.length > 0) {
+            console.log("user.paused_board[0].board", user.paused_board[0].board)
             return res.status(200).json({
                 status: "success",
                 message: "Campo de mesa pausada obtenida correctamente. Se encuentra en el campo paused_board de este mensaje",

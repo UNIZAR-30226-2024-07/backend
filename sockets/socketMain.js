@@ -359,6 +359,7 @@ const Sockets = async (io) => {
         var res
 
         try {
+            console.log("Empezamos resume")
             // Se llama a la función de reanudar partida
             res = await PublicBoardController.resume(req)
             if (res.status === "error") {
@@ -368,6 +369,7 @@ const Sockets = async (io) => {
 
             socket.join("public:" + boardId)
             socket.emit("resume accepted")
+            console.log("Terminamos resume")
 
         } catch (e) {
             return console.error("Error al reanudar la partida. " + e.message)

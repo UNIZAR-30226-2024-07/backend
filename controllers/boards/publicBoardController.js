@@ -508,6 +508,7 @@ async function newMessage(req) {
 async function manageHand(req) {
     // Parámetros en req.body: boardId
     const boardId = req.body.boardId 
+    var res
 
     try {
         // Se recupera la mesa
@@ -519,8 +520,9 @@ async function manageHand(req) {
             })
         }
 
+        console.log("1")
         // Se piden los resultados de la mano actual a la banca
-        var res = await BankController.results({ body: {bankId: board.bank, 
+        res = await BankController.results({ body: {bankId: board.bank, 
                                                  typeBoardName: 'public', 
                                                  bet: board.bet}})
         if (res.status === "error") return res
@@ -546,6 +548,8 @@ async function manageHand(req) {
                     if (coinsEarned[1]) board.players[playerIndex].currentCoins += coinsEarned[1]
                     
                     if (board.players[playerIndex].currentCoins < board.bet) {
+                        console.log("2")
+
                         res = await leaveBoardPriv({ body: { userId: userId, boardId: boardId }})
                         if (res.status === "error") return res
                     
@@ -554,7 +558,7 @@ async function manageHand(req) {
                 }
             }
         }
-
+        console.log("3")
         // La mano ha terminado, luego se eliminan los jugadores que mandaron la
         // jugada y se incrementa el número de la mano
         board.hand.players = []
@@ -587,7 +591,7 @@ async function leaveBoardPriv(req) {
         // Se verifica que la mesa exista
         const board = await PublicBoard.findById(boardId)
         if (!board) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Mesa no encontrada"
             })
@@ -596,7 +600,7 @@ async function leaveBoardPriv(req) {
         // Se verifica que el usuario esté en la partida
         const playerIndex = board.players.findIndex(player => player.player.equals(userId))
         if (playerIndex === -1) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "El usuario no está en la partida"
             })
@@ -628,13 +632,13 @@ async function leaveBoardPriv(req) {
         // Guardar los cambios en la base de datos
         await board.save();
 
-        return res.status(200).json({
+        return ({
             status: "success",
             message: "El usuario abandonó la partida correctamente"
         })
 
     } catch (e) {
-        return res.status(500).json({
+        return ({
             status: "error",
             message: "Error al abandonar la partida. " + e.message
         })
