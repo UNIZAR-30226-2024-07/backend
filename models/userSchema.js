@@ -103,7 +103,7 @@ const userSchema = Schema({
         },
         lastReward: {   // Última recompensa obtenida
             type: Number,
-            default: 200
+            default: 150
         }
     },
     paused_board: {
