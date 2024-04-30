@@ -126,7 +126,7 @@ const Sockets = async (io) => {
             while (resEndBoard.status === "error") {
                 // Generar primeras cartas del board para enviarlas
                 res = await TournamentBoardController.boardByIdFunction({ body: { boardId: boardId }})
-                if (res.status === "error") return res
+                if (res.status === "error") return console.error(res)
                 const bankId = res.board.bank
                 const players = res.board.players
 
@@ -134,7 +134,7 @@ const Sockets = async (io) => {
                                                                bankId: bankId, 
                                                                players: players, 
                                                                typeBoardName: 'tournament'}})
-                if (res.status === "error") return res
+                if (res.status === "error") return console.error(res)
                 const initialCards = res.initBoard
 
                 // Primero se envía un evento para que todos los jugadores hagan
@@ -148,7 +148,7 @@ const Sockets = async (io) => {
                     // Si se agotó el tiempo y no todos mandaron su jugada, se
                     // apunta
                     res = await TournamentBoardController.seeAbsents({ body: { board: res.board }})
-                    if (res.status === "error") return res
+                    if (res.status === "error") return console.error(res)
 
                     if (res.playersToDelete.length > 0) {
                         io.to("tournament:" + boardId).emit("players deleted", res.playersToDelete)
@@ -257,7 +257,7 @@ const Sockets = async (io) => {
             while (resEndBoard.status === "error") {
                 // Generar primeras cartas del board para enviarlas
                 res = await PublicBoardController.boardByIdFunction({ body: { boardId: boardId }})
-                if (res.status === "error") return res
+                if (res.status === "error") return console.error(res)
                 const bankId = res.board.bank
                 const players = res.board.players
                 console.log("que pasa")
@@ -451,7 +451,7 @@ const Sockets = async (io) => {
             while (resEndBoard.status === "error") {
                 // Generar primeras cartas del board para enviarlas
                 res = await PrivateBoardController.boardByIdFunction({ body: { boardId: boardId }})
-                if (res.status === "error") return res
+                if (res.status === "error") return console.error(res)
                 const bankId = res.board.bank
                 const players = res.board.players
                 
@@ -459,7 +459,7 @@ const Sockets = async (io) => {
                                                                bankId: bankId, 
                                                                players: players,
                                                                typeBoardName: 'private' }})
-                if (res.status === "error") return res
+                if (res.status === "error") return console.error(res)
                 const initialCards = res.initBoard
 
                 // Primero se envía un evento para que todos los jugadores hagan
@@ -482,7 +482,7 @@ const Sockets = async (io) => {
 
                 // Se realizan las acciones correspondientes al fin de mano
                 res = await PrivateBoardController.manageHand({ body: { boardId: boardId }})
-                if (res.status === "error") return res
+                if (res.status === "error") return console.error(res)
 
                 // Se verifica si algún usuario fue expulsado, y en caso afirmativo
                 // se notifica
@@ -587,12 +587,12 @@ const Sockets = async (io) => {
                 res = await SingleBoardController.boardByIdFunction({ body: { boardId: boardId }})
                 if (res.status === "error") {
                     console.error(res)
-                    return res
+                    return console.error(res)
                 }
 
                 console.log("Después: boardByIdFunction", res)/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                if (res.status === "error") return res
+                if (res.status === "error") return console.error(res)
 
                 console.log("Antes: players = ")/////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 const players = res.board.players
@@ -608,7 +608,7 @@ const Sockets = async (io) => {
                                                                typeBoardName: 'single'}})
                     if (res.status === "error") {
                     console.error(res)
-                    return res
+                    return console.error(res)
                 }
                 const initialCards = res.initBoard
 
@@ -628,7 +628,7 @@ const Sockets = async (io) => {
                 res = await SingleBoardController.manageHand({ body: { boardId: boardId }})
                 if (res.status === "error") {
                     console.error(res)
-                    return res
+                    return console.error(res)
                 }
 
                 io.to("single:" + boardId).emit("hand results", res.results)
