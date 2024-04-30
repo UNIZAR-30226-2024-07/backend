@@ -554,10 +554,11 @@ async function manageHand(req) {
                     // Se actualizan las monedas actuales del jugador en la mesa
                     board.players[playerIndex].currentCoins += coinsEarned[0]
                     if (coinsEarned[1]) board.players[playerIndex].currentCoins += coinsEarned[1]
+
+                    // Devolver currentCoins
+                    result.currentCoins = board.players[playerIndex].currentCoins
                     
                     if (board.players[playerIndex].currentCoins < board.bet) {
-                        console.log("2")
-
                         res = await leaveBoardPriv({ body: { userId: userId, boardId: boardId }})
                         if (res.status === "error") return res
                     
@@ -566,7 +567,6 @@ async function manageHand(req) {
                 }
             }
         }
-        console.log("3")
         // La mano ha terminado, luego se eliminan los jugadores que mandaron la
         // jugada y se incrementa el número de la mano
         board.hand.players = []
@@ -574,7 +574,6 @@ async function manageHand(req) {
 
         // Se guarda la mesa con las monedas ganadas de cada jugador
         await board.save()
-        console.log("Todo bien en MANAGEHAND")
         // Se devuelven los resultados de la banca en el campo results
         return ({
             status: "success",
