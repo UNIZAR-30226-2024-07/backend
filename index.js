@@ -56,6 +56,7 @@ app.use("/api/user", require("./routes/userRoute"))
 app.use("/api/publicBoard", require("./routes/boards/publicBoardRoute"))
 app.use("/api/privateBoard", require("./routes/boards/privateBoardRoute"))
 app.use("/api/tournamentBoard", require("./routes/boards/tournamentBoardRoute"))
+app.use("/api/singleBoard", require("./routes/boards/singleBoardRoute"))
 
 const server = app.listen(appConfig.port, () => {
     console.log("Servidor de node escuchando en el puerto: ", appConfig.port)

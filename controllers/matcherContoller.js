@@ -559,7 +559,7 @@ async function eliminateWaitingUsers(req) {
 
     try {
         // Se busca una partida en espera que coincida en torneo y ronda
-        const matcher = await Matcher.findById(matcherId)
+        const matcher = await Matcher.findOne()
         if (!matcher) {
             return ({
                 status: "error",
@@ -614,7 +614,7 @@ async function eliminateWaitingUser(req) {
 
     try {
         // Se busca una partida en espera que coincida en torneo y ronda
-        const matcher = await Matcher.findById(matcherId)
+        const matcher = await Matcher.findOne()
         if (!matcher) {
             return ({
                 status: "error",
@@ -693,7 +693,7 @@ async function playTournament(req) {
 
     try {
         // Se recupera el emparejador
-        const matcher = await Matcher.findById(matcherId)
+        const matcher = await Matcher.findOne()
         if (!matcher) {
             return ({
                 status: "error",
@@ -847,7 +847,7 @@ async function playPublic(req) {
 
     try {
         // Se recupera el emparejador
-        const matcher = await Matcher.findById(matcherId)
+        const matcher = await Matcher.findOne()
         if (!matcher) {
             return ({
                 status: "error",
@@ -958,7 +958,7 @@ async function createPrivate(req) {
 
     try {
         // Se recupera el emparejador
-        const matcher = await Matcher.findById(matcherId)
+        const matcher = await Matcher.findOne()
         if (!matcher) {
             return ({
                 status: "error",
@@ -1021,7 +1021,7 @@ async function playPrivate(req) {
 
     try {
         // Se recupera el emparejador
-        const matcher = await Matcher.findById(matcherId)
+        const matcher = await Matcher.findOne()
         if (!matcher) {
             return ({
                 status: "error",
