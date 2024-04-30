@@ -423,24 +423,37 @@ async function finishBoard(req) {
     const boardId = req.body.boardId
 
     try {
-        var res = await boardByIdFunction({ body: { boardId: boardId }})
-        if (res.status === "error") return res
-        const board = res.board
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
 
-        for (playerObj of board.players) {
-            if (playerObj.initialCoins != playerObj.currentCoins) {
-                res = await UserController.insertCoinsFunction({ body: 
-                    { userId: playerObj.player, 
-                      coins: playerObj.currentCoins - playerObj.initialCoins }})
-                if (res.status === "error") return res
-            }
+        if (board.players.length > 0) {
+            for (const playerObj of board.players) {
+                if (playerObj.initialCoins != playerObj.currentCoins) {
+                    res = await UserController.insertCoinsFunction({ body: 
+                        { userId: playerObj.player, 
+                          coins: playerObj.currentCoins - playerObj.initialCoins }})
+                    if (res.status === "error") return res
+
+                    if (playerObj.currentCoins - playerObj.initialCoins > 0) {
+                        res = await StatController.incrementStatByName({ body:
+                            { userId: playerObj.player, statName: "Monedas ganadas en partida",
+                              value: playerObj.currentCoins - playerObj.initialCoins }})
+                        if (res.status === "error") return res
+                    }
+                }
+            }    
         }
 
         // Se elimina la banca del sistema
         await BankController.eliminate({ body: { bankId: board.bank }})
 
         // Se elimina ahora la partida
-        await board.remove()
+        await PrivateBoard.findByIdAndDelete(boardId)
 
         return ({
             status: "success",

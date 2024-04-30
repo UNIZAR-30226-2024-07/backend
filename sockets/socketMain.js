@@ -259,17 +259,19 @@ const Sockets = async (io) => {
                 if (res.status === "error") return res
                 const bankId = res.board.bank
                 const players = res.board.players
+                console.log("que pasa")
 
                 // Se inicializa la banca para la ronda que se va a jugar
                 res = await BankController.initBoard({ body: { boardId: boardId,
                                                                bankId: bankId, 
                                                                players: players, 
                                                                typeBoardName: 'public'}})
-                if (res.status === "error") return res
+                if (res.status === "error") return console.error(res)
                 const initialCards = res.initBoard
     
                 // Primero se envía un evento para que todos los jugadores hagan
                 // una jugada
+                console.log(initialCards)
                 io.to("public:" + boardId).emit("play hand", initialCards)
                 
                 // Se espera a que lleguen las jugadas

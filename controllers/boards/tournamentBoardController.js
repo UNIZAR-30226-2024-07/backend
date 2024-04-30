@@ -5,6 +5,7 @@ const TournamentController = require("../tournamentController")
 const BankController = require("../bankController")
 const UserController = require("../userController")
 const MatcherController = require("../matcherContoller")
+const StatController = require("../statController")
 
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones internas
@@ -418,6 +419,9 @@ async function finishBoard(req) {
 
             res = await TournamentController.tournamentLost({ body: { userId: loser.player, tournamentId: tournament._id }})
             if (res.status === "error") return res
+
+            // Al ser una final, al ganador se le aumenta el número de torneos ganados
+            res = await StatController.incrementStatByName({ body: { userId: winner.player, statName: "Torneos ganados", value: 1 }})
 
         } else {
             // La partida no era una final, luego se avanza de ronda al ganador

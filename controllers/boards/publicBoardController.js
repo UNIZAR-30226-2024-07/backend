@@ -4,6 +4,7 @@ const PublicBoardType = require("../../models/publicBoardTypeSchema")
 const UserController = require("../userController")
 const BankController = require("../bankController")
 const MatcherController = require("../matcherContoller")
+const StatController = require("../statController")
 
 const maxRounds = 20
 
@@ -398,6 +399,13 @@ async function finishBoard(req) {
                         { userId: playerObj.player, 
                           coins: playerObj.currentCoins - playerObj.initialCoins }})
                     if (res.status === "error") return res
+
+                    if (playerObj.currentCoins - playerObj.initialCoins > 0) {
+                        res = await StatController.incrementStatByName({ body:
+                            { userId: playerObj.player, statName: "Monedas ganadas en partida",
+                              value: playerObj.currentCoins - playerObj.initialCoins }})
+                        if (res.status === "error") return res
+                    }
                 }
             }    
         }
