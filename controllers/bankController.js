@@ -264,16 +264,18 @@ async function confirmPriv(req) {
         // Si ha hecho split y es la segunda jugada, jugador confirmado
         if ((!playerHands.split) 
             ||
-            (playerHands.split && 
-             (
-                ((bank.playersHands[playerIndex].hands[0].length > 0) && (bank.playersHands[playerIndex].hands[1].length == 0)) 
-                || 
-                ((bank.playersHands[playerIndex].hands[0].length = 0) && (bank.playersHands[playerIndex].hands[1].length > 0))
-            ))) {  
+            (   // No ha hecho split
+                playerHands.split && 
+                ((bank.playersHands[playerIndex].hands[0].length > 0) && 
+                (bank.playersHands[playerIndex].hands[1].length > 0)) 
+            )) {  
             const reqPush = { body: { typeBoardName: req.body.typeBoardName,
                                       boardId: req.body.boardId,
                                       userId: userId } }
             const resPush = await pushOnPlayersConfirm(reqPush)
+
+            console.log("CONFIRMARR....................................................................................................")
+
             if (resPush.status === "error") return resPush
             return ({
                 status: "success",
