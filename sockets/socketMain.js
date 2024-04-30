@@ -202,7 +202,9 @@ const Sockets = async (io) => {
             var res = await TournamentBoardController.newMessage(req)
             if (res.status === "error") return console.error(res)
 
-            io.to("tournament:" + boardId).emit("new message", message, userId)
+            io.to("tournament:" + boardId).emit("new message", { message: message, 
+                                                                 name: res.nameEmitter,
+                                                                 userId: userId})
         } catch (e) {
             return console.error(e.message)
         }
@@ -354,7 +356,9 @@ const Sockets = async (io) => {
             var res = await PublicBoardController.newMessage(req)
             if (res.status === "error") return console.error(res)
 
-            io.to("public:" + boardId).emit("new message", message, userId)
+            io.to("public:" + boardId).emit("new message", { message: message, 
+                                                             name: res.nameEmitter,
+                                                             userId: userId})
         } catch (e) {
             return console.error(e.message)
         }

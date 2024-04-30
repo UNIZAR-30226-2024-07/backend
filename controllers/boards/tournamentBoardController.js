@@ -488,13 +488,16 @@ async function newMessage(req) {
 
     try {
         // Se busca y verifica que la mesa exista
-        const board = await TournamentBoard.findById(boardId)
+        const board = await PrivateBoard.findById(boardId)
         if (!board) {
             return ({
                 status: "error",
                 message: "Mesa no encontrada"
             })
         }
+
+        var res = await UserController.userByIdFunction({ body: {userId: userId }})
+        const user = res.user
 
         // Verificar si el usuario está jugando en la mesa
         const playerIndex = board.players.findIndex(player => player.player.equals(userId))
@@ -524,7 +527,8 @@ async function newMessage(req) {
 
         return ({
             status: "success",
-            message: "Mensaje agregado al chat de la partida correctamente"
+            message: "Mensaje agregado al chat de la partida correctamente",
+            nameEmitter: user.nick
         })
 
     } catch (e) {

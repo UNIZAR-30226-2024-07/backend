@@ -472,6 +472,9 @@ async function newMessage(req) {
             })
         }
 
+        var res = await UserController.userByIdFunction({ body: {userId: userId }})
+        const user = res.user
+
         // Verificar si el usuario está jugando en la mesa
         const playerIndex = board.players.findIndex(player => player.player.equals(userId))
         if (playerIndex === -1) {
@@ -480,7 +483,7 @@ async function newMessage(req) {
                 message: "El usuario no está jugando en esta partida"
             })
         }
-        
+
         // Se verifica que el mensaje no sea una cadena vacía
         if (message.trim() === '') {
             return ({
@@ -500,7 +503,8 @@ async function newMessage(req) {
 
         return ({
             status: "success",
-            message: "Mensaje agregado al chat de la partida correctamente"
+            message: "Mensaje agregado al chat de la partida correctamente",
+            nameEmitter: user.nick
         })
 
     } catch (e) {
