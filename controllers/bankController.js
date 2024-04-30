@@ -580,15 +580,15 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
     const premioMejorQueJugadores = bet * 2 * doubleBet;
     const premioBlackjack = bet * 3 * doubleBet;
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    console.log("Dentro de calcularEarnedCoins:")
-    console.log("               TotalesJugasor:", totalesJugador)
-    console.log("            blackJacksJugador:", blackJacksJugador)
-    console.log("                   totalesAll:", totalesAll)
-    console.log("                   totalBanca:", totalBanca)
-    console.log("               blackJackBanca:", blackJackBanca)
-    console.log("                          bet:", bet)
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // console.log("Dentro de calcularEarnedCoins:")
+    // console.log("               TotalesJugasor:", totalesJugador)
+    // console.log("            blackJacksJugador:", blackJacksJugador)
+    // console.log("                   totalesAll:", totalesAll)
+    // console.log("                   totalBanca:", totalBanca)
+    // console.log("               blackJackBanca:", blackJackBanca)
+    // console.log("                          bet:", bet)
+    // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     const coinsGanadasPorJugador = [];
     
@@ -607,10 +607,10 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
             doubleBet = 1
         }
 
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        console.log("                               totalJugador : ", totalJugador)
-        console.log("                               blackJackJugador: ", blackJackJugador)
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // console.log("                               totalJugador : ", totalJugador)
+        // console.log("                               blackJackJugador: ", blackJackJugador)
+        // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // No ha hecho stick
         if (totalJugador === 0) {
@@ -636,24 +636,24 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
                 totalesAllCopy.splice(index, 1); // Elimina el totalJugador actual
             }
 
-            console.log("                                          index: ", index)
-            console.log("                                 totalesAllCopy: ", totalesAllCopy)
+            // console.log("                                          index: ", index)/////////////////////////////////////////////////////////////////////////////
+            // console.log("                                 totalesAllCopy: ", totalesAllCopy)//////////////////////////////////////////////////////////////////////
 
             // Además, mayor que todos los jugadores
             // Puntuación mayor jugador o si es menor, que el otro se haya pasado
             if (totalesAllCopy.every(puntuacion => (puntuacion < totalJugador) || (puntuacion > numBlackJack))) {
                 coinsGanadasPorJugador.push(premioMejorQueJugadores * doubleBet);
             } 
-            // Algún jugador igual o mejor que tú
+            // Algún jugador igual o mejor que tú. Redondear porque multiplica a 
             else {
-                coinsGanadasPorJugador.push(premioMejorQueBanca * doubleBet);
+                coinsGanadasPorJugador.push(Math.round(premioMejorQueBanca * doubleBet));
             }
         } else {
             coinsGanadasPorJugador.push(0);
         }
     }
 
-    console.log("Monedas ganadas por le jugador: ", coinsGanadasPorJugador)//////////////////////////////////////////////////////////////
+    // console.log("Monedas ganadas por le jugador: ", coinsGanadasPorJugador)//////////////////////////////////////////////////////////////
 
     return coinsGanadasPorJugador;
 }
@@ -852,7 +852,8 @@ async function results(req) {
                     // En public / private puede haber 1 o 2 manos
                     cards: playerHands,      // [[ cards ]]
                     total: totalCardsPlayer,    // [ totalCards ]
-                    coinsEarned: coinsEarned   // [ coinsEarned ]
+                    coinsEarned: coinsEarned,   // [ coinsEarned ]
+                    currentCoins: 0
                 }
                 results.push(playerObject)
             }  
