@@ -3,6 +3,7 @@ const MatcherController = require("../controllers/matcherContoller")
 const TournamentBoardController = require("../controllers/boards/tournamentBoardController")
 const PublicBoardController = require("../controllers/boards/publicBoardController")
 const PrivateBoardController = require("../controllers/boards/privateBoardController")
+const SingleBoardController = require("../controllers/boards/singleBoardController")
 const BankController = require("../controllers/bankController")
 
 var mutex = true
@@ -260,6 +261,7 @@ const Sockets = async (io) => {
                 const bankId = res.board.bank
                 const players = res.board.players
 
+                console.log("Antes initBoard")
                 // Se inicializa la banca para la ronda que se va a jugar
                 res = await BankController.initBoard({ body: { boardId: boardId,
                                                                bankId: bankId, 
@@ -267,6 +269,8 @@ const Sockets = async (io) => {
                                                                typeBoardName: 'public'}})
                 if (res.status === "error") return res
                 const initialCards = res.initBoard
+
+                console.log("Despues initBoard")
     
                 // Primero se envía un evento para que todos los jugadores hagan
                 // una jugada
@@ -526,6 +530,131 @@ const Sockets = async (io) => {
                                                               userId: userId })
         } catch (e) {
             return console.error(e.message)
+        }
+    })
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Partidas Single
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Para los usuarios que quieren jugar en solitario
+    socket.on("enter single board", async (req) => {
+        // Parámetros que debe haber en req.body: bankLevel, userId
+        
+        try {
+            ////////////////////////////////////////////////////////////////////
+            // wait(PublicMutex)
+
+            let res
+            res = await SingleBoardController.add(req)
+            if (res.status === "error") return console.error(res.message)
+            const boardId = res.board._id
+
+            socket.join("single:" + boardId)
+            io.to("single:" + boardId).emit("starting single board", boardId)
+
+            console.log("Emitir: starting single board")/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+        } catch (e) {
+            return console.error(e.message)
+        }
+    })
+
+    socket.on("players single ready", async (req) => {
+
+        console.log("Llega: players single ready")/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        // Parámetros en body: boardId
+        if (!req.body.boardId) return console.log("Se requiere de body.boardId")
+        const boardId = req.body.boardId
+
+        try {
+
+            // signal(PublicMutex)
+            ////////////////////////////////////////////////////////////////////
+            var resEndBoard = { status: "error" }
+
+            console.log("Inicializar bucle")/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+            while (resEndBoard.status === "error") {
+
+                console.log("Dentro bucle")/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                // Generar primeras cartas del board para enviarlas
+                res = await SingleBoardController.boardByIdFunction({ body: { boardId: boardId }})
+                if (res.status === "error") {
+                    console.error(res)
+                    return res
+                }
+
+                console.log("Después: boardByIdFunction", res)/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                if (res.status === "error") return res
+
+                console.log("Antes: players = ")/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                const players = res.board.players
+                const bankId = res.board.bank
+                console.log("Después: players = ")/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+                console.log("Antes initBoard", players, bankId, boardId)
+                // Se inicializa la banca para la ronda que se va a jugar
+                res = await BankController.initBoard({ body: { boardId: boardId,
+                                                               bankId: bankId, 
+                                                               players: players, 
+                                                               typeBoardName: 'single'}})
+                    if (res.status === "error") {
+                    console.error(res)
+                    return res
+                }
+                const initialCards = res.initBoard
+
+                console.log("Despues initBoard")
+    
+                // Primero se envía un evento para que todos los jugadores hagan
+                // una jugada
+                io.to("single:" + boardId).emit("play hand", initialCards, boardId)
+                
+                // Se espera a que conteste el jugador
+                res = { status: "error" }
+                while (res.status === "error") {
+                    res = await SingleBoardController.allPlayersPlayed({ body: { boardId: boardId }})
+                }
+
+                // Se realizan las acciones correspondientes al fin de mano
+                res = await SingleBoardController.manageHand({ body: { boardId: boardId }})
+                if (res.status === "error") {
+                    console.error(res)
+                    return res
+                }
+
+                io.to("single:" + boardId).emit("hand results", res.results)
+
+                // Se da tiempo a que visualicen los resultados de la mano
+                await sleep(segundosRespuesta * 1000)
+                console.log("Miramos si ha terminado la partida")
+                resEndBoard = await SingleBoardController.isEndOfGame({ body: { boardId: boardId }})
+                console.log(resEndBoard)
+            }
+            
+            // Se mira quién ha sido el ganador de la partida, se le avanza en
+            // la ronda y se dan monedas si se tienen que dar
+            res = await SingleBoardController.finishBoard({ body: { boardId: boardId }})
+            if (res.status === "error") return console.error(res.message)
+
+            console.log("Partida finalizada")
+
+            // io.to("single:" + boardId).emit("finish board")
+
+            // Se eliminan todos los sockets del room de la partida
+            io.of("/").in("single:" + boardId).socketsLeave("single:" + boardId);
+            
+        } catch (e) {
+            return ({
+                status: "error",
+                message: "Error en el transcurso de la partida. " + e.message
+            })
         }
     })
 

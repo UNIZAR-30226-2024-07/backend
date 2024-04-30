@@ -1,9 +1,7 @@
 const User = require("../../models/userSchema")
-const PublicBoard = require("../../models/boards/publicBoardSchema")
-const PublicBoardType = require("../../models/publicBoardTypeSchema")
+const SingleBoard = require("../../models/boards/singleBoardSchema")
 const UserController = require("../userController")
 const BankController = require("../bankController")
-const MatcherController = require("../matcherContoller")
 
 const maxRounds = 20
 
@@ -15,11 +13,11 @@ async function allPlayersPlayed(req) {
 
     try {
         // Se recupera la mesa
-        const board = await PublicBoard.findById(boardId)
+        const board = await SingleBoard.findById(boardId)
         if (!board) {
             return ({
                 status: "error",
-                message: "No se encontró la mesa de torneo"
+                message: "No se encontró la mesa de solitaria"
             })
         }
         
@@ -44,25 +42,16 @@ async function allPlayersPlayed(req) {
     }
 }
 
-// Crea una mesa pública dada un tipo de mesa pública
+// Crea una mesa solitaria
 async function add (req) {
-    const typeId = req.body.typeId
+    const level = req.body.bankLevel
+    const userId = req.body.userId
 
     try {
-        // Se verifica que el tipo de mesa pública existe
-        const publicBoardType = await PublicBoardType.findById(typeId)
-        if (!publicBoardType) {
-            return ({
-                status: "error",
-                message: "Tipo de mesa pública no encontrado"
-            })
-        }
-
         // Se crea la banca
         let resAddBank
-        const req = { body: { level: publicBoardType.bankLevel } }
+        const req = { body: { level: level } }
         resAddBank = await BankController.add(req)
-
         if (resAddBank.status !== "success") {
             return ({
                 status: "error",
@@ -70,28 +59,31 @@ async function add (req) {
             })
         }
 
-        // Se crea la partida de torneo
-        const newBoard = await PublicBoard.create({ publicBoardType: typeId,
-                                                    bank: resAddBank.bank._id,
-                                                    numPlayers: publicBoardType.numPlayers,
-                                                    hand: { numHand: 1, players: []} })
+        const players = []
+        const player = {
+            player: userId
+        }
+        players.push(player)
+        // Se crea la partida solitario
+        const newBoard = await SingleBoard.create({ bank: resAddBank.bank._id,
+                                                    players: players,
+                                                    hand: { players: []} })
         if (!newBoard) {
             return ({
                 status: "error",
-                message: "Error al crear la mesa pública"
+                message: "Error al crear la mesa solitaria"
             })
         }
-
         return ({
             status: "success",
-            message: "Mesa pública creada correctamente",
+            message: "Mesa solitaria creada correctamente",
             board: newBoard
         })
 
     } catch (e) {
         return ({
             status: "error",
-            message: "Error al crear la mesa pública. " + e.message 
+            message: "Error al crear la mesa solitaria. " + e.message 
         })
     }
 }
@@ -331,7 +323,7 @@ async function isEndOfGame(req) {
 
     try {
         // Se recupera la mesa
-        const board = await PublicBoard.findById(boardId)
+        const board = await SingleBoard.findById(boardId)
         if (!board) {
             return ({
                 status: "error",
@@ -339,27 +331,16 @@ async function isEndOfGame(req) {
             })
         }
 
-        // Se verifica si la partida ha terminado. La partida habrá terminado si
-        // se han alcanzado las 20 rondas o si solo hay un jugador en la partida
-
-        // Verificar si se han alcanzado las 20 rondas
-        if (board.hand.numHand >= maxRounds) {
+        // Se verifica si la partida ha terminado.
+        // Verificar si no queda ningun jugador en la partida
+        if (board.players.length === 0) {
             return ({
                 status: "success",
-                message: "La partida ha terminado porque se han alcanzado el número máximo de rondas"
+                message: "La partida ha terminado porque el jugador se ha ido"
             })
         }
 
-        // Verificar si solo queda un jugador en la partida
-        if (board.players.length <= 1) {
-            return ({
-                status: "success",
-                message: "La partida ha terminado porque solo queda un jugador en la partida"
-            })
-        }
-
-        // Si no se han alcanzado las rondas máximas y aún queda más de un 
-        // jugador en la partida, la partida no ha terminado
+        // La partida no ha terminado
         return ({
             status: "error",
             message: "La partida aún no ha terminado"
@@ -383,7 +364,7 @@ async function finishBoard(req) {
     const boardId = req.body.boardId
 
     try {
-        const board = await PublicBoard.findById(boardId)
+        const board = await SingleBoard.findById(boardId)
         if (!board) {
             return ({
                 status: "error",
@@ -391,22 +372,11 @@ async function finishBoard(req) {
             })
         }
 
-        if (board.players.length > 0) {
-            for (const playerObj of board.players) {
-                if (playerObj.initialCoins != playerObj.currentCoins) {
-                    res = await UserController.insertCoinsFunction({ body: 
-                        { userId: playerObj.player, 
-                          coins: playerObj.currentCoins - playerObj.initialCoins }})
-                    if (res.status === "error") return res
-                }
-            }    
-        }
-
         // Se elimina la banca del sistema
         await BankController.eliminate({ body: { bankId: board.bank }})
 
         // Se elimina ahora la partida
-        await PublicBoard.findByIdAndDelete(boardId)
+        await SingleBoard.findByIdAndDelete(boardId)
 
         return ({
             status: "success",
@@ -425,13 +395,15 @@ async function boardByIdFunction(req) {
     const boardId = req.body.boardId
 
     try {
-        const board = await PublicBoard.findById(boardId)
+        const board = await SingleBoard.findById(boardId)
         if (!board) {
             return ({
                 status: "error",
                 message: "No existe una mesa pública con el ID proporcionado"
             })
         }
+
+        console.log("boardByIdFunction: Board obtenido")/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         return ({
             status: "success",
@@ -512,67 +484,30 @@ async function manageHand(req) {
 
     try {
         // Se recupera la mesa
-        const board = await PublicBoard.findById(boardId)
+        const board = await SingleBoard.findById(boardId)
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa pública no encontrada"
+                message: "Mesa solitaria no encontrada"
             })
         }
 
-        console.log("1")
         // Se piden los resultados de la mano actual a la banca
         res = await BankController.results({ body: {bankId: board.bank, 
-                                                 typeBoardName: 'public', 
-                                                 bet: board.bet}})
+                                                 typeBoardName: 'single', 
+                                                 bet: 0 }})
         if (res.status === "error") return res
         const results = res.results
 
-        const playersToDelete = []
-
-        // Se apuntan en el board las monedas ganadas por cada jugador
-        for (const result of results) {
-            const userId = result.userId
-            if (userId !== "Bank") {
-                const coinsEarned = result.coinsEarned
-
-                // Se busca al jugador en la lista de jugadores de la mesa
-                const players = board.players
-                const playerIndex = players.findIndex(player => 
-                    player.player.toString() === userId.toString())
-    
-                // Si el jugador se encuentra en la lista
-                if (playerIndex !== -1) {
-                    // Se actualizan las monedas actuales del jugador en la mesa
-                    board.players[playerIndex].currentCoins += coinsEarned[0]
-                    if (coinsEarned[1]) board.players[playerIndex].currentCoins += coinsEarned[1]
-                    
-                    if (board.players[playerIndex].currentCoins < board.bet) {
-                        console.log("2")
-
-                        res = await leaveBoardPriv({ body: { userId: userId, boardId: boardId }})
-                        if (res.status === "error") return res
-                    
-                        playersToDelete.push(userId)
-                    }
-                }
-            }
-        }
-        console.log("3")
-        // La mano ha terminado, luego se eliminan los jugadores que mandaron la
-        // jugada y se incrementa el número de la mano
+        // La mano ha terminado, luego se eliminan los jugadores que mandaron la jugada
         board.hand.players = []
-        board.numHand += 1
-
-        // Se guarda la mesa con las monedas ganadas de cada jugador
         await board.save()
         console.log("Todo bien en MANAGEHAND")
         // Se devuelven los resultados de la banca en el campo results
         return ({
             status: "success",
             message: "Resultados del turno recuperados y acciones realizadas correctamente",
-            results: results,
-            playersToDelete: playersToDelete
+            results: results
         })
 
     } catch (e) {
@@ -654,7 +589,7 @@ const boardById = async (req, res) => {
     const boardId = req.params.id
 
     try {
-        const board = await PublicBoard.findById(boardId)
+        const board = await SingleBoard.findById(boardId)
         if (!board) {
             return res.status(404).json({
                 status: "error",
@@ -684,7 +619,7 @@ const leaveBoard = async (req, res) => {
 
     try {
         // Se verifica que la mesa exista
-        const board = await PublicBoard.findById(boardId)
+        const board = await SingleBoard.findById(boardId)
         if (!board) {
             return res.status(404).json({
                 status: "error",
@@ -700,26 +635,6 @@ const leaveBoard = async (req, res) => {
                 message: "El usuario no está en la partida"
             })
         }    
-
-        // Se elimina el usuario de la lista de jugadores en espera para que
-        // pueda solicitar jugar otra partida
-        resAux = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
-        if (resAux.status === "error") return res.status(400).json(resAux)
-
-
-        // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
-        // las monedas ganadas
-        var inCoins
-        if (board.players[playerIndex].earnedCoins > 0) {
-            inCoins = Math.floor(board.players[playerIndex].earnedCoins / 2)
-            resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
-            if (resAux.status === "error") return res.status(400).json(resAux)
-        } 
-        else if (board.players[playerIndex].earnedCoins < 0) {
-            inCoins = board.players[playerIndex].earnedCoins
-            resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
-            if (resAux.status === "error") return res.status(400).json(resAux)
-        }
 
         // Eliminar al usuario de la lista de jugadores en la partida
         board.players.splice(playerIndex, 1);
@@ -878,7 +793,7 @@ async function plays(req) {
 
     try {
         // Se verifica que exista la mesa
-        const board = await PublicBoard.findById(boardId)
+        const board = await SingleBoard.findById(boardId)
         if (!board) {
             return ({
                 status: "error",
@@ -888,34 +803,22 @@ async function plays(req) {
 
         // Se llama a la función del bank
         if (playName === "double") {
-            const playerIndex = board.players.findIndex(player => player.player == userId)
-            if (playerIndex !== -1) {
-                // Se busca al usuario y se le duplica la apuesta
-                board.players[playerIndex].currentCoins -= board.bet
-                board.save()
-                resAux = await BankController.double({body: {userId: userId, boardId: boardId,
-                                                    typeBoardName: 'public', 
-                                                    bankId: board.bank, cardsOnTable: cardsOnTable,
-                                                    handIndex: req.body.handIndex}})
-            }
+            resAux = await BankController.double({body: {userId: userId, boardId: boardId,
+                                                typeBoardName: 'single', 
+                                                bankId: board.bank, cardsOnTable: cardsOnTable,
+                                                handIndex: req.body.handIndex}})
         } else if (playName === "drawCard") {
             resAux = await BankController.drawCard({body: {userId: userId, boardId: boardId,
-                                                    typeBoardName: 'public', 
+                                                    typeBoardName: 'single', 
                                                     bankId: board.bank, cardsOnTable: cardsOnTable,
                                                     handIndex: req.body.handIndex}})
         } else if (playName === "split") {
-            const playerIndex = board.players.findIndex(player => player.player == userId)
-            if (playerIndex !== -1) {
-                // Se busca al usuario y se le duplica la apuesta
-                board.players[playerIndex].currentCoins -= board.bet
-                board.save()
-                resAux = await BankController.split({body: {userId: userId, boardId: boardId,
-                                                    typeBoardName: 'public', 
-                                                    bankId: board.bank, cardsOnTable: cardsOnTable}})
-            }
+            resAux = await BankController.split({body: {userId: userId, boardId: boardId,
+                                                typeBoardName: 'single', 
+                                                bankId: board.bank, cardsOnTable: cardsOnTable}})
         } else if (playName === "stick") {
             resAux = await BankController.stick({body: {userId: userId, boardId: boardId,
-                                                typeBoardName: 'public', 
+                                                typeBoardName: 'single', 
                                                 bankId: board.bank, cardsOnTable: cardsOnTable,
                                                 handIndex: req.body.handIndex}})
         } else {
@@ -1037,11 +940,11 @@ const stick = async(req, res) => {
 
 
 module.exports = {
-    allPlayersPlayed,
+    allPlayersPlayed,/////
     isFull,
-    isEndOfGame,
-    finishBoard,
-    add,
+    isEndOfGame,  ////
+    finishBoard,  ///
+    add,  /////
     eliminate,
     seeAbsents,
     addPlayer,
@@ -1049,11 +952,11 @@ module.exports = {
     resume,
     pause,
     newMessage,
-    manageHand,
-    boardById,
-    leaveBoard,
-    drawCard,
-    double,
-    split,
-    stick
+    manageHand,  ///
+    boardById,   ///
+    leaveBoard,  ///
+    drawCard,  //
+    double,  //
+    split,  //
+    stick  //
 }

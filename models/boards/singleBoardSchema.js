@@ -12,10 +12,26 @@ const singleBoardSchema = Schema({
         ref: "Bank",
         required: true
     },
-    // Estado: 'waiting', 'playing'
-    status: {
-        type: String,
-        default: 'waiting'
+    // Usuario jugando en la mesa
+    players: {
+        type: [{
+            player: {
+                type: Schema.ObjectId,
+                ref: "User"
+            }
+        }],
+        default: []
+    },
+    // Personas que han contestado
+    hand: {
+        type: {
+            // Jugadores que han enviado la jugada en esta mano
+            players: [{
+                type: Schema.ObjectId,
+                ref: "User",
+                default: []
+            }]
+        },
     },
 }, {timestamps: true})
 

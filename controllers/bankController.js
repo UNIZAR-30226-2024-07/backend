@@ -3,6 +3,7 @@ const Bank = require("../models/bankSchema")
 const PublicBoard = require("../models/boards/publicBoardSchema")
 const PrivateBoard = require("../models/boards/privateBoardSchema")
 const TournamentBoard = require("../models/boards/tournamentBoardSchema")
+const SingleBoard = require("../models/boards/singleBoardSchema")
 const User = require('../models/userSchema')
 
 // Maximo número de hands o jugadas por persona
@@ -107,7 +108,6 @@ async function collectCards(req) {
 
         const totalMaze = [...cards, ...cards]
 
-
         // Mezclar las cartas
         const shuffledCards = shuffle(totalMaze);
 
@@ -118,8 +118,7 @@ async function collectCards(req) {
         for (let i = 0; i < numPlayers; i++) {
             // Obtener las cartas para el mazo actual
             const inicio = i * cartasPorJugador;
-            const fin = (i + 1) * cartasPorJugador;
-            
+            const fin = (i + 1) * cartasPorJugador;            
             // Agregar el mazo al arreglo de mazos
             // Si no es el último jugador (banca)
             if (i !== numPlayers - 1) {
@@ -135,20 +134,18 @@ async function collectCards(req) {
                 bankMaze = shuffledCards.slice(inicio, fin)
             }
         }
-
-
         // Resetear los playersHands
         const playersHands = []
         for (const player of players) {
             const playerHand =  {
                 playerId: player.player,
                 split: false,
-                double: false,
+                double: [],  // En que manos ha hecho double
                 hands: [[],[]],
             }
             playersHands.push(playerHand)
-        }
-
+        }        
+        
         // Actualizar la banca. Poner mazos y resetear manos
         const newBank = await Bank.findById(bankId)
         if (!newBank) {
@@ -161,8 +158,7 @@ async function collectCards(req) {
         newBank.bankMaze = bankMaze
         newBank.playersHands = playersHands
         newBank.bankHand = []
-        await newBank.save()
-        
+        await newBank.save()        
         if (!newBank) {
             return {
                 status: "error",
@@ -239,8 +235,20 @@ async function confirmPriv(req) {
             })
         }
 
-        if (bank.playersHands[playerIndex].split && bank.playersHands[playerIndex].hands.length === numCardsSplit ||
-            !bank.playersHands[playerIndex].split && bank.playersHands[playerIndex].hands.length === numCardsSplit - 1) {
+        // Si ha hecho split :
+            // Error si ya ha confirmado:
+            //   - hands[0].cards.length > 0 && hands[1].cards.length > 0
+
+        // Si no ha hecho split:
+            // Error si ya ha cofirmado:
+            //   - hands[0].cards.length > 0
+
+        if ((bank.playersHands[playerIndex].split && 
+             bank.playersHands[playerIndex].hands[0].length > 0 && 
+             bank.playersHands[playerIndex].hands[1].length > 0 )
+            || 
+            (!bank.playersHands[playerIndex].split && 
+              bank.playersHands[playerIndex].hands[0].length > 0)) {
             return ({
                 status: "error",
                 message: "Este jugador ya había confirmado sus jugadas"
@@ -254,8 +262,14 @@ async function confirmPriv(req) {
         
         // Si no ha hecho split, jugador confirmado
         // Si ha hecho split y es la segunda jugada, jugador confirmado
-        if (!playerHands.split ||
-            playerHands.split && playerHands.hands.length === maxHands) {  
+        if ((!playerHands.split) 
+            ||
+            (playerHands.split && 
+             (
+                ((bank.playersHands[playerIndex].hands[0].length > 0) && (bank.playersHands[playerIndex].hands[1].length == 0)) 
+                || 
+                ((bank.playersHands[playerIndex].hands[0].length = 0) && (bank.playersHands[playerIndex].hands[1].length > 0))
+            ))) {  
             const reqPush = { body: { typeBoardName: req.body.typeBoardName,
                                       boardId: req.body.boardId,
                                       userId: userId } }
@@ -283,7 +297,7 @@ async function confirmPriv(req) {
 async function pushOnPlayersConfirm(req) {
     // Parámetros: typeBoardName, boardId, userId
     try {
-        const typeBoardName = req.body.typeBoardName // 'tournament', 'public', 'private'
+        const typeBoardName = req.body.typeBoardName // 'tournament', 'public', 'private', 'single
         const boardId = req.body.boardId
         const userId = req.body.userId
         var board
@@ -312,8 +326,15 @@ async function pushOnPlayersConfirm(req) {
                     message: "No existe una mesa privada con el ID proporcionado"
                 })
             }
+        } else if (typeBoardName === "single") {
+            board = await SingleBoard.findById(boardId)
+            if (!board) {
+                return ({
+                    status: "error",
+                    message: "No existe una mesa solitaria con el ID proporcionado"
+                })
+            }
         }
-
         // Agregar usuario el vector hand.players
         if (!board.hand.players.includes(userId)) {
             board.hand.players.push(userId);
@@ -460,8 +481,6 @@ async function initBoard(req) {
         let cards
         // Sacar dos cartas por cada jugador del board
         for (const player of players) {
-
-
             // Obtener indice jugador en maze
             const index = bank.maze.findIndex(m => m.playerId.equals(player.player));
             if (index === -1) {
@@ -549,12 +568,15 @@ async function initBoard(req) {
 
 // Calcular premio para public y private
 function calcularEarnedCoins(totalesJugador, blackJacksJugador, 
-                         totalesAll, 
+                         doubleHands, totalesAll, 
                          totalBanca, blackJackBanca, bet) {
+    
+    // Si ha sido apuesta doble en dicha mano                       
+    let doubleBet = 1
     const premioIgualBanca = bet;
-    const premioMejorQueBanca = bet * 1.5;
-    const premioMejorQueJugadores = bet * 2;
-    const premioBlackjack = bet * 3;
+    const premioMejorQueBanca = bet * 1.5 * doubleBet;
+    const premioMejorQueJugadores = bet * 2 * doubleBet;
+    const premioBlackjack = bet * 3 * doubleBet;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     console.log("Dentro de calcularEarnedCoins:")
@@ -576,6 +598,13 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
         // Booleano si es blackJack del jugador
         const blackJackJugador = blackJacksJugador[i]
 
+        // Si en dicha mano ha hecho double
+        if (doubleHands.includes(i)) {
+            doubleBet = 2
+        } else {
+            doubleBet = 1
+        }
+
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         console.log("                               totalJugador : ", totalJugador)
         console.log("                               blackJackJugador: ", blackJackJugador)
@@ -591,11 +620,11 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
         }
         // Haces blackJack y la banca no
         else if (blackJackJugador && !blackJackBanca) {
-            coinsGanadasPorJugador.push(premioBlackjack);
+            coinsGanadasPorJugador.push(premioBlackjack * doubleBet);
         }
         // Igual que la banca
         else if (totalJugador === totalBanca) {
-            coinsGanadasPorJugador.push(premioIgualBanca);
+            coinsGanadasPorJugador.push(premioIgualBanca * doubleBet);
         } 
         // Mayor que la banca
         else if (totalJugador > totalBanca || totalBanca > numBlackJack) {
@@ -611,11 +640,11 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
             // Además, mayor que todos los jugadores
             // Puntuación mayor jugador o si es menor, que el otro se haya pasado
             if (totalesAllCopy.every(puntuacion => (puntuacion < totalJugador) || (puntuacion > numBlackJack))) {
-                coinsGanadasPorJugador.push(premioMejorQueJugadores);
+                coinsGanadasPorJugador.push(premioMejorQueJugadores * doubleBet);
             } 
             // Algún jugador igual o mejor que tú
             else {
-                coinsGanadasPorJugador.push(premioMejorQueBanca);
+                coinsGanadasPorJugador.push(premioMejorQueBanca * doubleBet);
             }
         } else {
             coinsGanadasPorJugador.push(0);
@@ -630,7 +659,7 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
 // Calcular premio para tournament
 function calcularLoseLife(totalesJugador, blackJacksJugador, 
                           totalesAll, 
-                          totalBanca, blackJackBanca, bet) {
+                          totalBanca, blackJackBanca) {
     const loseLife = 1
     const loseHalfLife = 0.5
     const noLoseLife = 0
@@ -641,13 +670,18 @@ function calcularLoseLife(totalesJugador, blackJacksJugador,
     const blackJackJugador = blackJacksJugador[0]
 
     // Encuentra el índice del resultado actual
-    const index = totalesAll.indexOf(totalJugador); 
+    const totalesAllCopy = [...totalesAll]
+    const index = totalesAllCopy.indexOf(totalJugador); 
     if (index !== -1) { // Verifica si se encontró
-        totalesAll.splice(index, 1); // Elimina el totalJugador actual
+        totalesAllCopy.splice(index, 1); // Elimina el totalJugador actual
     }
     // Puntuacion una mano del jugador oponente
-    const totalOponente = totalesAll[0]
+    const totalOponente = totalesAllCopy[0]
 
+    // No ha hecho stick
+    if (totalJugador === 0) {
+        return loseLife
+    }
     // Si es mayor que 21, pierde vida
     if (totalJugador > numBlackJack) {
         return loseLife
@@ -661,13 +695,13 @@ function calcularLoseLife(totalesJugador, blackJacksJugador,
         return loseLife
     } 
     // Mayor que la banca. Pierde media vida si el otro jugador tiene más
-    else if (totalJugador > totalBanca) {
+    else if (totalJugador > totalBanca || totalBanca > numBlackJack) {
         // Tiene mejor que banca y mejor que jugador oponente
-        if (totalJugador > totalOponente) {
+        if (totalJugador > totalOponente || totalOponente > numBlackJack) {
             return noLoseLife
         } 
         // Tiene mejor que banca y peor que jugador oponente
-        else if (totalJugador > totalOponente) {
+        else if (totalJugador < totalOponente) {
             return loseHalfLife
         } 
         // Tiene mejor que banca e igual que jugador oponente
@@ -789,7 +823,7 @@ async function results(req) {
                 // Calcular loseLife
                 const loseLife = calcularLoseLife(totalCardsPlayer, blackJacksPlayer,
                                                         totalCardsAllPlayers, 
-                                                        totalBank, blackJackBank, bet)
+                                                        totalBank, blackJackBank)
                 const playerObject = {
                     userId: player.playerId,   // Id del usuario
                     userNick: user.nick,     // Nick del usuario
@@ -800,10 +834,14 @@ async function results(req) {
                 }
                 results.push(playerObject)
 
-            } else if (typeBoardName === "public" || "private") {
+            } else if (typeBoardName === "public" || 
+                       typeBoardName === "private" ||
+                       typeBoardName === "single") {
+                // Si la apuesta ha sido doble: true
+                const doubleHands = player.double
                 // Calcular coinsEarned
                 const coinsEarned = calcularEarnedCoins(totalCardsPlayer, blackJacksPlayer,
-                                                        totalCardsAllPlayers, 
+                                                        doubleHands, totalCardsAllPlayers, 
                                                         totalBank, blackJackBank, bet)
 
                 const playerObject = {
@@ -1027,7 +1065,7 @@ async function double(req) {
                 message: "Este jugador no tiene componente de jugadas confirmadas"
             })
         }
-        bank.playersHands[playerIndexHand].double = true
+        bank.playersHands[playerIndexHand].double.push(req.body.handIndex)
         // Guardar el tablero actualizado en la base de datos
         await bank.save();
 

@@ -32,9 +32,9 @@ const bankSchema = Schema({
             type: Boolean,
             default: false
         },
-        double: {   // Cada jugador si ha hecho double o no
-            type: Boolean,
-            default: false
+        double: {   // Cada jugador. Manos donde ha hecho double
+            type: [Number],
+            default: []
         },
         // Vector de vectores de cartas. Un vector por "jugada"
         // Maximo dos "jugadas" por jugador.
