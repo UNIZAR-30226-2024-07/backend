@@ -262,6 +262,9 @@ const Sockets = async (io) => {
                 const players = res.board.players
                 console.log("que pasa")
 
+                res = await PublicBoardController.restBet({ body: { boardId: boardId }})
+                if (res.status === "error") return console.error(res)
+
                 console.log("Antes initBoard")
                 // Se inicializa la banca para la ronda que se va a jugar
                 res = await BankController.initBoard({ body: { boardId: boardId,

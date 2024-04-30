@@ -652,6 +652,38 @@ async function leaveBoardPriv(req) {
     }
 }
 
+async function restBet(req) {
+    // Parámetros en req.body: boardId
+    const boardId = req.body.boardId
+
+    try {
+        // Se recupera la partida
+        const board = await PublicBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        for (const player of board.players) {
+            player.currentCoins -= board.bet
+        }
+
+        await board.save()
+
+        return ({
+            status: "success",
+            message: "Apuestas realizadas"
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al restar las apuestas fijas. " + e.message
+        })
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones públicas
 ////////////////////////////////////////////////////////////////////////////////
@@ -1062,5 +1094,6 @@ module.exports = {
     drawCard,
     double,
     split,
-    stick
+    stick,
+    restBet
 }
