@@ -28,7 +28,7 @@ const initializeMatcher = async() => {
 // Conexión con la BD
 const connect = async () => {
     await connection(db)
-    // await initializeMatcher()
+    await initializeMatcher()
 }
 connect()
 
