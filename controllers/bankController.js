@@ -227,7 +227,7 @@ async function confirmPriv(req) {
         }
 
         // Obtener indice de playersHands
-        const playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
+        let playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
         if (playerIndex === -1) {
             const playerHand =  {
                 playerId: userId,
@@ -240,6 +240,13 @@ async function confirmPriv(req) {
             //     status: "error",
             //     message: "Este jugador no tiene componente de jugadas confirmadas"
             // })
+        }
+        playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
+        if (playerIndex === -1) {
+            return ({
+                status: "error",
+                message: "Este jugador no tiene componente de jugadas confirmadas"
+            })
         }
 
         // Si ha hecho split :
@@ -1082,6 +1089,13 @@ async function double(req) {
             //     message: "Este jugador no tiene componente de jugadas confirmadas"
             // })
         }
+        playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
+        if (playerIndex === -1) {
+            return ({
+                status: "error",
+                message: "Este jugador no tiene componente de jugadas confirmadas"
+            })
+        }
         bank.playersHands[playerIndexHand].double.push(req.body.handIndex)
         // Guardar el tablero actualizado en la base de datos
         await bank.save();
@@ -1195,6 +1209,13 @@ async function split(req) {
             //     status: "error",
             //     message: "Este jugador no tiene componente de jugadas confirmadas"
             // })
+        }
+        playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
+        if (playerIndex === -1) {
+            return ({
+                status: "error",
+                message: "Este jugador no tiene componente de jugadas confirmadas"
+            })
         }
         bank.playersHands[playerIndexHand].split = true
         // Guardar el tablero actualizado en la base de datos
