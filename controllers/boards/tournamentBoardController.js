@@ -590,7 +590,7 @@ async function manageHand(req) {
         // La mano ha terminado, luego se eliminan los jugadores que mandaron la
         // jugada y se incrementa el número de la mano
         board.hand.players = []
-        board.numHand += 1
+        board.hand.numHand += 1
 
         // Se guarda la mesa con las monedas ganadas de cada jugador
         await board.save()
