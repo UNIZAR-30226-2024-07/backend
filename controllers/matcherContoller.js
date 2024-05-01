@@ -1,4 +1,5 @@
 const Matcher = require("../models/matcherSchema")
+const Tournament = require("../models/tournamentSchema")
 const TournamentBoard = require("../models/boards/tournamentBoardSchema")
 const PublicBoard = require("../models/boards/publicBoardSchema")
 const PrivateBoard = require("../models/boards/privateBoardSchema")
@@ -262,7 +263,7 @@ async function isFull(req) {
             board = await PublicBoard.findById(boardId)
         } else if (typeBoardName === "private") {
             board = await PrivateBoard.findById(boardId)
-        } else if (typeBoardName === "private") {
+        } else if (typeBoardName === "tournament") {
             board = await TournamentBoard.findById(boardId)
         } else {
             return ({
@@ -325,9 +326,9 @@ async function addTournamentBoardFunction(req) {
 
         // Se crea la banca
         const req = { body: { level: tournament.bankLevel } }
-        var res = await BankController.add(req)
+        var resAddBank = await BankController.add(req)
 
-        if (res.status === "error") return res
+        if (resAddBank.status === "error") return resAddBank
 
         // Se crea la partida de torneo
         const newBoard = await TournamentBoard.create({ tournament: tId,
@@ -350,7 +351,7 @@ async function addTournamentBoardFunction(req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "Error al crear la mesa de torneo"
+            message: "Error al crear la mesa de torneo. " + e.message
         })
     }
 }

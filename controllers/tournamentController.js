@@ -434,7 +434,7 @@ async function isUserInTournamentFunction(req) {
 
         const tournamentInfo = user.tournaments.find(tournament =>
             tournament.tournament == tournamentId)
-        if (!isUserIn) {
+        if (!tournamentInfo) {
             return ({
                 status: "error",
                 message: "El usuario no se encuentra jugando el torneo. Debe entrar primero (enterTournament) para poder jugar en él"
@@ -444,7 +444,7 @@ async function isUserInTournamentFunction(req) {
                 status: "success",
                 message: "El usuario se encuentra jugando el torneo",
                 tournament: tournament,
-                round: tournamentInfo.round
+                round: tournamentInfo.position
             })    
         }
 
