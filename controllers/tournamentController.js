@@ -172,7 +172,7 @@ const isUserInTournament = async (req, res) => {
         }
 
         const tournamentInfo = user.tournaments.find(tournament =>
-            tournament.tournament === tournamentId)
+            tournament.tournament == tournamentId)
         if (!tournamentInfo) {
             return res.status(200).json({
                 status: "error",
