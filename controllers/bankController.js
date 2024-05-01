@@ -844,7 +844,7 @@ async function results(req) {
                     // En torneo solo hay una mano
                     cards: playerHands[0],   // [ cards ]  
                     total: totalCardsPlayer[0], // totalCards
-                    loseLife: loseLife       // loseLife
+                    lives: loseLife       // loseLife
                 }
                 results.push(playerObject)
 

@@ -512,7 +512,7 @@ const Sockets = async (io) => {
             ////////////////////////////////////////////////////////////////////
 
             // Si está lista, se notifica a los jugadores de la mesa
-            io.to("private:" + boardId).emit("starting private board", boardId, initialCards)
+            io.to("private:" + boardId).emit("starting private board", boardId)
             console.log("-- private: starting private board")
             console.log("------ boardId: ", boardId)
             console.log("\n")

@@ -573,7 +573,7 @@ async function manageHand(req) {
         for (const result of results) {
             const userId = result.userId
             if (userId !== "Bank") {
-                const lifes = result.loseLife
+                const lifes = result.lives
 
                 // Se busca al jugadore en la lista de jugadores de la mesa
                 const playerIndex = board.players.findIndex(player => 
@@ -583,6 +583,7 @@ async function manageHand(req) {
                 if (playerIndex !== -1) {
                     // Se actualizan las vidas actuales del jugador en la mesa
                     board.players[playerIndex].lifes -= lifes
+                    result.lives = board.players[playerIndex].lifes
                 }    
             }
         }
