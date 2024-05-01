@@ -174,7 +174,7 @@ const isUserInTournament = async (req, res) => {
         const tournamentInfo = user.tournaments.find(tournament =>
             tournament.tournament === tournamentId)
         if (!tournamentInfo) {
-            return res.status(400).json({
+            return res.status(200).json({
                 status: "error",
                 message: "El usuario no se encuentra jugando el torneo"
             })
