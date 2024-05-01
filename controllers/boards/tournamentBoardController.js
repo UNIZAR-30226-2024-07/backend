@@ -691,6 +691,132 @@ const leaveBoard = async (req, res) => {
     }
 }
 
+async function resume(req) {
+    // Parámetros en req.body: boardId, userId
+    const boardId = req.body.boardId
+    const userId = req.body.userId
+
+    try {
+        // Se verifica que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return ({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Se verifica que tuviese la correspondiente partida pausada
+        if (!user.paused_board[0] && user.paused_board[0].board != boardId 
+            && user.paused_board[0].boardType !== "tournament") {
+            return ({
+                status: "error",
+                message: "El usuario no disponía de la partida pausada"
+            })
+        }
+
+        // Ya no tiene partida pausada, se borra
+        user.paused_board.splice(0, 1)
+        await user.save()
+
+        // Se verifica que la partida exista
+        const board = await TournamentBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        // Se verifica que en el board también figurase con la partida pausada
+        const index = board.players.findIndex(player => player.player == userId)
+        
+        if (index != -1 && board.players[index].paused) {
+            // El usuario ya no tiene la partida pausada, se borra
+            board.players[index].paused = false
+            await board.save()
+
+            return ({
+                status: "success",
+                message: "El usuario puede reanudar la partida"
+            })
+        } else {
+            return ({
+                status: "error",
+                message: "El usuario no puede reanudar la partida"
+            })
+        }
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al reanudar la partida. " + e.message
+        })
+    }
+}
+
+const pause = async (req, res) => {
+    // Parámetros en req.params: boardId
+    const userId = req.user.id
+    const boardId = req.params.id
+
+    try {
+        // Se verifica que la mesa exista
+        const board = await TournamentBoard.findById(boardId)
+        if (!board) {
+            return res.status(404).json({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        // Se verifica que el usuario juegue la partida y no la tenga ya pausada
+        const index = board.players.findIndex(player => player.player == userId)
+        if (index == -1 || board.players[index].paused) {
+            return res.status(400).json({
+                status: "error",
+                message: "El usuario no se encuentra jugando esta partida"
+            })
+        }
+
+        // Se verifica que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Se verifica que no tenga otra partida en pausa
+        if (user.paused_board.length > 0) {
+            return res.status(400).json({
+                status: "error",
+                message: "El usuario ya tiene otra partida pausada"
+            })
+        }
+
+        // Se marca la partida pausada en la tabla usuario
+        user.paused_board.push({board: boardId, boardType: "tournament"})
+        await user.save()
+
+        // Se marca que el jugador a pausado la partida en la tabla publicboard
+        board.players[index].paused = true
+        await board.save()
+
+        return res.status(200).json({
+            status: "error",
+            message: "Partida pausada correctamente"
+        })
+
+    } catch (e) {
+        return res.status(400).json({
+            status: "error",
+            message: "Error al pausar la partida. " + e.message
+        })
+    }
+}
+
 async function plays(req) {
     // Parámetos en req.body: userId, boardId, cardsOnTable, playName, handIndex
     const userId = req.body.userId
@@ -803,5 +929,7 @@ module.exports = {
     newMessage,
     leaveBoard,
     drawCard,
-    stick
+    stick,
+    resume,
+    pause
 }

@@ -28,6 +28,10 @@ const tournamentBoardSchema = Schema({
                 type: Boolean,
                 default: "false"
             },
+            paused: {
+                type: Boolean,
+                default: false
+            }
         }],
         default: []
     },
