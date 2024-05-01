@@ -288,8 +288,6 @@ async function confirmPriv(req) {
                                       userId: userId } }
             const resPush = await pushOnPlayersConfirm(reqPush)
 
-            console.log("CONFIRMARR....................................................................................................")
-
             if (resPush.status === "error") return resPush
             return ({
                 status: "success",
