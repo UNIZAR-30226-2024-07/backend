@@ -1075,7 +1075,7 @@ async function double(req) {
         bank.maze[playerIndex].cards = playerMaze
 
         // Indica que ha hecho double
-        const playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
+        let playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
         if (playerIndexHand === -1) {
             const playerHand =  {
                 playerId: userId,
@@ -1196,7 +1196,7 @@ async function split(req) {
         bank.maze[playerIndex].cards = playerMaze;
 
         // Indica que ha hecho split
-        const playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
+        let playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
         if (playerIndexHand === -1) {
             const playerHand =  {
                 playerId: userId,
