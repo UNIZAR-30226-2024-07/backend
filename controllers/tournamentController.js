@@ -233,7 +233,7 @@ const roundInTournament = async (req, res) => {
 
         // Se busca el torneo en los torneos del usuario
         const tournamentInfo = user.tournaments.find(tournament => 
-            tournament.tournament === tId)
+            tournament.tournament == tId)
         if (!tournamentInfo) {
             return res.status(404).json({
                 status: "error",
