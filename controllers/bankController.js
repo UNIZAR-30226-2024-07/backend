@@ -1089,8 +1089,8 @@ async function double(req) {
             //     message: "Este jugador no tiene componente de jugadas confirmadas"
             // })
         }
-        playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
-        if (playerIndex === -1) {
+        playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId)
+        if (playerIndexHand === -1) {
             return ({
                 status: "error",
                 message: "Este jugador no tiene componente de jugadas confirmadas"
@@ -1210,7 +1210,7 @@ async function split(req) {
             //     message: "Este jugador no tiene componente de jugadas confirmadas"
             // })
         }
-        playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
+        playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId)
         if (playerIndex === -1) {
             return ({
                 status: "error",
