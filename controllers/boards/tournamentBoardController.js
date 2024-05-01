@@ -50,6 +50,92 @@ async function allPlayersPlayed(req) {
     }
 }
 
+// Crea una mesa de torneo dado un torneo ya existente y la ronda en la que se
+// disputa el enfrentamiento
+async function add (req) {
+    const tId = req.body.tournamentId
+    const round = req.body.round
+
+    try {
+        // Se verifica que la ronda sea válida
+        if (round !== 8 && round !== 4 && round !== 2 && round !== 1) {
+            return ({
+                status: "error",
+                message: "Ronda no válida"
+            })
+        }
+    
+        // Se verifica que el torneo exista
+        const tournament = await Tournament.findById(tId)
+        if (!tournament) {
+            return ({
+                status: "error",
+                message: "Torneo no encontrado"
+            })
+        }
+
+        // Se crea la banca
+        const req = { body: { level: tournament.bankLevel } }
+        var res = await BankController.add(req)
+        if (res.status === "error") return res
+
+        // Se crea la partida de torneo
+        const newBoard = await TournamentBoard.create({ tournament: tId,
+                                                        bank: res.bank._id,
+                                                        round: round,
+                                                        hand: { numHand: 1, players: []} })
+        if (!newBoard) {
+            return ({
+                status: "error",
+                message: "Error al crear la mesa de torneo"
+            })
+        }
+
+        return ({
+            status: "success",
+            message: "Mesa de torneo creada correctamente",
+            board: newBoard
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al crear la mesa de torneo. " + e.message
+        })
+    }
+}
+
+// Función para eliminar una mesa de torneo por su ID
+async function eliminate(req) {
+    // Parámetros en body: id
+    try {
+        const id = req.body.id
+        
+        // Encontrar y eliminar mesa por id
+        const board = await TournamentBoard.findByIdAndDelete(id)
+        
+        // Mesa no encontrada, error
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        } else {  // Mesa encontrada, exito
+            return ({
+                status: "success",
+                message: "Mesa eliminada correctamente"
+            })
+        }
+
+    } catch (error) {
+        return ({
+            status: "error",
+            message: error.message
+        })
+    }
+}
+
+
 // Elimina los jugadores que se pasan por un array de la mesa con el id especificado
 async function eliminatePlayers(req) {
     // Parámetros en req.body: boardId, playersToDelete
@@ -103,24 +189,28 @@ async function eliminatePlayers(req) {
 // y elimina a todo aquel que ha dejado de jugar 2 manos
 // TODO: se puede poner aquí la lógica de después de cada jugada
 async function seeAbsents(req) {
-    // Parámetros en req.body: board (un board completo)
-    const board = req.body.board
+    // Parámetros en req.body: boardId
+    const boardId = req.body.boardId
 
     try {
+        const board = await TournamentBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
         // Array para almacenar los IDs de los jugadores que serán eliminados
         const playersToDelete = []
 
         // Iterar sobre los jugadores en la mesa del torneo
         for (const playerObj of board.players) {
             // Incrementar el contador de manos ausentes si el jugador no ha jugado
-            if (!board.hand.players.includes(playerObj.player)) {
-                playerObj.handsAbsent++
-            }
+            if (!board.hand.players.includes(playerObj.player)) playerObj.handsAbsent++
 
             // Eliminar al jugador si ha dejado de jugar dos manos consecutivas
-            if (playerObj.handsAbsent >= 2) {
-                playersToDelete.push(playerObj.player)
-            }
+            if (playerObj.handsAbsent >= 2) playersToDelete.push(playerObj.player)
         }
 
         await board.save()
@@ -140,92 +230,6 @@ async function seeAbsents(req) {
         return ({
             status: "error",
             message: "Error al ver los jugadores que no han enviado jugada. " + e.message
-        })
-    }
-}
-
-// Crea una mesa de torneo dado un torneo ya existente y la ronda en la que se
-// disputa el enfrentamiento
-async function add (req) {
-    const tId = req.body.tournamentId
-    const round = req.body.round
-
-    try {
-        // Se verifica que la ronda sea válida
-        if (round !== 8 && round !== 4 && round !== 2 && round !== 1) {
-            return ({
-                status: "error",
-                message: "Ronda no válida"
-            })
-        }
-    
-        // Se verifica que el torneo exista
-        const tournament = await Tournament.findById(tId)
-        if (!tournament) {
-            return ({
-                status: "error",
-                message: "Torneo no encontrado"
-            })
-        }
-
-        // Se crea la banca
-        const req = { body: { level: tournament.bankLevel } }
-        var res = await BankController.add(req)
-
-        if (res.status === "error") return res
-
-        // Se crea la partida de torneo
-        const newBoard = await TournamentBoard.create({ tournament: tId,
-                                                        bank: resAddBank.bank._id,
-                                                        round: round,
-                                                        hand: { numHand: 1, players: []} })
-        if (!newBoard) {
-            return ({
-                status: "error",
-                message: "Error al crear la mesa de torneo"
-            })
-        }
-
-        return ({
-            status: "success",
-            message: "Mesa de torneo creada correctamente",
-            board: newBoard
-        })
-
-    } catch (e) {
-        return ({
-            status: "error",
-            message: "Error al crear la mesa de torneo"
-        })
-    }
-}
-
-// Función para eliminar una mesa de torneo por su ID
-async function eliminate(req) {
-    // Parámetros en body: id
-    try {
-        const id = req.body.id
-        
-        // Encontrar y eliminar mesa por id
-        const board = await TournamentBoard.findByIdAndDelete(id)
-        
-        // Mesa no encontrada, error
-        if (!board) {
-            return ({
-                status: "error",
-                message: "Mesa de torneo no encontrada"
-            })
-        } else {  // Mesa encontrada, exito
-            return ({
-                status: "success",
-                message: "Mesa de torneo eliminada correctamente"
-            })
-        }
-
-    } catch (error) {
-        return ({
-            status: "error",
-            message: error.message
         })
     }
 }
@@ -264,7 +268,7 @@ async function addPlayer (req) {
         // este como guest
         const isGuest = board.players.length === 0
         board.players.push({ player: userId, guest: isGuest })
-        if (board.players.length === 2) {
+        if (board.players.length === numPlayers) {
             board.status = 'playing'
         }
         const updatedBoard = await TournamentBoard.findByIdAndUpdate(boardId,
@@ -293,10 +297,11 @@ async function addPlayer (req) {
 
 // Devuelve error si la mesa aún no está llena y success si ya lo está
 async function isFull(req) {
+    // Parámetros en req.body: boardId
     const boardId = req.body.boardId
 
     try {
-        // 
+        // Se verifica que la mesa existe
         const board = await TournamentBoard.findById(boardId)
         if (!board) {
             return ({
@@ -305,6 +310,8 @@ async function isFull(req) {
             })
         }
 
+        // Se verifica que se encuentra en el estado 'playing' que significa
+        // que ya no caben más jugadores
         if (board.status === "playing") {
             return ({
                 status: "success",
@@ -488,7 +495,7 @@ async function newMessage(req) {
 
     try {
         // Se busca y verifica que la mesa exista
-        const board = await PrivateBoard.findById(boardId)
+        const board = await TournamentBoard.findById(boardId)
         if (!board) {
             return ({
                 status: "error",
@@ -565,17 +572,18 @@ async function manageHand(req) {
         // Se apuntan en el board las monedas ganadas por cada jugador
         for (const result of results) {
             const userId = result.userId
-            const lifes = result.loseLife
+            if (userId !== "Bank") {
+                const lifes = result.loseLife
 
-            // Se busca al jugadore en la lista de jugadores de la mesa
-            const playerIndex = board.players.findIndex(player => 
-                player.player.equals(userId))
-
-            // Si el jugador se encuentra en la lista
-            if (playerIndex !== -1) {
-                
-                // Se actualizan las vidas actuales del jugador en la mesa
-                board.players[playerIndex].lifes -= lifes
+                // Se busca al jugadore en la lista de jugadores de la mesa
+                const playerIndex = board.players.findIndex(player => 
+                    player.player.toString() === userId.toString())
+    
+                // Si el jugador se encuentra en la lista
+                if (playerIndex !== -1) {
+                    // Se actualizan las vidas actuales del jugador en la mesa
+                    board.players[playerIndex].lifes -= lifes
+                }    
             }
         }
 
@@ -638,6 +646,7 @@ const leaveBoard = async (req, res) => {
     // Parámetros necesarios en req.body: boardId
     const boardId = req.params.id
     const userId = req.user.id
+    var resAux
 
     try {
         // Se verifica que la mesa exista

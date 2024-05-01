@@ -203,11 +203,11 @@ const Sockets = async (io) => {
             res = await TournamentBoardController.finishBoard({ body: { boardId: boardId }})
             if (res.status === "error") return console.error(res.message)
 
-            // io.to("tournament:" + boardId).emit("finish board")///////////////////////////////////////////////////////////
-            // console.log("-- tournament: finish board\n")
+            io.to("tournament:" + boardId).emit("finish board")///////////////////////////////////////////////////////////
+            console.log("-- tournament: finish board\n")
 
             // Se eliminan todos los sockets del room de la partida
-            // io.of("/").in("single:" + boardId).socketsLeave("single:" + boardId);
+            io.of("/").in("tournament:" + boardId).socketsLeave("tournament:" + boardId);
 
         } catch (e) {
             return ({
@@ -478,7 +478,7 @@ const Sockets = async (io) => {
             // signal(PrivateMutex)
             ////////////////////////////////////////////////////////////////////
 
-            socket.join("private:" + boardId)     
+            socket.join("private:" + boardId)
 
         } catch (e) {
             return console.error(e.message)
@@ -546,6 +546,9 @@ const Sockets = async (io) => {
 
                 console.log("++ private: NUEVA MANO__________: " + res.board.hand.numHand + "\n")
                 
+                res = await PrivateBoardController.restBet({ body: { boardId: boardId }})
+                if (res.status === "error") return console.error(res)
+
                 res = await BankController.initBoard({ body: { boardId:boardId,
                                                                bankId: bankId, 
                                                                players: players,
@@ -611,11 +614,11 @@ const Sockets = async (io) => {
             await PrivateBoardController.finishBoard({ body: { boardId: boardId }})
             if (res.status === "error") return console.error(res.message)
 
-            io.to("private:" + boardId).emit("finish board") // COMPLETAR: resultados de finishBoard
+            io.to("private:" + boardId).emit("finish board")
             console.log("-- private: finish board\n")
 
             // Se eliminan todos los sockets del room de la partida
-            // io.of("/").in("private:" + boardId).socketsLeave("private:" + boardId);
+            io.of("/").in("private:" + boardId).socketsLeave("private:" + boardId);
 
         } catch (e) {
             return console.error(e.message)

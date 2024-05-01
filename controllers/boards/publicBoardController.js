@@ -20,7 +20,7 @@ async function allPlayersPlayed(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "No se encontró la mesa de torneo"
+                message: "Mesa no encontrada"
             })
         }
         
@@ -37,7 +37,6 @@ async function allPlayersPlayed(req) {
             })
         }
     } catch (e) {
-        console.error("Error al encontrar el número de manos jugadas. " + e.message)
         return ({
             status: "error",
             message: "Error al encontrar el número de manos jugadas. " + e.message
@@ -110,12 +109,12 @@ async function eliminate(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa pública no encontrada"
+                message: "Mesa no encontrada"
             })
         } else {  // Mesa encontrada, exito
             return ({
                 status: "success",
-                message: "Mesa pública eliminada correctamente"
+                message: "Mesa eliminada correctamente"
             })
         }
 
@@ -179,7 +178,7 @@ async function eliminatePlayers(req) {
 // Dado un board, apunta todos aquellos jugadores que no han enviado su jugada
 // y elimina a todo aquel que ha dejado de jugar 2 manos
 async function seeAbsents(req) {
-    // Parámetros en req.body: board (un board completo)
+    // Parámetros en req.body: boardId 
     const boardId = req.body.boardId
 
     try {
@@ -197,8 +196,6 @@ async function seeAbsents(req) {
         // Iterar sobre los jugadores en la mesa del torneo
         for (const playerObj of board.players) {
             // Incrementar el contador de manos ausentes si el jugador no ha jugado
-            console.log("board.hand.players: ", board.hand.players)
-            console.log("playerObj.player:", playerObj.player)
             if (!board.hand.players.includes(playerObj.player)) playerObj.handsAbsent++
 
             // Eliminar al jugador si ha dejado de jugar dos manos consecutivas
@@ -206,7 +203,6 @@ async function seeAbsents(req) {
         }
 
         await board.save()
-        console.log("playersToDelete: ", playersToDelete)
         // Eliminar a los jugadores marcados para ser eliminados
         var resEliminate = await eliminatePlayers({ body: { boardId: board._id,
                                                             playersToDelete: playersToDelete }})
@@ -284,13 +280,14 @@ async function addPlayer(req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "No se pudo añadir el jugador a la mesa pública"
+            message: "No se pudo añadir el jugador a la mesa pública. " + e.message
         })
     }
 }
 
 // Devuelve error si la mesa aún no está llena y success si ya lo está
 async function isFull(req) {
+    // Parámetros en req.body: boardId
     const boardId = req.body.boardId
 
     try {
@@ -320,7 +317,7 @@ async function isFull(req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "No se pudo acceder a la información de la mesa"
+            message: "No se pudo acceder a la información de la mesa" + e.message
         })
     }
 }
@@ -367,7 +364,6 @@ async function isEndOfGame(req) {
         })
 
     } catch (e) {
-        console.error("Error al determinar si la partida ha acabado. " + e.message)
         return ({
             status: "error",
             message: "Error al determinar si la partida ha acabado. " + e.message
@@ -532,11 +528,10 @@ async function manageHand(req) {
             })
         }
 
-        console.log("1")
         // Se piden los resultados de la mano actual a la banca
         res = await BankController.results({ body: {bankId: board.bank, 
-                                                 typeBoardName: 'public', 
-                                                 bet: board.bet}})
+                                                    typeBoardName: 'public', 
+                                                    bet: board.bet}})
         if (res.status === "error") return res
         const results = res.results
 
@@ -598,6 +593,8 @@ async function leaveBoardPriv(req) {
     // Parámetros necesarios en body: userId, boardId
     const boardId = req.body.boardId
     const userId = req.body.userId
+    var res
+
     try {
         // Se verifica que la mesa exista
         const board = await PublicBoard.findById(boardId)
@@ -749,7 +746,6 @@ const leaveBoard = async (req, res) => {
         resAux = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
         if (resAux.status === "error") return res.status(400).json(resAux)
 
-
         // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
         // las monedas ganadas
         var inCoins
@@ -787,7 +783,6 @@ async function resume(req) {
     // Parámetros en req.body: boardId, userId
     const boardId = req.body.boardId
     const userId = req.body.userId
-    var res
 
     try {
         // Se verifica que el usuario exista
@@ -843,7 +838,7 @@ async function resume(req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "Error al pausar la partida. " + e.message
+            message: "Error al reanudar la partida. " + e.message
         })
     }
 }

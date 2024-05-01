@@ -16,14 +16,14 @@ const maxRounds = 20
 async function allPlayersPlayed(req) {
     // Parámetros en req.body: req.body.boardId
     const boardId = req.body.boardId
-    
+
     try {
         // Se recupera la mesa
         const board = await PrivateBoard.findById(boardId)
         if (!board) {
             return ({
                 status: "error",
-                message: "No se encontró la mesa de torneo"
+                message: "Mesa no encontrada"
             })
         }
         
@@ -40,6 +40,7 @@ async function allPlayersPlayed(req) {
             })
         }
     } catch (e) {
+        console.error("Error al encontrar el número de manos jugadas. " + e.message)
         return ({
             status: "error",
             message: "Error al encontrar el número de manos jugadas. " + e.message
@@ -149,12 +150,12 @@ async function eliminate(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa pública no encontrada"
+                message: "Mesa no encontrada"
             })
         } else {  // Mesa encontrada, exito
             return ({
                 status: "success",
-                message: "Mesa pública eliminada correctamente"
+                message: "Mesa eliminada correctamente"
             })
         }
 
@@ -211,6 +212,54 @@ async function eliminatePlayers(req) {
         return ({
             status: "error",
             message: "Error al eliminar jugadores. " + e.message
+        })
+    }
+}
+
+// Dado un board, apunta todos aquellos jugadores que no han enviado su jugada
+// y elimina a todo aquel que ha dejado de jugar 2 manos
+// TODO: se puede poner aquí la lógica de después de cada jugada
+async function seeAbsents(req) {
+    // Parámetros en req.body: boardId 
+    const boardId = req.body.boardId
+
+    try {
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+        
+        // Array para almacenar los IDs de los jugadores que serán eliminados
+        const playersToDelete = []
+
+        // Iterar sobre los jugadores en la mesa del torneo
+        for (const playerObj of board.players) {
+            // Incrementar el contador de manos ausentes si el jugador no ha jugado
+            if (!board.hand.players.includes(playerObj.player)) playerObj.handsAbsent++
+
+            // Eliminar al jugador si ha dejado de jugar dos manos consecutivas
+            if (playerObj.handsAbsent >= 2) playersToDelete.push(playerObj.player)
+        }
+
+        await board.save()
+        // Eliminar a los jugadores marcados para ser eliminados
+        var resEliminate = await eliminatePlayers({ body: { boardId: board._id,
+                                                            playersToDelete: playersToDelete }})
+        if (resEliminate.status === "error") return resEliminate
+        
+        return ({
+            status: "success",
+            message: "Gestión de manos completada",
+            playersToDelete: playersToDelete
+        })
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al ver los jugadores que no han enviado jugada. " + e.message
         })
     }
 }
@@ -283,13 +332,14 @@ async function addPlayer (req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "No se pudo añadir el jugador a la mesa privada"
+            message: "No se pudo añadir el jugador a la mesa privada. " + e.message
         })
     }
 }
 
 // Devuelve error si la mesa aún no está llena y success si ya lo está
 async function isFull (req) {
+    // Parámetros en req.body: boardId
     const boardId = req.body.boardId
 
     try {
@@ -319,7 +369,7 @@ async function isFull (req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "No se pudo acceder a la información de la mesa"
+            message: "No se pudo acceder a la información de la mesa. " + e.message
         })
     }
 }
@@ -373,46 +423,6 @@ async function isEndOfGame(req) {
     }
 }
 
-// Dado un board, apunta todos aquellos jugadores que no han enviado su jugada
-// y elimina a todo aquel que ha dejado de jugar 2 manos
-// TODO: se puede poner aquí la lógica de después de cada jugada
-async function seeAbsents(req) {
-    // Parámetros en req.body: board (un board completo)
-    const board = req.body.board
-
-    try {
-        // Array para almacenar los IDs de los jugadores que serán eliminados
-        const playersToDelete = []
-
-        // Iterar sobre los jugadores en la mesa del torneo
-        for (const playerObj of board.players) {
-            // Incrementar el contador de manos ausentes si el jugador no ha jugado
-            if (!board.hand.players.includes(playerObj.player)) playerObj.handsAbsent++
-
-            // Eliminar al jugador si ha dejado de jugar dos manos consecutivas
-            if (playerObj.handsAbsent >= 2) playersToDelete.push(playerObj.player)
-        }
-
-        await board.save()
-
-        // Eliminar a los jugadores marcados para ser eliminados
-        var resEliminate = await eliminatePlayers({ body: { boardId: board._id,
-                                                            playersToDelete: playersToDelete }})
-        if (resEliminate.status === "error") return resEliminate
-        
-        return ({
-            status: "success",
-            message: "Gestión de manos completada",
-            playersToDelete: playersToDelete
-        })
-
-    } catch (e) {
-        return ({
-            status: "error",
-            message: "Error al ver los jugadores que no han enviado jugada. " + e.message
-        })
-    }
-}
 
 // Realiza las acciones correspondientes a la finzalización de la partida. Se
 // insertan las monedas correspondientes a aquellos jugadores que han ganado y
@@ -438,13 +448,6 @@ async function finishBoard(req) {
                         { userId: playerObj.player, 
                           coins: playerObj.currentCoins - playerObj.initialCoins }})
                     if (res.status === "error") return res
-
-                    if (playerObj.currentCoins - playerObj.initialCoins > 0) {
-                        res = await StatController.incrementStatByName({ body:
-                            { userId: playerObj.player, statName: "Monedas ganadas en partida",
-                              value: playerObj.currentCoins - playerObj.initialCoins }})
-                        if (res.status === "error") return res
-                    }
                 }
             }    
         }
@@ -582,24 +585,29 @@ async function manageHand(req) {
         // Se apuntan en el board las monedas ganadas por cada jugador
         for (const result of results) {
             const userId = result.userId
-            const coinsEarned = result.coinsEarned
+            if (userId !== "Bank") {
+                const coinsEarned = result.coinsEarned
 
-            // Se busca al jugadore en la lista de jugadores de la mesa
-            const playerIndex = board.players.findIndex(player => 
-                player.player.equals(userId))
+                // Se busca al jugador en la lista de jugadores de la mesa
+                const players = board.players
+                const playerIndex = players.findIndex(player => 
+                    player.player.toString() === userId.toString())
+    
+                // Si el jugador se encuentra en la lista
+                if (playerIndex !== -1) {
+                    // Se actualizan las monedas actuales del jugador en la mesa
+                    board.players[playerIndex].currentCoins += coinsEarned[0]
+                    if (coinsEarned[1]) board.players[playerIndex].currentCoins += coinsEarned[1]
 
-            // Si el jugador se encuentra en la lista
-            if (playerIndex !== -1) {
-                
-                // Se actualizan las monedas actuales del jugador en la mesa
-                board.players[playerIndex].currentCoins += coinsEarned
-                if (coinsEarned[1]) board.players[playerIndex].currentCoins += coinsEarned[1]
-    
-                if (board.players[playerIndex].currentCoins < bet) {
-                    res = await leaveBoardPriv({ body: { userId: userId, boardId: boardId }})
-                    if (res.status === "error") return res
-    
-                    playersToDelete.push(userId)
+                    // Devolver currentCoins
+                    result.currentCoins = board.players[playerIndex].currentCoins
+                    
+                    if (board.players[playerIndex].currentCoins < board.bet) {
+                        res = await leaveBoardPriv({ body: { userId: userId, boardId: boardId }})
+                        if (res.status === "error") return res
+                    
+                        playersToDelete.push(userId)
+                    }
                 }
             }
         }
@@ -638,7 +646,7 @@ async function leaveBoardPriv(req) {
         // Se verifica que la mesa exista
         const board = await PrivateBoard.findById(boardId)
         if (!board) {
-            return res.status(404).json({
+            return ({
                 status: "error",
                 message: "Mesa no encontrada"
             })
@@ -692,6 +700,38 @@ async function leaveBoardPriv(req) {
 
 }
 
+async function restBet(req) {
+    // Parámetros en req.body: boardId
+    const boardId = req.body.boardId
+
+    try {
+        // Se recupera la partida
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        for (const player of board.players) {
+            player.currentCoins -= board.bet
+        }
+
+        await board.save()
+
+        return ({
+            status: "success",
+            message: "Apuestas realizadas"
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al restar las apuestas fijas. " + e.message
+        })
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones públicas
@@ -742,6 +782,133 @@ const leaveBoard = async (req, res) => {
         })
     }
 }
+
+async function resume(req) {
+    // Parámetros en req.body: boardId, userId
+    const boardId = req.body.boardId
+    const userId = req.body.userId
+
+    try {
+        // Se verifica que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return ({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Se verifica que tuviese la correspondiente partida pausada
+        if (!user.paused_board[0] && user.paused_board[0].board != boardId 
+            && user.paused_board[0].boardType !== "private") {
+            return ({
+                status: "error",
+                message: "El usuario no disponía de la partida pausada"
+            })
+        }
+
+        // Ya no tiene partida pausada, se borra
+        user.paused_board.splice(0, 1)
+        await user.save()
+
+        // Se verifica que la partida exista
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return ({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        // Se verifica que en el board también figurase con la partida pausada
+        const index = board.players.findIndex(player => player.player == userId)
+        
+        if (index != -1 && board.players[index].paused) {
+            // El usuario ya no tiene la partida pausada, se borra
+            board.players[index].paused = false
+            await board.save()
+
+            return ({
+                status: "success",
+                message: "El usuario puede reanudar la partida"
+            })
+        } else {
+            return ({
+                status: "error",
+                message: "El usuario no puede reanudar la partida"
+            })
+        }
+
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al reanudar la partida. " + e.message
+        })
+    }
+}
+
+const pause = async (req, res) => {
+    // Parámetros en req.params: boardId
+    const userId = req.user.id
+    const boardId = req.params.id
+
+    try {
+        // Se verifica que la mesa exista
+        const board = await PrivateBoard.findById(boardId)
+        if (!board) {
+            return res.status(404).json({
+                status: "error",
+                message: "Mesa no encontrada"
+            })
+        }
+
+        // Se verifica que el usuario juegue la partida y no la tenga ya pausada
+        const index = board.players.findIndex(player => player.player == userId)
+        if (index == -1 || board.players[index].paused) {
+            return res.status(400).json({
+                status: "error",
+                message: "El usuario no se encuentra jugando esta partida"
+            })
+        }
+
+        // Se verifica que el usuario exista
+        const user = await User.findById(userId)
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado"
+            })
+        }
+
+        // Se verifica que no tenga otra partida en pausa
+        if (user.paused_board.length > 0) {
+            return res.status(400).json({
+                status: "error",
+                message: "El usuario ya tiene otra partida pausada"
+            })
+        }
+
+        // Se marca la partida pausada en la tabla usuario
+        user.paused_board.push({board: boardId, boardType: "private"})
+        await user.save()
+
+        // Se marca que el jugador a pausado la partida en la tabla publicboard
+        board.players[index].paused = true
+        await board.save()
+
+        return res.status(200).json({
+            status: "error",
+            message: "Partida pausada correctamente"
+        })
+
+    } catch (e) {
+        return res.status(400).json({
+            status: "error",
+            message: "Error al pausar la partida. " + e.message
+        })
+    }
+}
+
 
 async function plays(req) {
     // Parámetos en req.body: userId, boardId, cardsOnTable, playName, handIndex (menos split)
@@ -928,5 +1095,8 @@ module.exports = {
     drawCard,
     double,
     split,
-    stick
+    stick,
+    restBet,
+    resume,
+    pause
 }

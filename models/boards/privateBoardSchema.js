@@ -46,6 +46,10 @@ const privateBoardSchema = Schema({
             currentCoins: {
                 type: Number,
                 default: 0
+            },
+            paused: {
+                type: Boolean,
+                default: false
             }
         }],
         default: []
