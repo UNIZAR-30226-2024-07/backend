@@ -670,7 +670,7 @@ const leaveBoard = async (req, res) => {
 
         // Se elimina el usuario de la lista de jugadores en espera para que
         // pueda solicitar jugar otra partida
-        resAux = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        resAux = await MatcherController.eliminateWaitingUsers({ body: {playersToDelete: [userId]}})
         if (resAux.status === "error") return res.status(400).json(resAux)
 
         // Eliminar al usuario de la lista de jugadores en la partida

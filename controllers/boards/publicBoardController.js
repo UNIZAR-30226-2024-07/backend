@@ -616,7 +616,7 @@ async function leaveBoardPriv(req) {
 
         // Se elimina el usuario de la lista de jugadores en espera para que
         // pueda solicitar jugar otra partida
-        res = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        resAux = await MatcherController.eliminateWaitingUsers({ body: {playersToDelete: [userId]}})
         if (res.status === "error") return res
 
 
@@ -743,7 +743,7 @@ const leaveBoard = async (req, res) => {
 
         // Se elimina el usuario de la lista de jugadores en espera para que
         // pueda solicitar jugar otra partida
-        resAux = await MatcherController.eliminateWaitingUser({ body: {userId: userId}})
+        resAux = await MatcherController.eliminateWaitingUsers({ body: {playersToDelete: [userId]}})
         if (resAux.status === "error") return res.status(400).json(resAux)
 
         // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
