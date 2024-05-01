@@ -229,10 +229,17 @@ async function confirmPriv(req) {
         // Obtener indice de playersHands
         const playerIndex = bank.playersHands.findIndex(h => h.playerId == userId)
         if (playerIndex === -1) {
-            return ({
-                status: "error",
-                message: "Este jugador no tiene componente de jugadas confirmadas"
-            })
+            const playerHand =  {
+                playerId: userId,
+                split: false,
+                double: [],  // En que manos ha hecho double
+                hands: [[],[]],
+            }
+            bank.playersHands.push(playerHand)
+            // return ({
+            //     status: "error",
+            //     message: "Este jugador no tiene componente de jugadas confirmadas"
+            // })
         }
 
         // Si ha hecho split :
@@ -622,11 +629,11 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
         }
         // Haces blackJack y la banca no
         else if (blackJackJugador && !blackJackBanca) {
-            coinsGanadasPorJugador.push(premioBlackjack * doubleBet);
+            coinsGanadasPorJugador.push(parseInt(premioBlackjack * doubleBet));
         }
         // Igual que la banca
         else if (totalJugador === totalBanca) {
-            coinsGanadasPorJugador.push(premioIgualBanca * doubleBet);
+            coinsGanadasPorJugador.push(parseInt(premioIgualBanca * doubleBet));
         } 
         // Mayor que la banca
         else if (totalJugador > totalBanca || totalBanca > numBlackJack) {
@@ -642,11 +649,11 @@ function calcularEarnedCoins(totalesJugador, blackJacksJugador,
             // Además, mayor que todos los jugadores
             // Puntuación mayor jugador o si es menor, que el otro se haya pasado
             if (totalesAllCopy.every(puntuacion => (puntuacion < totalJugador) || (puntuacion > numBlackJack))) {
-                coinsGanadasPorJugador.push(premioMejorQueJugadores * doubleBet);
+                coinsGanadasPorJugador.push(parseInt(premioMejorQueJugadores * doubleBet));
             } 
             // Algún jugador igual o mejor que tú. Redondear porque multiplica a 
             else {
-                coinsGanadasPorJugador.push(Math.round(premioMejorQueBanca * doubleBet));
+                coinsGanadasPorJugador.push(parseInt(Math.round(premioMejorQueBanca * doubleBet)));
             }
         } else {
             coinsGanadasPorJugador.push(0);
@@ -1063,10 +1070,17 @@ async function double(req) {
         // Indica que ha hecho double
         const playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
         if (playerIndexHand === -1) {
-            return ({
-                status: "error",
-                message: "Este jugador no tiene componente de jugadas confirmadas"
-            })
+            const playerHand =  {
+                playerId: userId,
+                split: false,
+                double: [],  // En que manos ha hecho double
+                hands: [[],[]],
+            }
+            bank.playersHands.push(playerHand)
+            // return ({
+            //     status: "error",
+            //     message: "Este jugador no tiene componente de jugadas confirmadas"
+            // })
         }
         bank.playersHands[playerIndexHand].double.push(req.body.handIndex)
         // Guardar el tablero actualizado en la base de datos
@@ -1170,10 +1184,17 @@ async function split(req) {
         // Indica que ha hecho split
         const playerIndexHand = bank.playersHands.findIndex(h => h.playerId == userId);
         if (playerIndexHand === -1) {
-            return ({
-                status: "error",
-                message: "Este jugador no tiene componente de jugadas confirmadas"
-            })
+            const playerHand =  {
+                playerId: userId,
+                split: false,
+                double: [],  // En que manos ha hecho double
+                hands: [[],[]],
+            }
+            bank.playersHands.push(playerHand)
+            // return ({
+            //     status: "error",
+            //     message: "Este jugador no tiene componente de jugadas confirmadas"
+            // })
         }
         bank.playersHands[playerIndexHand].split = true
         // Guardar el tablero actualizado en la base de datos
