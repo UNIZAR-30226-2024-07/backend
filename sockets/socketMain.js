@@ -472,7 +472,7 @@ const Sockets = async (io) => {
             var res = await MatcherController.createPrivate(req)
             if (res.status === "error") {
                 socket.emit("error", res)
-                console.error("-- public: error")
+                console.error("-- private: error")
                 return console.error("------ error: ", res.message)
             }
             const boardId = res.board._id

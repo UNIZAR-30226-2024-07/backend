@@ -6,6 +6,7 @@ const TournamentController = require("./tournamentController")
 const PublicBoardType = require("../models/publicBoardTypeSchema")
 const BankController = require("./bankController")
 const User = require("../models/userSchema")
+const bcrypt = require('bcrypt')
 const { default: mongoose } = require("mongoose")
 
 // El id del matcher
