@@ -243,6 +243,38 @@ const Sockets = async (io) => {
         }
     })
 
+    socket.on("resume tournament board", async (req) => {
+
+        // Parámetros en req.body: boardId, userId
+        console.log("++ tournament: resume tournament board")
+        console.log("++++++ boardId: ", req.body.boardId)
+        console.log("++++++ userId: ", req.body.userId)
+
+        if (!req.body.boardId || !req.body.userId)  {
+            console.error("ERROR: La petición debe contener un req.body.boardId y un req.body.userId")
+        }
+
+        const boardId = req.body.boardId
+        var res
+
+        try {
+            // Se llama a la función de reanudar partida
+            res = await TournamentBoardController.resume(req)
+            if (res.status === "error") {
+                socket.emit("error", (res.message))
+                console.error("-- tournament: error")
+                return console.error("------ error: ", res.message)
+            } 
+
+            socket.join("tournament:" + boardId)
+            socket.emit("resume accepted")
+            console.log("-- tournament: resume accepted")
+
+        } catch (e) {
+            return console.error("Error al reanudar la partida. " + e.message)
+        }
+    })
+
     
     ////////////////////////////////////////////////////////////////////////////
     // Partidas públicas
@@ -650,6 +682,38 @@ const Sockets = async (io) => {
             return console.error(e.message)
         }
     })
+
+    socket.on("resume private board", async (req) => {
+        // Parámetros en req.body: boardId, userId
+        console.log("++ private: resume private board")
+        console.log("++++++ boardId: ", req.body.boardId)
+        console.log("++++++ userId: ", req.body.userId)
+
+        if (!req.body.boardId || !req.body.userId)  {
+            console.error("ERROR: La petición debe contener un req.body.boardId y un req.body.userId")
+        }
+
+        const boardId = req.body.boardId
+        var res
+
+        try {
+            // Se llama a la función de reanudar partida
+            res = await PrivateBoardController.resume(req)
+            if (res.status === "error") {
+                socket.emit("error", (res.message))
+                console.error("-- private: error")
+                return console.error("------ error: ", res.message)
+            } 
+
+            socket.join("private:" + boardId)
+            socket.emit("resume accepted")
+            console.log("-- private: resume accepted")
+
+        } catch (e) {
+            return console.error("Error al reanudar la partida. " + e.message)
+        }
+    })
+
 
     ////////////////////////////////////////////////////////////////////////////
     // Partidas Single

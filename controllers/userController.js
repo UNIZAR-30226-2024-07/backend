@@ -74,7 +74,7 @@ async function insertCoinsFunction(req) {
     try {
         // Nos aseguramos de que exCoins sea un entero > 0
         const inCoins = parseInt(inCoinsStr)
-        if (typeof inCoins !== 'number' || inCoins <= 0) {
+        if (typeof inCoins !== 'number') {
             return ({
                 status: "error",
                 message: "El número de monedas a insertar no es correcto. Debe ser un entero positivo mayor de 0"
