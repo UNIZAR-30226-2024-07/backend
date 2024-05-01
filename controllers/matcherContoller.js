@@ -718,7 +718,7 @@ async function playTournament(req) {
 
         // Se busca una partida ya empezada
         var board = matcher.waiting_tournament_boards.find(board => 
-            board.tournament.equals(tId) && board.round === round)
+            board.tournament == tId && board.round === round)
         
         // Si no existe una partida en la que pueda jugar el usuario, se
         // crea una nueva con las características dadas
