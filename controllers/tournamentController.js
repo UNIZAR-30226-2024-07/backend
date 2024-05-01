@@ -151,7 +151,7 @@ const enterTournament = async (req, res) => {
 // dentro del torneo con ID pasado por parámetro. Si el resultado es 'success'
 // devuelve en el campo tournament el torneo y en el campo round la ronda 
 const isUserInTournament = async (req, res) => {
-    const userId = req.user._id
+    const userId = req.user.id
     const tournamentId = req.params.id
 
     try {
@@ -219,7 +219,7 @@ const getAll = async (req, res) => {
 const roundInTournament = async (req, res) => {
     // Parámetros en URL: id
     const tId = req.params.id
-    const userId = req.user._id
+    const userId = req.user.id
 
     try {
         // Se verifica que el usuario existe
