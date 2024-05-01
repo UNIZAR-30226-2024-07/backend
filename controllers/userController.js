@@ -74,7 +74,7 @@ async function insertCoinsFunction(req) {
     try {
         // Nos aseguramos de que exCoins sea un entero > 0
         const inCoins = parseInt(inCoinsStr)
-        if (typeof inCoins !== 'number' || inCoins <= 0 || !Number.isInteger(inCoins)) {
+        if (typeof inCoins !== 'number' || inCoins <= 0) {
             return ({
                 status: "error",
                 message: "El número de monedas a insertar no es correcto. Debe ser un entero positivo mayor de 0"
@@ -1054,7 +1054,7 @@ const extractCoins = async (req, res) => {
     try {
         // Nos aseguramos de que exCoins sea un entero > 0
         const exCoins = parseInt(exCoinsStr)
-        if (typeof exCoins !== 'number' || exCoins <= 0 || !Number.isInteger(exCoins)) {
+        if (typeof exCoins !== 'number' || exCoins <= 0) {
             return res.status(500).json({
                 status: "error",
                 message: "El número de monedas a extraer no es correcto. Debe ser un entero positivo mayor de 0"
@@ -1105,7 +1105,7 @@ const insertCoins = async (req, res) => {
     try {
         // Nos aseguramos de que exCoins sea un entero > 0
         const inCoins = parseInt(inCoinsStr)
-        if (typeof inCoins !== 'number' || inCoins <= 0 || !Number.isInteger(inCoins)) {
+        if (typeof inCoins !== 'number' || inCoins <= 0) {
             return res.status(500).json({
                 status: "error",
                 message: "El número de monedas a insertar no es correcto. Debe ser un entero positivo mayor de 0"
