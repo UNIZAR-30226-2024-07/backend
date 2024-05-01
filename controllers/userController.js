@@ -91,8 +91,11 @@ async function insertCoinsFunction(req) {
             })
         }    
         
+        console.log("Monedas insertadas: ", inCoins)
+        console.log("Monedas usuario antes: ", user.coins)
         // Se suman las monedas al saldo del usuario
         user.coins += inCoins
+        console.log("Monedas usuario después: ", user.coins)
 
         // Se guarda y se responde al cliente
         await user.save()
