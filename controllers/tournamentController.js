@@ -480,6 +480,7 @@ async function advanceRound(req) {
         }
 
         // Se busca la participación del usuario en el torneo
+        console.log("user.tournaments: ", user.tournaments)
         const userTournament = user.tournaments.find(t => t.tournament == tId);
         if (!userTournament) {
             return ({
