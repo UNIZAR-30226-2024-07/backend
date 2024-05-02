@@ -664,7 +664,7 @@ async function leaveBoardPriv(req) {
         // Se elimina el usuario de la lista de jugadores en espera para que
         // pueda solicitar jugar otra partida
         resAux = await MatcherController.eliminateWaitingUsers({ body: {playersToDelete: [userId]}})
-        if (res.status === "error") return res
+        if (resAux.status === "error") return resAux
 
         // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
         // las monedas ganadas
@@ -672,11 +672,11 @@ async function leaveBoardPriv(req) {
         if (inCoins > 0) {
             inCoins = Math.floor(inCoins / 2)
             resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
-            if (resAux.status === "error") return res.status(400).json(resAux)
+            if (resAux.status === "error") return resAux
         } 
         else if (inCoins < 0) {
             resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
-            if (resAux.status === "error") return res.status(400).json(resAux)
+            if (resAux.status === "error") return resAux
         }
 
         // Eliminar al usuario de la lista de jugadores en la partida
@@ -693,7 +693,7 @@ async function leaveBoardPriv(req) {
     } catch (e) {
         return ({
             status: "error",
-            message: "Error al abandonar la partida. " + e.message
+            message: "Error al abandonar la partida (leaveBoardPriv). " + e.message
         })
     }
 
