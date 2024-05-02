@@ -569,7 +569,7 @@ async function manageHand(req) {
         if (res.status === "error") return res
         const results = res.results
 
-        console.log("RESULTADOS: ", results)
+        // console.log("RESULTADOS: ", results)/////////////////////////////////////////////
 
         // Se apuntan en el board las monedas ganadas por cada jugador
         for (const result of results) {
@@ -588,9 +588,12 @@ async function manageHand(req) {
                     result.lives = board.players[playerIndex].lifes
                 }    
             }
+
+            console.log("Resultado jugador: ", result.userId)/////////////////////////////////////////////
+            console.log(result)/////////////////////////////////////////////
         }
 
-        console.log("RESULTADOS: ", results)
+        // console.log("RESULTADOS: ", results)/////////////////////////////////////////////
 
         // La mano ha terminado, luego se eliminan los jugadores que mandaron la
         // jugada y se incrementa el número de la mano
