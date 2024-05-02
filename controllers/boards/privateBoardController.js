@@ -668,16 +668,15 @@ async function leaveBoardPriv(req) {
 
         // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
         // las monedas ganadas
-        var inCoins
-        if (board.players[playerIndex].earnedCoins > 0) {
-            inCoins = Math.floor(board.players[playerIndex].earnedCoins / 2)
-            res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
-            if (res.status === "error") return res
+        var inCoins = board.players[playerIndex].currentCoins - board.players[playerIndex].initialCoins
+        if (inCoins > 0) {
+            inCoins = Math.floor(inCoins / 2)
+            resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
+            if (resAux.status === "error") return res.status(400).json(resAux)
         } 
-        else if (board.players[playerIndex].earnedCoins < 0) {
-            inCoins = board.players[playerIndex].earnedCoins
-            res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
-            if (res.status === "error") return res
+        else if (inCoins < 0) {
+            resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
+            if (resAux.status === "error") return res.status(400).json(resAux)
         }
 
         // Eliminar al usuario de la lista de jugadores en la partida

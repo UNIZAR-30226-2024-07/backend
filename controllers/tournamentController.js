@@ -124,7 +124,7 @@ const enterTournament = async (req, res) => {
         // Se descuentan las monedas al usuario y se le añade el torneo a su 
         // lista de torneos activos
         user.coins -= tournament.price
-        user.tournaments.push({ tournament: tId, round: '8' })
+        user.tournaments.push({ tournament: tId, position: '8' })
 
         // Se incrementa en 1 el número de torneos jugados en las estadísticas
         var resStat = await StatController.incrementStatByName({body: { userId: userId, 
@@ -183,7 +183,7 @@ const isUserInTournament = async (req, res) => {
                 status: "success",
                 message: "El usuario se encuentra jugando el torneo",
                 tournament: tournament,
-                round: tournamentInfo.round
+                round: tournamentInfo.position
             })    
         }
 
@@ -480,7 +480,7 @@ async function advanceRound(req) {
         }
 
         // Se busca la participación del usuario en el torneo
-        const userTournament = user.tournaments.find(t => t.tournament.equals(tournament._id));
+        const userTournament = user.tournaments.find(t => t.tournament == tId);
         if (!userTournament) {
             return ({
                 status: "error",
@@ -489,15 +489,15 @@ async function advanceRound(req) {
         }
 
         // Avanzar al usuario a la siguiente ronda
-        switch (userTournament.round) {
+        switch (userTournament.position) {
             case 8:
-                userTournament.round = 4;
+                userTournament.position = 4;
                 break;
             case 4:
-                userTournament.round = 2;
+                userTournament.position = 2;
                 break;
             case 2:
-                userTournament.round = 1;
+                userTournament.position = 1;
                 break;
             default:
                 return ({

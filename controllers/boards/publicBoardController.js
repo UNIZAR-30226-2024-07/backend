@@ -748,14 +748,13 @@ const leaveBoard = async (req, res) => {
 
         // Si el usuario llevaba monedas ganadas, se le proporciona la mitad de
         // las monedas ganadas
-        var inCoins
-        if (board.players[playerIndex].earnedCoins > 0) {
-            inCoins = Math.floor(board.players[playerIndex].earnedCoins / 2)
+        var inCoins = board.players[playerIndex].currentCoins - board.players[playerIndex].initialCoins
+        if (inCoins > 0) {
+            inCoins = Math.floor(inCoins / 2)
             resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
             if (resAux.status === "error") return res.status(400).json(resAux)
         } 
-        else if (board.players[playerIndex].earnedCoins < 0) {
-            inCoins = board.players[playerIndex].earnedCoins
+        else if (inCoins < 0) {
             resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: inCoins }})
             if (resAux.status === "error") return res.status(400).json(resAux)
         }

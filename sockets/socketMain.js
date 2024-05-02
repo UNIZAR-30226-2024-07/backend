@@ -194,7 +194,7 @@ const Sockets = async (io) => {
 
             console.log("++ tournament: IS END OF GAME\n")
             // Se elimina a los jugadores de la lista de jugadores esperando mesa
-            const reqUsers = { body: { boardId: boardId, typeBoardname: "tournament" } }
+            const reqUsers = { body: { boardId: boardId, typeBoardName: "tournament" } }
             res = await MatcherController.eliminateWaitingUsers(reqUsers)
             if (res.status === "error") console.error("ERROR: ", res.message)
             

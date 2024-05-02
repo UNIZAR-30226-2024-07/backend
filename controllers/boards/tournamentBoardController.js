@@ -444,7 +444,7 @@ async function finishBoard(req) {
         await BankController.eliminate({ body: { bankId: board.bank }})
 
         // Se elimina ahora la partida
-        await board.remove()
+        await TournamentBoard.findByIdAndDelete(boardId)
 
         return ({
             status: "success",
