@@ -151,6 +151,24 @@ async function eliminatePlayers(req) {
             }
         }
 
+        for (const playerObj of board.players) {
+            if (playersToDelete.includes(playerObj.player)) {
+                if (playerObj.initialCoins != playerObj.currentCoins) {
+                    res = await UserController.insertCoinsFunction({ body: 
+                        { userId: playerObj.player, 
+                          coins: playerObj.currentCoins - playerObj.initialCoins }})
+                    if (res.status === "error") return res
+
+                    if (playerObj.currentCoins - playerObj.initialCoins > 0) {
+                        res = await StatController.incrementStatByName({ body:
+                            { userId: playerObj.player, statName: "Monedas ganadas en partida",
+                              value: playerObj.currentCoins - playerObj.initialCoins }})
+                        if (res.status === "error") return res
+                    }
+                }
+            }
+        }
+
         // Eliminar a los jugadores marcados para ser eliminados
         await PublicBoard.updateOne(
             { _id: boardId },

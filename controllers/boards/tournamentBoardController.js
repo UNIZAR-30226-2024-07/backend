@@ -152,6 +152,10 @@ async function eliminatePlayers(req) {
             })
         }
 
+        var resTournament = await TournamentController.tournamentByIdFunction({ body: { tournamentId: board.tournament }})
+        if (resTournament.status === "error") return resTournament
+        const tournament = resTournament.tournament
+
         // En caso de que tuvieran la mesa pausada, se les elimina la mesa de mesas pausadas
         for (const player of board.players) {
             if (playersToDelete.includes(player.player) && player.paused) {
@@ -159,6 +163,25 @@ async function eliminatePlayers(req) {
                 user.paused_board.splice(0, 1)
                 user.save()
             }
+        }
+
+        // Se elimina al usuario del torneo
+        for (const player of playersToDelete) {
+            if (board.round == 1) {
+                res = await UserController.insertCoinsFunction({ body: { userId: player, coins: tournament.coins_subwinner } })
+                if (res.status === "error") return res
+
+                res = await TournamentController.tournamentLost({ body: { userId: player, tournamentId: board.tournament }})
+                if (res.status === "error") return res    
+            } else {
+                if (playersToDelete.length == numPlayers) {
+                    res = await TournamentController.tournamentLost({ body: { userId: player, tournamentId: board.tournament }})
+                    if (res.status === "error") return res    
+                } else if (playersToDelete.length == 1) {
+                    res = await TournamentController.advanceRound({ body: { userId: player, tournamentId: board.tournament }})
+                    if (res.status === "error") return res
+                }
+            }    
         }
 
         // Eliminar a los jugadores marcados para ser eliminados
@@ -404,40 +427,39 @@ async function finishBoard(req) {
         const winner = board.players.find(playerObj => playerObj.lifes > 0)
         const loser = board.players.find(playerObj => playerObj.lifes <= 0)
 
-        if (!winner || !loser) {
-            return ({
-                status: "error",
-                message: "Error al establecer el ganador y perdedor de la partida"
-            })
-        }
-
         if (board.round === 1) {
-            // La partida era una final y por tanto se dan las recompensas al
-            // ganador
-            res = await UserController.insertCoinsFunction({ body: { userId: winner.player, coins: tournament.coins_winner } })
-            if (res.status === "error") return res
+            // La partida era una final y por tanto se dan las recompensas al ganador
+            if (winner) {
+                res = await UserController.insertCoinsFunction({ body: { userId: winner.player, coins: tournament.coins_winner } })
+                if (res.status === "error") return res
 
-            res = await UserController.insertCoinsFunction({ body: { userId: loser.player, coins: tournament.coins_subwinner } })
-            if (res.status === "error") return res
+                // También finaliza el torneo, luego se elimina
+                res = await TournamentController.tournamentLost({ body: { userId: winner.player, tournamentId: tournament._id }})
+                if (res.status === "error") return res
 
-            // También finaliza el torneo, luego se elimina a los dos del mismo
-            res = await TournamentController.tournamentLost({ body: { userId: winner.player, tournamentId: tournament._id }})
-            if (res.status === "error") return res
-
-            res = await TournamentController.tournamentLost({ body: { userId: loser.player, tournamentId: tournament._id }})
-            if (res.status === "error") return res
-
-            // Al ser una final, al ganador se le aumenta el número de torneos ganados
-            res = await StatController.incrementStatByName({ body: { userId: winner.player, statName: "Torneos ganados", value: 1 }})
-
+                // Al ser una final, al ganador se le aumenta el número de torneos ganados
+                res = await StatController.incrementStatByName({ body: { userId: winner.player, statName: "Torneos ganados", value: 1 }})
+                if (res.status === "error") return res
+            }
+            // Al subcampeón también se le otorgan las recompensas
+            if (loser) {
+                res = await UserController.insertCoinsFunction({ body: { userId: loser.player, coins: tournament.coins_subwinner } })
+                if (res.status === "error") return res
+    
+                res = await TournamentController.tournamentLost({ body: { userId: loser.player, tournamentId: tournament._id }})
+                if (res.status === "error") return res    
+            }
         } else {
             // La partida no era una final, luego se avanza de ronda al ganador
             // y se elimina el torneo de la lista de torneos al perdedor
-            res = await TournamentController.advanceRound({ body: { userId: winner.player, tournamentId: tournament._id }})
-            if (res.status === "error") return res
-
-            res = await TournamentController.tournamentLost({ body: { userId: loser.player, tournamentId: tournament._id }})
-            if (res.status === "error") return res
+            if (winner) {
+                res = await TournamentController.advanceRound({ body: { userId: winner.player, tournamentId: tournament._id }})
+                if (res.status === "error") return res
+            }
+            if (loser) {
+                res = await TournamentController.tournamentLost({ body: { userId: loser.player, tournamentId: tournament._id }})
+                if (res.status === "error") return res    
+            }
         }
 
         // Se elimina la banca del sistema
@@ -663,6 +685,10 @@ const leaveBoard = async (req, res) => {
             })
         }
 
+        var resTournament = await TournamentController.tournamentByIdFunction({ body: { tournamentId: board.tournament }})
+        if (resTournament.status === "error") return resTournament
+        const tournament = resTournament.tournament
+
         // Se verifica que el usuario esté en la partida
         const playerIndex = board.players.findIndex(player => player.player.equals(userId))
         if (playerIndex === -1) {
@@ -676,6 +702,27 @@ const leaveBoard = async (req, res) => {
         // pueda solicitar jugar otra partida
         resAux = await MatcherController.eliminateWaitingUsers({ body: {playersToDelete: [userId]}})
         if (resAux.status === "error") return res.status(400).json(resAux)
+
+        // Se elimina al usuario del torneo
+        if (board.round == 1) {
+            if (board.players.length == numPlayers) {
+                res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: tournament.coins_subwinner } })
+                if (res.status === "error") return res
+            } else if (board.players.length == 1) {
+                res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: tournament.coins_winner } })
+                if (res.status === "error") return res    
+            }
+            res = await TournamentController.tournamentLost({ body: { userId: userId, tournamentId: board.tournament }})
+            if (res.status === "error") return res    
+        } else {
+            if (board.players.length == numPlayers) {
+                res = await TournamentController.tournamentLost({ body: { userId: userId, tournamentId: board.tournament }})
+                if (res.status === "error") return res    
+            } else if (board.players.length == 1) {
+                res = await TournamentController.advanceRound({ body: { userId: userId, tournamentId: board.tournament }})
+                if (res.status === "error") return res
+            }
+        }
 
         // Eliminar al usuario de la lista de jugadores en la partida
         board.players.splice(playerIndex, 1);
