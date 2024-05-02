@@ -532,10 +532,8 @@ async function initBoard(req) {
         // Obtener la banca
         const bank = await Bank.findById(bankId)
         // Inicializar maxos y jugadas vacías
-        bank.maze = maze
-        bank.bankMaze = bankMazeCollect
-        bank.playersHands = playersHands
-        bank.bankHand = []
+        let bankMaze = maze
+        let bankBankMaze = bankMazeCollect
 
         const initBoard = [];
         let drawCard
@@ -543,7 +541,7 @@ async function initBoard(req) {
         // Sacar dos cartas por cada jugador del board
         for (const player of players) {
             // Obtener indice jugador en maze
-            const index = bank.maze.findIndex(m => m.playerId.equals(player.player));
+            const index = bankMaze.findIndex(m => m.playerId.equals(player.player));
             if (index === -1) {
                 return ({
                     status: "error",
@@ -551,7 +549,7 @@ async function initBoard(req) {
                 })
             }
             cards = []
-            const playerMaze = bank.maze[index].cards;
+            const playerMaze = bankMaze[index].cards;
             if (playerMaze.length === 0) {
                 return ({
                     status: "error",
@@ -564,7 +562,7 @@ async function initBoard(req) {
                 cards.push(drawCard)
             }
             const totalPlayerCards = valueCards(cards)
-            bank.maze[index].cards = playerMaze;  // Guardar cambios en baraja
+            bankMaze[index].cards = playerMaze;  // Guardar cambios en baraja
 
             // Si con esas dos cartas ha hecho blackJack, confirmar jugada
             if(totalPlayerCards === numBlackJack) {
@@ -589,8 +587,7 @@ async function initBoard(req) {
 
         // Sacar una carta de la banca
         cards = []
-        const bankMaze = bank.bankMaze
-        if (bankMaze.length === 0) {
+        if (bankBankMaze.length === 0) {
             return ({
                 status: "error",
                 message: "El mazo de la banca está vacío",
@@ -598,9 +595,8 @@ async function initBoard(req) {
             })
         }
         // Obtener una carta de la banca
-        drawCard = bankMaze.shift();
+        drawCard = bankBankMaze.shift();
         cards.push(drawCard)
-        bank.bankMaze = bankMaze;
         const totalBankCards = valueCards(cards)
         const bankObject = {
             userId: "Bank",
@@ -609,9 +605,13 @@ async function initBoard(req) {
             blackJack: totalBankCards === numBlackJack
         }
         initBoard.push(bankObject);
-
-        // Guardar bankHand
+        
+        // Guardar campos bank
         bank.bankHand = cards
+        bank.playersHands = playersHands
+        bank.bankMaze = bankBankMaze
+        bank.maze = bankMaze
+
         await bank.save();
         
         return({
