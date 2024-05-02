@@ -163,7 +163,7 @@ const Sockets = async (io) => {
                 if (res.status === "error") {
                     // Si se agotó el tiempo y no todos mandaron su jugada, se
                     // apunta
-                    res = await TournamentBoardController.seeAbsents({ body: { board: res.board }})
+                    res = await TournamentBoardController.seeAbsents({ body: { boardId: boardId }})
                     if (res.status === "error") console.error("ERROR: ", res)
 
                     if (res.playersToDelete.length > 0) {
