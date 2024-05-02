@@ -708,21 +708,21 @@ const leaveBoard = async (req, res) => {
         // Se elimina al usuario del torneo
         if (board.round == 1) {
             if (board.players.length == numPlayers) {
-                res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: tournament.coins_subwinner } })
-                if (res.status === "error") return res.status(400).json(res)
+                resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: tournament.coins_subwinner } })
+                if (resAux.status === "error") return res.status(400).json(resAux)
             } else if (board.players.length == 1) {
-                res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: tournament.coins_winner } })
-                if (res.status === "error") return res.status(400).json(res)    
+                resAux = await UserController.insertCoinsFunction({ body: { userId: userId, coins: tournament.coins_winner } })
+                if (resAux.status === "error") return res.status(400).json(resAux)    
             }
-            res = await TournamentController.tournamentLost({ body: { userId: userId, tournamentId: board.tournament }})
-            if (res.status === "error") return res.status(400).json(res)    
+            resAux = await TournamentController.tournamentLost({ body: { userId: userId, tournamentId: board.tournament }})
+            if (resAux.status === "error") return res.status(400).json(resAux)    
         } else {
             if (board.players.length == numPlayers) {
-                res = await TournamentController.tournamentLost({ body: { userId: userId, tournamentId: board.tournament }})
-                if (res.status === "error") return res.status(400).json(res)    
+                resAux = await TournamentController.tournamentLost({ body: { userId: userId, tournamentId: board.tournament }})
+                if (resAux.status === "error") return res.status(400).json(resAux)    
             } else if (board.players.length == 1) {
-                res = await TournamentController.advanceRound({ body: { userId: userId, tournamentId: board.tournament }})
-                if (res.status === "error") return res.status(400).json(res)
+                resAux = await TournamentController.advanceRound({ body: { userId: userId, tournamentId: board.tournament }})
+                if (resAux.status === "error") return res.status(400).json(resAux)
             }
         }
 
