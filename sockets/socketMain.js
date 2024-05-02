@@ -181,7 +181,7 @@ const Sockets = async (io) => {
                 // En las partidas de torneo no es necesario verificar si se han
                 // eliminado usuarios por falta de vidas ya que eso se hace en
                 // TournamentBoardController.isEndOfGame
-                console.log(res.results)
+                console.log("Results (socket):", res.results)
                 io.to("tournament:" + boardId).emit("hand results", res.results)
                 console.log("-- tournament: hand results")
                 console.log("\n")

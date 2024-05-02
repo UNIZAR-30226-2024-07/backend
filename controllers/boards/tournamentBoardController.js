@@ -624,6 +624,7 @@ async function manageHand(req) {
         // Se guarda la mesa con las monedas ganadas de cada jugador
         await board.save()
 
+        console.log("Results (manageHand):", results)
         // Se devuelven los resultados de la banca en el campo results
         return ({
             status: "success",
