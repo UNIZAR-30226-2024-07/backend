@@ -130,7 +130,7 @@ async function eliminatePlayers(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en eliminatePlayers single"
             })
         }
 
@@ -219,7 +219,7 @@ async function finishBoard(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en finishBoard single"
             })
         }
 
@@ -320,7 +320,7 @@ async function leaveBoardPriv(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en leaveBoardPriv single"
             })
         }
 
@@ -415,7 +415,7 @@ const leaveBoard = async (req, res) => {
         if (!board) {
             return res.status(404).json({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en leaveBoard single"
             })
         }
 
@@ -462,7 +462,7 @@ async function plays(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en plays single"
             })
         }
 

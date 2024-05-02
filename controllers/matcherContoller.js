@@ -275,7 +275,7 @@ async function isFull(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en isFull matcher"
             })
         }
 

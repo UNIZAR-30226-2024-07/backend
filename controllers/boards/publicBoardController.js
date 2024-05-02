@@ -20,7 +20,7 @@ async function allPlayersPlayed(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en allPlayersPlayed public"
             })
         }
         
@@ -109,7 +109,7 @@ async function eliminate(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en eliminate public"
             })
         } else {  // Mesa encontrada, exito
             return ({
@@ -138,7 +138,7 @@ async function eliminatePlayers(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en eliminatePlayers public"
             })
         }
 
@@ -186,7 +186,7 @@ async function seeAbsents(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en seeAbsents public"
             })
         }
         
@@ -296,7 +296,7 @@ async function isFull(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en isFull public"
             })
         }
 
@@ -384,7 +384,7 @@ async function finishBoard(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en finishBoard public"
             })
         }
 
@@ -464,7 +464,7 @@ async function newMessage(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en newMessage public"
             })
         }
 
@@ -601,7 +601,7 @@ async function leaveBoardPriv(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en leaveBoardPriv public"
             })
         }
 
@@ -663,7 +663,7 @@ async function restBet(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en restBet public"
             })
         }
 
@@ -728,7 +728,7 @@ const leaveBoard = async (req, res) => {
         if (!board) {
             return res.status(404).json({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en leaveBoard public"
             })
         }
 
@@ -811,7 +811,7 @@ async function resume(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en resume public"
             })
         }
 
@@ -853,7 +853,7 @@ const pause = async (req, res) => {
         if (!board) {
             return res.status(404).json({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en pause public"
             })
         }
 
@@ -919,7 +919,7 @@ async function plays(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en plays public"
             })
         }
 

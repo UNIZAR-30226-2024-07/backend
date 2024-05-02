@@ -118,7 +118,7 @@ async function eliminate(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en eliminate tournament"
             })
         } else {  // Mesa encontrada, exito
             return ({
@@ -148,7 +148,7 @@ async function eliminatePlayers(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en eliminatePlayers tournament"
             })
         }
 
@@ -197,7 +197,7 @@ async function seeAbsents(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en seeAbsents tournament"
             })
         }
 
@@ -306,7 +306,7 @@ async function isFull(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en isFull tournament"
             })
         }
 
@@ -499,7 +499,7 @@ async function newMessage(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en newMessage tournament"
             })
         }
 
@@ -569,6 +569,8 @@ async function manageHand(req) {
         if (res.status === "error") return res
         const results = res.results
 
+        console.log("RESULTADOS: ", results)
+
         // Se apuntan en el board las monedas ganadas por cada jugador
         for (const result of results) {
             const userId = result.userId
@@ -587,6 +589,8 @@ async function manageHand(req) {
                 }    
             }
         }
+
+        console.log("RESULTADOS: ", results)
 
         // La mano ha terminado, luego se eliminan los jugadores que mandaron la
         // jugada y se incrementa el número de la mano
@@ -655,7 +659,7 @@ const leaveBoard = async (req, res) => {
         if (!board) {
             return res.status(404).json({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en leaveBoard tournament"
             })
         }
 
@@ -725,7 +729,7 @@ async function resume(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en resume tournament"
             })
         }
 
@@ -767,7 +771,7 @@ const pause = async (req, res) => {
         if (!board) {
             return res.status(404).json({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en pause tournament"
             })
         }
 
@@ -833,7 +837,7 @@ async function plays(req) {
         if (!board) {
             return ({
                 status: "error",
-                message: "Mesa no encontrada"
+                message: "Mesa no encontrada en plays tournament"
             })
         }
 
