@@ -481,14 +481,61 @@ async function initBoard(req) {
         const boardId = req.body.boardId
         const bankId = req.body.bankId
         const players = req.body.players
+        const numPlayers = players.length + 1
+
+        // Mazo total
+        const totalMaze = [...cards, ...cards]
+
+        // Mezclar las cartas
+        const shuffledCards = shuffle(totalMaze);
+
+        const cartasPorJugador = Math.floor(shuffledCards.length / numPlayers);
+        const maze = []
+        let bankMazeCollect
+        // Dividir las cartas en mazos según el número de jugadores (numJugadores + banca)
+        for (let i = 0; i < numPlayers; i++) {
+            // Obtener las cartas para el mazo actual
+            const inicio = i * cartasPorJugador;
+            const fin = (i + 1) * cartasPorJugador;            
+            // Agregar el mazo al arreglo de mazos
+            // Si no es el último jugador (banca)
+            if (i !== numPlayers - 1) {
+                // Agregar mazo jugador
+                const mazo = {
+                    playerId: players[i].player,
+                    cards: shuffledCards.slice(inicio, fin)
+                }
+                maze.push(mazo);
+
+                // Si es la banca, agregar a banca
+            } else {
+                bankMazeCollect = shuffledCards.slice(inicio, fin)
+            }
+        }
+        // Resetear los playersHands
+        const playersHands = []
+        for (const player of players) {
+            const playerHand =  {
+                playerId: player.player,
+                split: false,
+                double: [],  // En que manos ha hecho double
+                hands: [[],[]],
+            }
+            playersHands.push(playerHand)
+        }        
 
         // Iniciar mazos y manos de jugadores y banca
-        const reqCollectCards = { body: { bankId: bankId, players: players } }
-        var resCollectCards = await collectCards(reqCollectCards)
-        if (resCollectCards.status !== "success") return resCollectCards
+        // const reqCollectCards = { body: { bankId: bankId, players: players } }
+        // var resCollectCards = await collectCards(reqCollectCards)
+        // if (resCollectCards.status !== "success") return resCollectCards
 
         // Obtener la banca
         const bank = await Bank.findById(bankId)
+        // Inicializar maxos y jugadas vacías
+        bank.maze = maze
+        bank.bankMaze = bankMazeCollect
+        bank.playersHands = playersHands
+        bank.bankHand = []
 
         const initBoard = [];
         let drawCard
