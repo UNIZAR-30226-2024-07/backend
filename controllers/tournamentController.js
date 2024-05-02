@@ -433,7 +433,7 @@ async function isUserInTournamentFunction(req) {
         }
 
         const tournamentInfo = user.tournaments.find(tournament =>
-            tournament.tournament == tournamentId)
+            tournament.tournament.toString() == tournamentId.toString())
         if (!tournamentInfo) {
             return ({
                 status: "error",
@@ -481,7 +481,7 @@ async function advanceRound(req) {
 
         // Se busca la participación del usuario en el torneo
         console.log("user.tournaments: ", user.tournaments)
-        const userTournament = user.tournaments.find(t => t.tournament == tId);
+        const userTournament = user.tournaments.find(t => t.tournament.toString() == tId.toString());
         if (!userTournament) {
             return ({
                 status: "error",
