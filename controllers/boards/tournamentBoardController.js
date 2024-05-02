@@ -135,7 +135,6 @@ async function eliminate(req) {
     }
 }
 
-
 // Elimina los jugadores que se pasan por un array de la mesa con el id especificado
 async function eliminatePlayers(req) {
     // Parámetros en req.body: boardId, playersToDelete
@@ -592,7 +591,7 @@ async function manageHand(req) {
         const results = res.results
 
         // console.log("RESULTADOS: ", results)/////////////////////////////////////////////
-
+    
         // Se apuntan en el board las monedas ganadas por cada jugador
         for (const result of results) {
             const userId = result.userId
@@ -629,7 +628,7 @@ async function manageHand(req) {
         return ({
             status: "success",
             message: "Resultados del turno recuperados y acciones realizadas correctamente",
-            results: results
+            results: results,
         })
 
     } catch (e) {
@@ -689,7 +688,7 @@ const leaveBoard = async (req, res) => {
         }
 
         var resTournament = await TournamentController.tournamentByIdFunction({ body: { tournamentId: board.tournament }})
-        if (resTournament.status === "error") return resTournament
+        if (resTournament.status === "error") return res.status(400).json(resTournament)
         const tournament = resTournament.tournament
 
         // Se verifica que el usuario esté en la partida
@@ -710,20 +709,20 @@ const leaveBoard = async (req, res) => {
         if (board.round == 1) {
             if (board.players.length == numPlayers) {
                 res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: tournament.coins_subwinner } })
-                if (res.status === "error") return res
+                if (res.status === "error") return res.status(400).json(res)
             } else if (board.players.length == 1) {
                 res = await UserController.insertCoinsFunction({ body: { userId: userId, coins: tournament.coins_winner } })
-                if (res.status === "error") return res    
+                if (res.status === "error") return res.status(400).json(res)    
             }
             res = await TournamentController.tournamentLost({ body: { userId: userId, tournamentId: board.tournament }})
-            if (res.status === "error") return res    
+            if (res.status === "error") return res.status(400).json(res)    
         } else {
             if (board.players.length == numPlayers) {
                 res = await TournamentController.tournamentLost({ body: { userId: userId, tournamentId: board.tournament }})
-                if (res.status === "error") return res    
+                if (res.status === "error") return res.status(400).json(res)    
             } else if (board.players.length == 1) {
                 res = await TournamentController.advanceRound({ body: { userId: userId, tournamentId: board.tournament }})
-                if (res.status === "error") return res
+                if (res.status === "error") return res.status(400).json(res)
             }
         }
 
