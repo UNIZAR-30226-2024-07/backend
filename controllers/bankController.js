@@ -21,7 +21,7 @@ const numInitialCards = 2
 // Diamonds: diamantes
 // Clubs: tréboles
 // Spades: picas
-const cards = [{ value: '2', suit: 'Hearts' }, { value: '3', suit: 'Hearts' }, { value: '4', suit: 'Hearts' }, { value: '5', suit: 'Hearts' },
+const allCards = [{ value: '2', suit: 'Hearts' }, { value: '3', suit: 'Hearts' }, { value: '4', suit: 'Hearts' }, { value: '5', suit: 'Hearts' },
                { value: '6', suit: 'Hearts' }, { value: '7', suit: 'Hearts' }, { value: '8', suit: 'Hearts' }, { value: '9', suit: 'Hearts' },
                { value: '10', suit: 'Hearts' }, { value: 'Jack', suit: 'Hearts' }, { value: 'Queen', suit: 'Hearts' }, { value: 'King', suit: 'Hearts' },
                { value: 'Ace', suit: 'Hearts' },
@@ -484,7 +484,7 @@ async function initBoard(req) {
         const numPlayers = players.length + 1
 
         // Mazo total
-        const totalMaze = [...cards, ...cards]
+        const totalMaze = [...allCards, ...allCards]
 
         // Mezclar las cartas
         const shuffledCards = shuffle(totalMaze);
