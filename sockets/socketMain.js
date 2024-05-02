@@ -175,13 +175,12 @@ const Sockets = async (io) => {
                 }
 
                 // Se realizan las acciones correspondientes al fin de mano
-                res = TournamentBoardController.manageHand({ body: {boardId: boardId }})
+                res = await TournamentBoardController.manageHand({ body: {boardId: boardId }})
                 if (res.status === "error") console.error("ERROR: ", res)
                 
                 // En las partidas de torneo no es necesario verificar si se han
                 // eliminado usuarios por falta de vidas ya que eso se hace en
                 // TournamentBoardController.isEndOfGame
-                console.log("Results (socket):", res.results)
                 io.to("tournament:" + boardId).emit("hand results", res.results)
                 console.log("-- tournament: hand results")
                 console.log("\n")
