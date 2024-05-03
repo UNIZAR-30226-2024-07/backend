@@ -461,7 +461,6 @@ async function addPrivateBoardFunction(req) {
         var resAddBank
         const reqAddBank = { body: { level: bankLevel } }
         resAddBank = await BankController.add(reqAddBank)
-        console.log(resAddBank.status)
         if (resAddBank.status !== "success") {
             return ({
                 status: "error",
