@@ -103,7 +103,7 @@ async function add (req) {
         if (resAddBank.status !== "success") {
             return ({
                 status: "error",
-                message: "Error al crear la banca de la partida. " + reqAddBank.message
+                message: "Error al crear la banca de la partida. " + resAddBank.message
             })
         }
 

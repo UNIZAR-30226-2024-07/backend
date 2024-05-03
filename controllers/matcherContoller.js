@@ -461,10 +461,11 @@ async function addPrivateBoardFunction(req) {
         var resAddBank
         const reqAddBank = { body: { level: bankLevel } }
         resAddBank = await BankController.add(reqAddBank)
+        console.log(resAddBank.status)
         if (resAddBank.status !== "success") {
             return ({
                 status: "error",
-                message: "Error al crear la banca de la partida. " + reqAddBank.message
+                message: "Error al crear la banca de la partida. " + resAddBank.message
             })
         }
 
