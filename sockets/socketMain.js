@@ -96,7 +96,11 @@ const Sockets = async (io) => {
             // wait(TournamentMutex)
             // Se añade el usuario a una partida de torneo
             var res = await MatcherController.playTournament(req)
-            if (res.status === "error") console.error("ERROR: ", res.message)
+            if (res.status === "error") {
+                socket.emit("error", res)
+                console.error("-- tournament: error")
+                return console.error("------ error: ", res.message)
+            }
             const boardId = res.board._id
 
             // Se mete al usuario al room de su mesa para ser notificado
@@ -293,7 +297,11 @@ const Sockets = async (io) => {
             ////////////////////////////////////////////////////////////////////
             // wait(PublicMutex)
             var res = await MatcherController.playPublic(req)
-            if (res.status === "error") console.error("ERROR: ", res.message)
+            if (res.status === "error") {
+                socket.emit("error", res)
+                console.error("-- public: error")
+                return console.error("------ error: ", res.message)    
+            }
             const boardId = res.board._id
 
             socket.join("public:" + boardId)
@@ -532,7 +540,11 @@ const Sockets = async (io) => {
             ////////////////////////////////////////////////////////////////////
             // wait(PrivateMutex)
             var res = await MatcherController.playPrivate(req)
-            if (res.status === "error") console.error("ERROR: ", res.message)
+            if (res.status === "error") {
+                socket.emit("error", res)
+                console.error("-- private: error")
+                return console.error("------ error: ", res.message)    
+            }
             const boardId = res.board._id
 
             socket.join("private:" + boardId)
