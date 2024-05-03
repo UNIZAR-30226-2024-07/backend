@@ -605,14 +605,16 @@ async function initBoard(req) {
             blackJack: totalBankCards === numBlackJack
         }
         initBoard.push(bankObject);
-        
-        // Guardar campos bank
-        bank.bankHand = cards
-        bank.playersHands = playersHands
-        bank.bankMaze = bankBankMaze
-        bank.maze = bankMaze
 
-        await bank.save();
+        // Guardar campos bank
+        const newBank = {
+            level: bank.level,
+            maze: bankMaze,
+            playersHands: playersHands,
+            bankMaze: bankBankMaze,
+            bankHand: cards
+        }
+        await Bank.findByIdAndUpdate(bank._id, newBank, { new: true });
         
         return({
             status: "success",
