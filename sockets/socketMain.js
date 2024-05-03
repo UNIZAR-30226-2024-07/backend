@@ -98,8 +98,8 @@ const Sockets = async (io) => {
             var res = await MatcherController.playTournament(req)
             if (res.status === "error") {
                 socket.emit("error", res)
-                console.error("-- public: error")
-                console.error("ERROR: ", res.message)
+                console.error("-- tournament: error")
+                return console.error("------ error: ", res.message)
             }
             const boardId = res.board._id
 
@@ -300,7 +300,7 @@ const Sockets = async (io) => {
             if (res.status === "error") {
                 socket.emit("error", res)
                 console.error("-- public: error")
-                console.error("ERROR: ", res.message)
+                return console.error("ERROR: ", res.message)
             } 
             const boardId = res.board._id
 
@@ -542,8 +542,8 @@ const Sockets = async (io) => {
             var res = await MatcherController.playPrivate(req)
             if (res.status === "error") {
                 socket.emit("error", res)
-                console.log("-- private: error")
-                console.error("ERROR: ", res.message)
+                console.error("-- private: error")
+                return console.error("------ error: ", res.message)    
             }
             const boardId = res.board._id
 
