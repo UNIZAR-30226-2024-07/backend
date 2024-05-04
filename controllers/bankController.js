@@ -566,14 +566,22 @@ async function initBoard(req) {
 
             // Si con esas dos cartas ha hecho blackJack, confirmar jugada
             if(totalPlayerCards === numBlackJack) {
-                const reqConfirm = { body: { userId: player.player,
-                                    typeBoardName: req.body.typeBoardName,
-                                    boardId: boardId,
-                                    cardsOnTable: cards,
-                                    bankId: bankId,
-                                    handIndex: 0 } }
-                const resConfirm = await confirmPriv(reqConfirm)
-                if (resConfirm.status === "error") return (resConfirm)
+                let indexPlayersHands = playersHands.findIndex(h => h.playerId == player.player)
+                playersHands[indexPlayersHands].hands[0] = cards
+                const reqPush = { body: { typeBoardName: req.body.typeBoardName,
+                                          boardId: boardId,
+                                          userId: player.player } }
+                const resPush = await pushOnPlayersConfirm(reqPush)
+                if (resPush.status === "error") return resPush
+                
+                // const reqConfirm = { body: { userId: player.player,
+                //                     typeBoardName: req.body.typeBoardName,
+                //                     boardId: boardId,
+                //                     cardsOnTable: cards,
+                //                     bankId: bankId,
+                //                     handIndex: 0 } }
+                // const resConfirm = await confirmPriv(reqConfirm)
+                // if (resConfirm.status === "error") return (resConfirm)
             }
 
             const playerObject = {
