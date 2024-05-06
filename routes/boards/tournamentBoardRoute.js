@@ -11,6 +11,7 @@ router.get('/boardById/:id', authRequired, TournamentBoardController.boardById)
 router.put('/leaveBoard/:id', authRequired, TournamentBoardController.leaveBoard)
 
 // Jugadas posibles
+router.put('/pause/:id', authRequired, TournamentBoardController.pause)
 router.put('/drawCard', authRequired, TournamentBoardController.drawCard)
 router.put('/stick', authRequired, TournamentBoardController.stick)
 

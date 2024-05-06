@@ -540,7 +540,7 @@ async function init() {
 
 function isAlreadyWaiting(matcher, userId) {
     const alreadyWaiting = matcher.players_waiting.find(player => 
-        player.player.equals(userId))
+        player.player == userId)
     if (alreadyWaiting) {
         return ({
             status: "error",
