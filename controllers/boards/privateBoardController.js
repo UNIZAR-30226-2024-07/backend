@@ -188,7 +188,7 @@ async function eliminatePlayers(req) {
         console.log("playersToDelete:", playersToDelete)
         for (const player of board.players) {
             const index = playersToDelete.findIndex(playerDelete => 
-                player.player == playerDelete)
+                player.player.toString() == playerDelete.toString())
             if (index != -1 && player.paused) {
                 console.log("Un jugador tenía la partida pausada")
                 const user = await User.findById(player.player)
