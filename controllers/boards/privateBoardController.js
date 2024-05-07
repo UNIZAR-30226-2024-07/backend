@@ -186,9 +186,10 @@ async function eliminatePlayers(req) {
         // En caso de que tuvieran la mesa pausada, se les elimina la mesa de mesas pausadas
         for (const player of board.players) {
             if (playersToDelete.includes(player.player) && player.paused) {
+                // console.log("Un jugador tenía la partida pausada")
                 const user = await User.findById(player.player)
                 user.paused_board.splice(0, 1)
-                user.save()
+                await user.save()
             }
         }
 
