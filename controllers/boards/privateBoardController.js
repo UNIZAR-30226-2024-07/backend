@@ -184,6 +184,8 @@ async function eliminatePlayers(req) {
         }
 
         // En caso de que tuvieran la mesa pausada, se les elimina la mesa de mesas pausadas
+        console.log("board.players:", board.players)
+        console.log("playersToDelete:", playersToDelete)
         for (const player of board.players) {
             if (playersToDelete.includes(player.player) && player.paused) {
                 console.log("Un jugador tenía la partida pausada")
