@@ -156,7 +156,8 @@ async function eliminateAllUserStats(req) {
 
         // Se eliminan todas aquellas estadísticas que pertenezcan al usuario
         const deleteResult = await Stat.deleteMany({ user: userId })
-        if (deleteResult.deletedCount !== statNames.length) {
+        console.log("deleteResult: ", deleteResult)
+        if (deleteResult.deletedCount != statNames.length) {
             return ({
                 status: "error",
                 message: "No se encontraron todas las estadísticas del usuario"
