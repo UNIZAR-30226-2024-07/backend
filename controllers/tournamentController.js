@@ -263,17 +263,16 @@ const roundInTournament = async (req, res) => {
 const add = async (req, res) => {
     // Parámetros en req.body: name, price, bankLevel
     const t = req.body
-
     // Nos aseguramos de que se hayan enviado todos los parámetros
     if (!t.name || t.name.trim() === '' || !t.price || !t.bankLevel) {
         return res.status(400).json({
             status: "error",
-            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: name, price"
+            message: "Parámetros enviados incorrectamente. Se deben incluir los campos: name, price, bankLevel"
         })
     }
 
-    var res = await BankController.correctName({ body: { level: t.bankLevel }})
-    if (res.status === "error") return res
+    var resAux = await BankController.correctName({ body: { level: t.bankLevel }})
+    if (resAux.status === "error") return res.status(400).json(resAux)
 
     const price = parseInt(t.price)
     if (typeof price !== 'number' || price <= 0 || !Number.isInteger(price)) {
