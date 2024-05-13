@@ -150,7 +150,7 @@ async function eliminateAllUserStats(req) {
         if (!user) {
             return ({
                 status: "error",
-                message: "Usuario no encontrado"
+                message: "Usuario no encontrado en StatController"
             })
         }
 

@@ -16,7 +16,7 @@ async function eliminateAllUserFriends(req) {
         if (!user) {
             return ({
                 status: "error",
-                message: "Usuario no encontrado"
+                message: "Usuario no encontrado en FriendController"
             })
         }
 

@@ -1039,7 +1039,7 @@ const eliminate = async (req, res) => {
     if (!deletedUser) {
         return res.status(404).json({
             status: "error",
-            message: "Usuario no encontrado"
+            message: "Usuario no encontrado en userController"
         })
     }
 
