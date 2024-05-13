@@ -12,7 +12,6 @@ async function eliminateAllUserFriends(req) {
 
     try {
         // Se verifica que el usuario existe
-        console.log(userId)
         const user = await User.findById(userId)
         if (!user) {
             return ({

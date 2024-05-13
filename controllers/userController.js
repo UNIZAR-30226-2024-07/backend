@@ -1024,7 +1024,7 @@ const getPausedBoard = async (req, res) => {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Elimina un usuario ya existente del sistema
-const eliminate = async (req, res) => {
+const  eliminate = async (req, res) => {
     const userId = req.params.id
 
     try {
@@ -1035,7 +1035,7 @@ const eliminate = async (req, res) => {
         resAux = await StatController.eliminateAllUserStats({ body: { userId: userId }})
         if (resAux.status === "error") return res.status(400).json(resAux)
 
-        const deletedUser = await User.findOneAndRemove({ _id: userId })
+        const deletedUser = await User.findByIdAndDelete({ _id: userId })
 
         if (!deletedUser) {
             return res.status(404).json({
