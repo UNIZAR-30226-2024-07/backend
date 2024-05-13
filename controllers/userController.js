@@ -1027,26 +1027,34 @@ const getPausedBoard = async (req, res) => {
 const eliminate = async (req, res) => {
     const userId = req.params.id
 
-    // Se eliminan todos los amigos del usuario
-    var resAux = await FriendController.eliminateAllUserFriends({ body: { userId: userId }})
-    if (resAux.status === "error") return res.status(400).json(resAux)
+    try {
+        // Se eliminan todos los amigos del usuario
+        var resAux = await FriendController.eliminateAllUserFriends({ body: { userId: userId }})
+        if (resAux.status === "error") return res.status(400).json(resAux)
 
-    resAux = await StatController.eliminateAllUserStats({ body: { userId: userId }})
-    if (resAux.status === "error") return res.status(400).json(resAux)
+        resAux = await StatController.eliminateAllUserStats({ body: { userId: userId }})
+        if (resAux.status === "error") return res.status(400).json(resAux)
 
-    const deletedUser = await User.findOneAndRemove({ _id: userId })
+        const deletedUser = await User.findOneAndRemove({ _id: userId })
 
-    if (!deletedUser) {
-        return res.status(404).json({
+        if (!deletedUser) {
+            return res.status(404).json({
+                status: "error",
+                message: "Usuario no encontrado en userController"
+            })
+        }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Usuario eliminado correctamente"
+        })
+
+    } catch (e) {
+        return res.status(500).json({
             status: "error",
-            message: "Usuario no encontrado en userController"
+            message: "Error al eliminar el usuario. " + e.message
         })
     }
-
-    return res.status(200).json({
-        status: "success",
-        message: "Usuario eliminado correctamente"
-    })
 }
 
 // Dado un id de usuario y una cantidad de monedas, quita esa cantidad (si puede) al usuario.
