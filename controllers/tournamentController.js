@@ -388,7 +388,7 @@ const eliminate = async (req, res) => {
 
     const tId = req.params.id
 
-    const deletedTournament = await Tournament.findOneAndRemove({ _id: tId })
+    const deletedTournament = await Tournament.findByIdAndDelete({ _id: tId })
 
     if (!deletedTournament) {
         return res.status(404).json({
