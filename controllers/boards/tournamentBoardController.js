@@ -621,7 +621,7 @@ async function manageHand(req) {
         board.hand.numHand += 1
 
         // Se guarda la mesa con las monedas ganadas de cada jugador
-        await Tournament.findByIdAndUpdate(board._id)
+        await TournamentBoard.findByIdAndUpdate(boardId, board, { new: true })
 
         // Se devuelven los resultados de la banca en el campo results
         return ({
