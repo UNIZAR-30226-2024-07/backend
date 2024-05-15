@@ -971,8 +971,6 @@ async function createPrivate(req) {
         var res = isAlreadyWaiting(matcher, userId)
         if (res.status === "error") return res
 
-        // Se añade el jugador a la lista de jugadores esperando partida
-        matcher.players_waiting.push({ player: userId })
 
         // Se crea la mesa privada
         const reqBoard = { body: { name: name, 
@@ -987,6 +985,9 @@ async function createPrivate(req) {
         const reqAddPlayer = { body: { userId: userId, name: name, password: password }}
         res = await addPlayerPrivateBoard(reqAddPlayer)
         if (res.status === "error") return res
+
+        // Se añade el jugador a la lista de jugadores esperando partida
+        matcher.players_waiting.push({ player: userId })
 
         // Se añade la mesa a la lista de mesas de torneos esperando a jugadores
         matcher.waiting_private_boards.push({ board: res.board._id, name: name })
