@@ -1118,6 +1118,77 @@ async function isPrivateBoardReady(req) {
     }
 }
 
+const cancelGame = async (req, res) => {
+    const userId = req.user.id
+    const typeBoardName = req.body.typeBoardName
+
+    try {
+        if (typeBoardName === "public") {
+            const updatedPublicBoard = await PublicBoard.findOneAndUpdate(
+                { 'players.player': userId },
+                { $pull: { players: { player: userId } } },
+                { new: true }
+            )
+
+            if (!updatedPublicBoard) {
+                return res.status(404).json({
+                    status: "error",
+                    message: "No se encontró ninguna partida para el usuario dado en el torneo"
+                })
+            }
+        } else if (typeBoardName === "private") {
+            const updatedPrivateBoard = await PrivateBoard.findOneAndUpdate(
+                { 'players.player': userId },
+                { $pull: { players: { player: userId } } },
+                { new: true }
+            )
+
+            if (!updatedPrivateBoard) {
+                return res.status(404).json({
+                    status: "error",
+                    message: "No se encontró ninguna partida para el usuario dado en el torneo"
+                })
+            }
+        } else if (typeBoardName === "tournament") {
+            const updatedTournamentBoard = await TournamentBoard.findOneAndUpdate(
+                { 'players.player': userId },
+                { $pull: { players: { player: userId } } },
+                { new: true }
+            )
+
+            if (!updatedTournamentBoard) {
+                return res.status(404).json({
+                    status: "error",
+                    message: "No se encontró ninguna partida para el usuario dado en el torneo"
+                })
+            }
+        } else {
+            return res.status(500).json({
+                status: "error",
+                message: "El campo typeBoardName debe valer: 'public', 'private' o 'tournament'"
+            })
+        }
+
+        const updatedMatcher = await Matcher.updateOne(
+            { 'players_waiting.player': userId },
+            { $pull: { players_waiting: { player: userId } } }
+        )
+
+        if (updatedMatcher.nModified === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se encontró ningún jugador esperando con el ID proporcionado"
+            })
+        }
+        
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al cancelar la partida"
+        })
+    }
+}
+
 module.exports = {
     matcherId,
     init,
