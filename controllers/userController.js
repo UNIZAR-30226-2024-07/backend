@@ -1031,9 +1031,15 @@ async function eliminatePausedBoard (req)  {
             })
         }
 
-        user.pausedBoard = []
+        user.paused_board = []
 
-        await User.findByIdAndUpdate(userId, user, {new: true})
+        const userUpdated = await User.findByIdAndUpdate(userId, user, {new: true})
+        if (!userUpdated) {
+            return ({
+                status: "error",
+                message: "Usuario no encontrado al eliminar"
+            })
+        }
 
         return ({
             status: "success",
