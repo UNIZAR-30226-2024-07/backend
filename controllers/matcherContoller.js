@@ -1035,10 +1035,6 @@ async function playPrivate(req) {
         var res = isAlreadyWaiting(matcher, userId)
         if (res.status === "error") return res
 
-        // Se añade el jugador a la lista de jugadores esperando partida
-        matcher.players_waiting.push({ player: userId })
-        await Matcher.findByIdAndUpdate(matcherId, matcher, { new: true })
-
         // Se busca una partida ya empezada
         var board = matcher.waiting_private_boards.find(board => 
             board.name === name)
@@ -1058,6 +1054,10 @@ async function playPrivate(req) {
         const reqAddPlayer = { body: { userId: userId, name: name, password: password }}
         res = await addPlayerPrivateBoard(reqAddPlayer)
         if (res.status === "error") return res
+
+        // Se añade el jugador a la lista de jugadores esperando partida
+        matcher.players_waiting.push({ player: userId })
+        await Matcher.findByIdAndUpdate(matcherId, matcher, { new: true })        
         
         return ({
             status: "success",
