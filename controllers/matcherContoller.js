@@ -1200,5 +1200,6 @@ module.exports = {
     isPublicBoardReady,
     createPrivate,
     playPrivate,
-    isPrivateBoardReady
+    isPrivateBoardReady,
+    cancelGame
 }
