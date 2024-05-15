@@ -1180,6 +1180,11 @@ const cancelGame = async (req, res) => {
                 message: "No se encontró ningún jugador esperando con el ID proporcionado"
             })
         }
+
+        return res.status(200).json({
+            status: "success",
+            message: "Se canceló la partida adecuadamente"
+        })
         
     } catch (e) {
         return res.status(500).json({
