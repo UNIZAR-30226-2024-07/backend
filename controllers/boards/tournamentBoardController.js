@@ -433,8 +433,10 @@ async function finishBoard(req) {
         const loser = board.players.find(playerObj => playerObj.lifes <= 0)
 
         // Se elimina la mesa pausada
-        await UserController.eliminatePausedBoard({body: {userId: winner.player}})
-        await UserController.eliminatePausedBoard({body: {userId: loser.player}})
+        res = await UserController.eliminatePausedBoard({body: {userId: winner.player}})
+        if (res.status === "error") return res
+        res = await UserController.eliminatePausedBoard({body: {userId: loser.player}})
+        if (res.status === "error") return res
 
         if (board.round === 1) {
             // La partida era una final y por tanto se dan las recompensas al ganador
@@ -869,7 +871,7 @@ const pause = async (req, res) => {
         await board.save()
 
         return res.status(200).json({
-            status: "error",
+            status: "success",
             message: "Partida pausada correctamente"
         })
 
