@@ -1,6 +1,7 @@
 const Matcher = require("../models/matcherSchema")
 const MatcherController = require("../controllers/matcherContoller")
 const TournamentBoardController = require("../controllers/boards/tournamentBoardController")
+const UserController = require("../controllers/userController")
 const PublicBoardController = require("../controllers/boards/publicBoardController")
 const PrivateBoardController = require("../controllers/boards/privateBoardController")
 const SingleBoardController = require("../controllers/boards/singleBoardController")
@@ -259,6 +260,7 @@ const Sockets = async (io) => {
         }
 
         const boardId = req.body.boardId
+        const userId = req.body.userId
         var res
 
         try {
@@ -273,6 +275,9 @@ const Sockets = async (io) => {
             socket.join("tournament:" + boardId)
             socket.emit("resume accepted")
             console.log("-- tournament: resume accepted")
+
+            // Se elimina la mesa pausada
+            await UserController.eliminatePausedBoard({body: {userId: userId}})
 
         } catch (e) {
             return console.error("Error al reanudar la partida. " + e.message)
@@ -468,6 +473,7 @@ const Sockets = async (io) => {
         }
 
         const boardId = req.body.boardId
+        const userId = req.body.userId
         var res
 
         try {
@@ -482,6 +488,9 @@ const Sockets = async (io) => {
             socket.join("public:" + boardId)
             socket.emit("resume accepted")
             console.log("-- public: resume accepted")
+    
+            // Se elimina la mesa pausada
+            await UserController.eliminatePausedBoard({body: {userId: userId}})
 
         } catch (e) {
             return console.error("Error al reanudar la partida. " + e.message)
@@ -706,6 +715,7 @@ const Sockets = async (io) => {
         }
 
         const boardId = req.body.boardId
+        const userId = req.body.userId
         var res
 
         try {
@@ -720,6 +730,9 @@ const Sockets = async (io) => {
             socket.join("private:" + boardId)
             socket.emit("resume accepted")
             console.log("-- private: resume accepted")
+
+            // Se elimina la mesa pausada
+            await UserController.eliminatePausedBoard({body: {userId: userId}})
 
         } catch (e) {
             return console.error("Error al reanudar la partida. " + e.message)

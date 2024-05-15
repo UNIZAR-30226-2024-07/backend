@@ -234,7 +234,11 @@ async function seeAbsents(req) {
             if (!board.hand.players.includes(playerObj.player)) playerObj.handsAbsent++
 
             // Eliminar al jugador si ha dejado de jugar dos manos consecutivas
-            if (playerObj.handsAbsent >= 2) playersToDelete.push(playerObj.player)
+            if (playerObj.handsAbsent >= 2) {
+                // Se elimina la mesa pausada
+                await UserController.eliminatePausedBoard({body: {userId: playerObj.player}})
+                playersToDelete.push(playerObj.player)
+            }
         }
 
         await board.save()
@@ -427,6 +431,10 @@ async function finishBoard(req) {
 
         const winner = board.players.find(playerObj => playerObj.lifes > 0)
         const loser = board.players.find(playerObj => playerObj.lifes <= 0)
+
+        // Se elimina la mesa pausada
+        await UserController.eliminatePausedBoard({body: {userId: winner.player}})
+        await UserController.eliminatePausedBoard({body: {userId: loser.player}})
 
         if (board.round === 1) {
             // La partida era una final y por tanto se dan las recompensas al ganador
@@ -724,6 +732,9 @@ const leaveBoard = async (req, res) => {
                 if (resAux.status === "error") return res.status(400).json(resAux)
             }
         }
+
+        // Se elimina la mesa pausada
+        await UserController.eliminatePausedBoard({body: {userId: userId}})
 
         // Eliminar al usuario de la lista de jugadores en la partida
         board.players.splice(playerIndex, 1);

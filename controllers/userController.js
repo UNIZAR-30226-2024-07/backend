@@ -1019,6 +1019,34 @@ const getPausedBoard = async (req, res) => {
     }
 }
 
+async function eliminatePausedBoard (req)  {
+    const userId = req.body.userId
+
+    try {
+        const user = await User.findById(userId)
+        if (!user) {
+            return ({
+                status: "error",
+                message: "Usuario no encontrado en eliminatePausedBoard"
+            })
+        }
+
+        user.pausedBoard = []
+
+        await User.findByIdAndUpdate(userId, user, {new: true})
+
+        return ({
+            status: "success",
+            message: "Mesa pausada eliminada correctamente"
+        })
+    } catch (e) {
+        return ({
+            status: "error",
+            message: "Error al eliminar la partida pausada. " + e.message
+        })
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Funciones del administrador
 ////////////////////////////////////////////////////////////////////////////////
@@ -1275,5 +1303,6 @@ module.exports = {
     insertCoinsFunction,
     getDailyReward,
     coinsDailyReward,
-    getPausedBoard
+    getPausedBoard,
+    eliminatePausedBoard
 }
