@@ -381,7 +381,7 @@ async function isEndOfGame(req) {
 
         // Verificar si algún jugador tiene 0 vidas
         for (const playerObj of board.players) {
-            if (playerObj.lifes === 0) {
+            if (playerObj.lifes <= 0) {
                 return ({
                     status: "success",
                     message: "La partida ha terminado porque un jugador se quedó sin vidas"
