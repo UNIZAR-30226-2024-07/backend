@@ -356,6 +356,37 @@ const getAllUserStats = async (req, res) => {
     }
 }
 
+// Devuelve todas las estadísticas de un usuario
+const getAllStatsByUser = async (req, res) => {
+    const userId = req.params.id
+
+    try {
+        // Busca todas las estadísticas del usuario con el ID proporcionado
+        const userStats = await Stat.find({ user: userId })
+
+        // Si no se encuentran estadísticas para el usuario, retorna un mensaje indicando que no se encontraron estadísticas
+        if (!userStats || userStats.length === 0) {
+            return res.status(404).json({ 
+                status: "error",
+                message: "No se encontraron estadísticas para este usuario"
+            })
+        }
+
+        // Si se encuentran estadísticas, las devuelve en la respuesta
+        return res.status(200).json({
+            status: "error",
+            message: "Estadísticas encontradas correctamente",
+            userStats: userStats
+        })
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al encontrar todas las estadísticas del usuario"
+        })
+    }
+}
+
+
 // Funciones que se exportan
 module.exports = {
     initUserStats,
@@ -367,5 +398,6 @@ module.exports = {
     update,
     eliminate,
     statByNameAndUser,
-    getAllUserStats
+    getAllUserStats,
+    getAllStatsByUser
 }
